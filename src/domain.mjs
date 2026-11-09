@@ -86,6 +86,20 @@ export async function normaliseTrip(input) {
   return { id, date, start, amount, km, min, platform, source };
 }
 
+export async function normaliseReward(input) {
+  assertObject(input, "reward");
+  const date = requireDate(input.date);
+  const start = requireTime(input.start, "start");
+  const amount = finiteNumber(input.amount, "amount", { min: 1, max: 100000000, integer: true });
+  const label = safeLabel(input.label ?? "Recompensa", "label", 40) ?? "Recompensa";
+  const source = String(input.source ?? "sentinelx_ocr").trim().toLowerCase();
+  if (!SOURCE_RE.test(source)) throw new Error("source must be a short identifier");
+  const providedId = safeId(input.id);
+  const id = providedId ?? await stableId([date, start, String(amount), label, source]);
+  // Rewards are intentionally separate from rides; passenger and location fields are discarded.
+  return { id, date, start, amount, label, source };
+}
+
 export async function normaliseFuelLog(input) {
   assertObject(input, "fuel log");
   const date = requireDate(input.date);

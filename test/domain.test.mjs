@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normaliseTrip, normaliseFuelLog, normaliseWorkSession } from "../src/domain.mjs";
+import { normaliseTrip, normaliseReward, normaliseFuelLog, normaliseWorkSession } from "../src/domain.mjs";
 
 test("normaliseTrip preserves the agreed ingestion contract and generates a deterministic id", async () => {
   const input = {
@@ -82,4 +82,40 @@ test("normaliseTrip discards location and any unrecognised passenger fields", as
   assert.equal("destination_zone" in trip, false);
   assert.equal("passenger_name" in trip, false);
   assert.equal("phone" in trip, false);
+});
+
+
+test("normaliseReward stores a bonus separately and strips passenger location data", async () => {
+  const input = {
+    date: "2026-11-06",
+    start: "21:33",
+    amount: 35000,
+    label: "Recompensa",
+    source: "sentinelx_ocr",
+    passenger_name: "not stored",
+    origin_address: "not stored"
+  };
+  const first = await normaliseReward(input);
+  const second = await normaliseReward(input);
+  assert.equal(first.date, "2026-11-06");
+  assert.equal(first.start, "21:33");
+  assert.equal(first.amount, 35000);
+  assert.equal(first.label, "Recompensa");
+  assert.equal(first.source, "sentinelx_ocr");
+  assert.match(first.id, /^[a-f0-9]{64}$/);
+  assert.equal(first.id, second.id);
+  assert.equal("passenger_name" in first, false);
+  assert.equal("origin_address" in first, false);
+});
+
+test("normaliseReward rejects invalid dates, times, and non-positive amounts", async () => {
+  await assert.rejects(() => normaliseReward({
+    date: "2026-02-30", start: "09:10", amount: 1200
+  }), /date/i);
+  await assert.rejects(() => normaliseReward({
+    date: "2026-11-06", start: "25:10", amount: 1200
+  }), /start/i);
+  await assert.rejects(() => normaliseReward({
+    date: "2026-11-06", start: "09:10", amount: 0
+  }), /amount/i);
 });

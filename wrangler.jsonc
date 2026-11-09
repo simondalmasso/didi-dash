@@ -8,12 +8,10 @@
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
-  "d1_databases": [
+  "kv_namespaces": [
     {
-      "binding": "DB",
-      "database_name": "didi-dash",
-      "database_id": "__D1_DATABASE_ID__",
-      "migrations_dir": "migrations"
+      "binding": "DATA",
+      "id": "b77c75547dcc4d0bbc7d6928de0fcf9b"
     }
   ]
 }
