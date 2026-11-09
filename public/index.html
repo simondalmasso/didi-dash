@@ -258,7 +258,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     $('fuel-hint').textContent = fuel.length + ' tickets · gasto registrado';
     $('period-label').textContent = state.range === 0 ? 'Todo el historial' : 'Últimos ' + state.range + ' días';
     $('connection').textContent = 'Actualizado · ' + trips.length + ' viajes';
-    renderHeroSpark(activity);
+    renderHeroSpark(trips);
     renderDaily(trips);
     renderHours(trips);
     renderTrips(trips);
@@ -279,7 +279,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     });
     const line = coords.map(([x,y], index) => (index ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2)).join(" ");
     const area = line + " L100 64 L0 64 Z";
-    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de importes registrados">' +
+    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de ingresos de viajes">' +
       '<defs><linearGradient id="spark-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>' +
       '<path d="' + area + '" fill="url(#spark-fill)"/><path d="' + line + '" fill="none" stroke="#30d158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
   }
