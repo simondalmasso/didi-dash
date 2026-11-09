@@ -10,9 +10,7 @@ test("normaliseTrip preserves the agreed ingestion contract and generates a dete
     km: 2.7,
     min: 9.9,
     platform: "DiDi",
-    source: "sentinelx_ocr",
-    origin_zone: "Centro",
-    destination_zone: "Candioti"
+    source: "sentinelx_ocr"
   };
 
   const first = await normaliseTrip(input);
@@ -24,8 +22,6 @@ test("normaliseTrip preserves the agreed ingestion contract and generates a dete
   assert.equal(first.km, 2.7);
   assert.equal(first.min, 9.9);
   assert.equal(first.platform, "didi");
-  assert.equal(first.origin_zone, "Centro");
-  assert.equal(first.destination_zone, "Candioti");
   assert.match(first.id, /^[a-f0-9]{64}$/);
   assert.equal(first.id, second.id);
 });
@@ -74,4 +70,20 @@ test("normaliseWorkSession requires paired odometer readings and valid connected
 
   assert.ok(Math.abs(session.odometer_km - 72.4) < 1e-8);
   assert.equal(session.connected_minutes, 360);
+});
+
+
+test("normaliseTrip discards location and any unrecognised passenger fields", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-03", start: "17:35", amount: 2300, km: 2.7, min: 9.9,
+    platform: "didi", origin_zone: "Centro", destination_zone: "Candioti",
+    passenger_name: "Private Passenger", phone: "0000000000"
+  });
+  assert.deepEqual(Object.keys(trip).sort(), [
+    "amount", "date", "id", "km", "min", "platform", "source", "start"
+  ]);
+  assert.equal("origin_zone" in trip, false);
+  assert.equal("destination_zone" in trip, false);
+  assert.equal("passenger_name" in trip, false);
+  assert.equal("phone" in trip, false);
 });
