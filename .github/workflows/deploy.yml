@@ -2,36 +2,48 @@ name: Deploy Didi Dash
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: didi-dash-production
+  group: didi-dash-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned Wrangler
+        run: npm install --no-audit --no-fund
+      - name: Run tests
+        run: npm test
+
   deploy:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Install pinned Wrangler
         run: npm install --no-audit --no-fund
-
-      - name: Run tests
-        run: npm test
-
       - name: Provision D1, apply migrations and deploy
         run: npm run deploy
         env:
