@@ -136,7 +136,6 @@ async function normaliseBatch(items, normaliser, existingRows) {
 function sameTripIdentity(left, right) {
   return left.date === right.date &&
     left.start === right.start &&
-    Number(left.amount) === Number(right.amount) &&
     String(left.platform ?? "").toLowerCase() === String(right.platform ?? "").toLowerCase();
 }
 
@@ -147,6 +146,16 @@ function mergeTripDetails(existing, incoming) {
   const existingSource = existing.km_source ?? (existingKm > 0 ? "actual" : "unknown");
   const incomingSource = incoming.km_source ?? (incomingKm > 0 ? "actual" : "unknown");
   let updated = false;
+
+  // The history list can show an estimated fare while Details shows the final settled driver earnings.
+  // A uniquely matched DiDi detail record is authoritative for the amount.
+  const existingAmount = Number(existing.amount) || 0;
+  const incomingAmount = Number(incoming.amount) || 0;
+  if (incoming.source === "didi_history_detail" &&
+      incomingAmount > 0 && incomingAmount !== existingAmount) {
+    next.amount = incomingAmount;
+    updated = true;
+  }
 
   if (existingKm <= 0 && incomingKm > 0) {
     next.km = incomingKm;

@@ -331,3 +331,49 @@ test("actual trip kilometres are never downgraded by a later route estimate", as
   assert.equal(DATA.value().trips[0].km, 3.4);
   assert.equal(DATA.value().trips[0].km_source, "actual");
 });
+
+
+test("detail amount corrections enrich the uniquely identified ride instead of inserting duplicates", async () => {
+  const DATA = memoryKV();
+  const summary = { date: "2026-11-07", start: "22:09", amount: 5100, km: 0, min: 0, platform: "didi", source: "didi_history" };
+  const detail = { ...summary, amount: 4800, km: 3.8, km_source: "actual", min: 8 + 53/60, source: "didi_history_detail" };
+  await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify({ trips: [summary] })
+  }), { INGEST_TOKEN, DATA });
+  const originalId = DATA.value().trips[0].id;
+
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify({ trips: [detail] })
+  }), { INGEST_TOKEN, DATA });
+  assert.deepEqual((await response.json()).trips, { received: 1, inserted: 0, updated: 1, duplicates: 0, ambiguous: 0 });
+  assert.equal(DATA.value().trips.length, 1);
+  assert.equal(DATA.value().trips[0].id, originalId);
+  assert.equal(DATA.value().trips[0].amount, 4800);
+  assert.equal(DATA.value().trips[0].km, 3.8);
+  assert.equal(DATA.value().trips[0].min, 8 + 53/60);
+
+  const replay = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify({ trips: [detail] })
+  }), { INGEST_TOKEN, DATA });
+  assert.deepEqual((await replay.json()).trips, { received: 1, inserted: 0, updated: 0, duplicates: 1, ambiguous: 0 });
+  assert.equal(DATA.value().trips.length, 1);
+});
+
+test("a detail with changed amount is not merged when date, time and platform are ambiguous", async () => {
+  const base = { date: "2026-11-07", start: "22:09", min: 0, platform: "didi" };
+  const DATA = memoryKV({
+    trips: [
+      { id: "legacy-a", ...base, amount: 5100, km: 0, source: "didi_history" },
+      { id: "legacy-b", ...base, amount: 5200, km: 0, source: "didi_history" }
+    ],
+    rewards: [], fuel: [], sessions: []
+  });
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [{ ...base, amount: 4800, km: 3.8, km_source: "actual", min: 8.9, source: "didi_history_detail" }] })
+  }), { INGEST_TOKEN, DATA });
+  assert.deepEqual((await response.json()).trips, { received: 1, inserted: 0, updated: 0, duplicates: 0, ambiguous: 1 });
+  assert.equal(DATA.value().trips.length, 2);
+  assert.equal(DATA.value().trips[0].amount, 5100);
+  assert.equal(DATA.value().trips[1].amount, 5200);
+});
