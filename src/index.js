@@ -308,6 +308,27 @@ async function handleApi(request, env) {
     }
 
     if (path === "/api/trips" && method === "GET") return getTrips(request, env.DB);
+    if (path === "/api/export" && method === "GET") {
+      const [trips, fuel, sessions] = await Promise.all([
+        listRows(env.DB, "trips", 5000),
+        listRows(env.DB, "fuel_logs", 5000),
+        listRows(env.DB, "work_sessions", 5000)
+      ]);
+      return json({
+        schema_version: 1,
+        exported_at: new Date().toISOString(),
+        trips,
+        fuel,
+        sessions,
+        truncated: {
+          trips: trips.length === 5000,
+          fuel: fuel.length === 5000,
+          sessions: sessions.length === 5000
+        }
+      }, 200, {
+        "content-disposition": 'attachment; filename="didi-dash-backup.json"'
+      });
+    }
     if (path === "/api/trips" && method === "POST") {
       const body = await readJson(request);
       const records = await insertTrips(env.DB, extractArray(body, "trips"));
