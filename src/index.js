@@ -184,7 +184,7 @@ async function handleApi(request, env) {
   const path = url.pathname;
   const method = request.method.toUpperCase();
 
-  if (path === "/api/health" && method === "GET") {
+  if (path === "/api/health" && (method === "GET" || method === "HEAD")) {
     return json({ ok: true, service: "didi-dash", storage: env.DATA ? "kv" : "unavailable" });
   }
 
@@ -192,7 +192,7 @@ async function handleApi(request, env) {
     return handleIngest(request, env);
   }
 
-  if (method !== "GET") {
+  if (method !== "GET" && method !== "HEAD") {
     throw new HttpError(405, "Dashboard is public read-only; writes require the private ingestion endpoint");
   }
 
@@ -205,13 +205,14 @@ async function handleApi(request, env) {
       : rows;
     const limit = safeLimit(url.searchParams.get("limit"));
     const trips = sorted(filtered, limit);
-    return json({ trips, count: trips.length, limit });
+    return json({ trips, count: trips.length, total: filtered.length, limit, truncated: trips.length < filtered.length });
   }
 
   if (path === "/api/rewards") {
     const limit = safeLimit(url.searchParams.get("limit"));
-    const rewards = sorted(filterDateRange(ledger.rewards, url), limit);
-    return json({ rewards, count: rewards.length, limit });
+    const filteredRewards = filterDateRange(ledger.rewards, url);
+    const rewards = sorted(filteredRewards, limit);
+    return json({ rewards, count: rewards.length, total: filteredRewards.length, limit, truncated: rewards.length < filteredRewards.length });
   }
 
   if (path === "/api/fuel") {
