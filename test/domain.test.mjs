@@ -20,6 +20,7 @@ test("normaliseTrip preserves the agreed ingestion contract and generates a dete
   assert.equal(first.start, "17:35");
   assert.equal(first.amount, 2300);
   assert.equal(first.km, 2.7);
+  assert.equal(first.km_source, "actual");
   assert.equal(first.min, 9.9);
   assert.equal(first.platform, "didi");
   assert.match(first.id, /^[a-f0-9]{64}$/);
@@ -76,7 +77,7 @@ test("normaliseTrip discards location and any unrecognised passenger fields", as
     passenger_name: "Private Passenger", phone: "0000000000"
   });
   assert.deepEqual(Object.keys(trip).sort(), [
-    "amount", "date", "id", "km", "min", "platform", "source", "start"
+    "amount", "date", "id", "km", "km_source", "min", "platform", "source", "start"
   ]);
   assert.equal("origin_zone" in trip, false);
   assert.equal("destination_zone" in trip, false);
@@ -118,4 +119,15 @@ test("normaliseReward rejects invalid dates, times, and non-positive amounts", a
   await assert.rejects(() => normaliseReward({
     date: "2026-11-06", start: "09:10", amount: 0
   }), /amount/i);
+});
+
+
+test("normaliseTrip keeps estimated kilometres explicitly separate from actual kilometres", async () => {
+  const trip = await normaliseTrip({ date: "2026-11-03", start: "18:10", amount: 1800, km: 4.2, km_source: "estimated", min: 12, platform: "didi" });
+  assert.equal(trip.km_source, "estimated");
+});
+
+test("normaliseTrip marks zero kilometres as unknown", async () => {
+  const trip = await normaliseTrip({ date: "2026-11-03", start: "18:20", amount: 1800, km: 0, min: 0, platform: "didi" });
+  assert.equal(trip.km_source, "unknown");
 });
