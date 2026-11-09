@@ -73,6 +73,8 @@ export async function normaliseTrip(input) {
   const start = requireTime(input.start, "start");
   const amount = finiteNumber(input.amount, "amount", { min: 1, max: 100000000, integer: true });
   const km = finiteNumber(input.km, "km", { min: 0, max: 1000 });
+  const km_source = km > 0 ? String(input.km_source ?? "actual").trim().toLowerCase() : "unknown";
+  if (!["actual", "estimated", "unknown"].includes(km_source)) throw new Error("km_source must be actual, estimated or unknown");
   const min = finiteNumber(input.min, "min", { min: 0, max: 1440 });
   const platform = platformName(input.platform);
   const source = String(input.source ?? "sentinelx_ocr").trim().toLowerCase();
@@ -83,7 +85,7 @@ export async function normaliseTrip(input) {
   ]);
 
   // Whitelist the trip contract; passenger or location fields are never persisted.
-  return { id, date, start, amount, km, min, platform, source };
+  return { id, date, start, amount, km, km_source, min, platform, source };
 }
 
 export async function normaliseReward(input) {
