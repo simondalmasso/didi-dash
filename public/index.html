@@ -83,7 +83,6 @@ tbody tr:last-child td{border-bottom:0}
 .hidden{display:none!important}.subhead{color:var(--muted);font-size:11px;margin:4px 0 13px}
 .empty{padding:21px;text-align:center;color:var(--muted);font-size:12px}
 .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.zone-list{display:grid;gap:6px}.zone-item{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);padding:8px 0;font-size:12px}.zone-item:last-child{border:0}
 footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
 .form-grid input[type=checkbox]{width:auto;accent-color:var(--green)}
 #connection{background:rgba(48,209,88,.13);color:var(--green)}
@@ -157,18 +156,11 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
         <div id="daily-chart"></div>
       </section>
 
-      <div class="grid two">
-        <section class="card">
+              <section class="card">
           <h2>Rendimiento por hora de inicio</h2>
           <div class="note" style="margin:0 0 8px">Suma de importes según la hora en que empezó cada viaje. No representa horas conectadas.</div>
           <div id="hour-chart"></div>
         </section>
-        <section class="card">
-          <h2>Zonas frecuentes</h2>
-          <div class="note" style="margin:0 0 8px">Solo se muestran zonas generales si el extractor las obtuvo. No se guardan domicilios.</div>
-          <div id="zones" class="zone-list"><div class="empty">Todavía no hay zonas registradas.</div></div>
-        </section>
-      </div>
 
       <section class="card">
         <div class="section-head"><h2>Supuestos de combustible</h2><span id="consumption-source" class="pill">Consumo estimado</span></div>
@@ -369,7 +361,6 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
     $("period-label").textContent = state.range === 0 ? "Todo el historial" : "Últimos " + state.range + " días";
     renderDaily(trips);
     renderHours(trips);
-    renderZones(trips);
     renderTrips(trips);
     renderSessions(sessions);
     renderFuel(fuel);
@@ -430,23 +421,11 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
       '<div class="bar-row"><span>' + String(x.hour).padStart(2,"0") + ':00</span><div class="bar"><i style="width:' + (x.value/max*100).toFixed(1) + '%"></i></div><strong class="right">' + money.format(x.value) + '</strong></div>'
     ).join("");
   }
-  function renderZones(trips) {
-    const counts = {};
-    for (const t of trips) {
-      for (const zone of [t.origin_zone, t.destination_zone]) {
-        if (zone) counts[zone] = (counts[zone] || 0) + 1;
-      }
-    }
-    const rows = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
-    $("zones").innerHTML = rows.length ? rows.map(([zone,count]) =>
-      '<div class="zone-item"><span>' + escapeHtml(zone) + '</span><strong>' + count + '</strong></div>'
-    ).join("") : '<div class="empty">Las zonas aparecerán cuando estén disponibles en los datos de cada viaje.</div>';
-  }
   function renderTrips(trips) {
     if (!trips.length) { $("trips-table").innerHTML = '<div class="empty">No hay viajes cargados todavía.</div>'; return; }
     const rows = trips.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
-    $("trips-table").innerHTML = '<table><thead><tr><th>Fecha</th><th>Hora</th><th>Plataforma</th><th class="right">Importe</th><th class="right">Km</th><th class="right">Min</th><th class="right">$ / km</th><th>Zonas</th></tr></thead><tbody>' +
-      rows.map((t) => '<tr><td>' + escapeHtml(dateLabel(t.date)) + '</td><td>' + escapeHtml(t.start) + '</td><td>' + escapeHtml(String(t.platform).toUpperCase()) + '</td><td class="right">' + money.format(asNumber(t.amount)) + '</td><td class="right">' + number.format(asNumber(t.km)) + '</td><td class="right">' + number.format(asNumber(t.min)) + '</td><td class="right">' + (asNumber(t.km) > 0 ? money.format(asNumber(t.amount)/asNumber(t.km)) : "—") + '</td><td>' + escapeHtml([t.origin_zone,t.destination_zone].filter(Boolean).join(" → ") || "—") + '</td></tr>').join("") +
+    $("trips-table").innerHTML = '<table><thead><tr><th>Fecha</th><th>Hora</th><th>Plataforma</th><th class="right">Importe</th><th class="right">Km</th><th class="right">Min</th><th class="right">$ / km</th></tr></thead><tbody>' +
+      rows.map((t) => '<tr><td>' + escapeHtml(dateLabel(t.date)) + '</td><td>' + escapeHtml(t.start) + '</td><td>' + escapeHtml(String(t.platform).toUpperCase()) + '</td><td class="right">' + money.format(asNumber(t.amount)) + '</td><td class="right">' + number.format(asNumber(t.km)) + '</td><td class="right">' + number.format(asNumber(t.min)) + '</td><td class="right">' + (asNumber(t.km) > 0 ? money.format(asNumber(t.amount)/asNumber(t.km)) : "—") + '</td></tr>').join("") +
       '</tbody></table>';
   }
   function renderSessions(sessions) {
@@ -541,7 +520,7 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
     }
   });
   $("export-csv").addEventListener("click", () => {
-    const cols = ["id","date","start","platform","amount","km","min","source","origin_zone","destination_zone"];
+    const cols = ["id","date","start","platform","amount","km","min","source"];
     const csv = [cols.join(","), ...selected(state.trips).map((t) => cols.map((key) => '"' + String(t[key] ?? "").replace(/"/g,'""') + '"').join(","))].join("\r\n");
     const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"}));
     const a = document.createElement("a"); a.href = url; a.download = "didi-dash-trips.csv"; a.click(); URL.revokeObjectURL(url);
