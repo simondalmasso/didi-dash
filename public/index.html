@@ -215,7 +215,7 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
       </div>
 
       <section class="card">
-        <div class="section-head"><h2>Historial de viajes</h2><div class="row"><button id="export-csv" class="secondary" type="button">Exportar CSV</button></div></div>
+        <div class="section-head"><h2>Historial de viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">Exportar CSV</button></div></div>
         <div class="table-wrap" id="trips-table"><div class="empty">Cargando viajes…</div></div>
       </section>
 
@@ -523,6 +523,22 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
       setStatus("import-status","Nuevos: " + result.inserted + " · repetidos: " + result.duplicates,"good");
       await loadData();
     } catch (error) { setStatus("import-status",error.message,"error"); }
+  });
+  $("backup-json").addEventListener("click", async () => {
+    try {
+      const response = await fetch("/api/export", { credentials:"same-origin", cache:"no-store" });
+      if (!response.ok) throw new Error(response.status === 401 ? "La sesión venció. Volvé a ingresar." : "No se pudo generar el backup.");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "didi-dash-backup.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      $("import-status").textContent = error.message;
+      $("import-status").className = "status error";
+    }
   });
   $("export-csv").addEventListener("click", () => {
     const cols = ["id","date","start","platform","amount","km","min","source","origin_zone","destination_zone"];
