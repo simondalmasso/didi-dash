@@ -20,7 +20,7 @@ Add these repository secrets under **Settings → Secrets and variables → Acti
 | Secret | Purpose |
 | --- | --- |
 | CLOUDFLARE_ACCOUNT_ID | Cloudflare account identifier |
-| CLOUDFLARE_API_TOKEN | Cloudflare token with D1 Read, D1 Write and Workers Scripts Write permissions |
+| CLOUDFLARE_API_TOKEN | Account token with D1 Read + D1 Write and Developer Platform Workers Editor for the existing `didi-dash` Worker |
 | DASHBOARD_PASSWORD | Unique dashboard password, at least 18 characters |
 | INGEST_TOKEN | Random ingestion bearer token, at least 32 characters |
 | SESSION_SECRET | Random HMAC key, at least 32 characters |
@@ -85,6 +85,7 @@ Response:
 
 ### Authenticated dashboard APIs
 
+- GET /api/export — downloads up to 5,000 rows per table as a JSON backup (trips, fuel logs, work sessions); the response marks a table as potentially truncated when it reaches the limit.
 - GET /api/trips?limit=2000&from=YYYY-MM-DD&to=YYYY-MM-DD&platform=didi
 - POST /api/trips — manual JSON import (session required)
 - GET /api/fuel / POST /api/fuel
@@ -129,3 +130,8 @@ Deployment is done by GitHub Actions. Do not run a production deployment until t
 - Fuel margin: gross revenue minus estimated fuel consumed. This is not net profit and excludes platform commission, insurance, maintenance, tyres, depreciation and other expenses.
 - Fuel cost estimation uses odometer distance when work sessions contain paired odometer readings; otherwise it estimates total distance from passenger km plus a configurable empty-km allowance.
 - Actual km/L requires at least two full-tank records. Until then, the dashboard labels consumption as an assumption.
+
+
+## Backups
+
+Use the authenticated **Backup JSON** button in the dashboard regularly. It exports trips, fuel tickets and work sessions. Keep copies outside the browser and outside the Worker account. The dashboard also offers CSV export for the filtered trips list. The JSON export is limited to 5,000 rows per table per download; check the `truncated` flags in the file.
