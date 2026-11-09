@@ -157,7 +157,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
   const isoToday = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
   const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
   const number = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
-  const ETIOS_L_PER_100KM = 8.5; // default urban/manual reference; replace with measured consumption when enough fuel logs exist
+  const ETIOS_L_PER_100KM = 7.4; // Toyota Argentina reference: Etios hatchback 1.5, manual 6-speed, urban cycle; replace with measured tank-to-tank consumption
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
