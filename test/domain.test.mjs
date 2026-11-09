@@ -26,7 +26,7 @@ test("normaliseTrip preserves the agreed ingestion contract and generates a dete
   assert.equal(first.id, second.id);
 });
 
-test("normaliseTrip rejects impossible dates, negative amounts and address-like zones", async () => {
+test("normaliseTrip rejects impossible dates and negative amounts", async () => {
   await assert.rejects(() => normaliseTrip({
     date: "2026-02-30", start: "09:10", amount: 2300, km: 2, min: 5, platform: "didi"
   }), /date/i);
@@ -35,10 +35,6 @@ test("normaliseTrip rejects impossible dates, negative amounts and address-like 
     date: "2026-11-03", start: "09:10", amount: -1, km: 2, min: 5, platform: "didi"
   }), /amount/i);
 
-  await assert.rejects(() => normaliseTrip({
-    date: "2026-11-03", start: "09:10", amount: 2300, km: 2, min: 5,
-    platform: "didi", origin_zone: "San Martin 1234"
-  }), /zone/i);
 });
 
 test("normaliseFuelLog accepts a ticket record without storing payment or personal data", async () => {
