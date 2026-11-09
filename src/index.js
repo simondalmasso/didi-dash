@@ -1,16 +1,13 @@
 import {
   normaliseFuelLog,
+  normaliseReward,
   normaliseTrip,
   normaliseWorkSession
 } from "./domain.mjs";
 
-const COOKIE_NAME = "__Host-didi_dash_session";
-const SESSION_TTL_SECONDS = 12 * 60 * 60;
-const REMEMBERED_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+const LEDGER_KEY = "ledger:v1";
 const MAX_BODY_BYTES = 1024 * 1024;
-const LOGIN_MAX_FAILURES = 5;
-const LOGIN_WINDOW_SECONDS = 15 * 60;
-const LOGIN_BLOCK_SECONDS = 15 * 60;
+const MAX_LEDGER_BYTES = 25 * 1024 * 1024;
 const encoder = new TextEncoder();
 
 class HttpError extends Error {
@@ -49,82 +46,6 @@ function constantTimeEqual(left, right) {
   return difference === 0;
 }
 
-function base64url(bytes) {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
-function fromBase64url(value) {
-  const normalised = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = normalised + "=".repeat((4 - (normalised.length % 4)) % 4);
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
-}
-
-async function hmacKey(secret) {
-  return crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"]
-  );
-}
-
-async function createSessionToken(secret, ttlSeconds = SESSION_TTL_SECONDS) {
-  const nonce = new Uint8Array(16);
-  crypto.getRandomValues(nonce);
-  const payload = base64url(encoder.encode(JSON.stringify({
-    exp: Math.floor(Date.now() / 1000) + ttlSeconds,
-    nonce: base64url(nonce)
-  })));
-  const signature = await crypto.subtle.sign("HMAC", await hmacKey(secret), encoder.encode(payload));
-  return `${payload}.${base64url(new Uint8Array(signature))}`;
-}
-
-async function verifySessionToken(token, secret) {
-  if (!secret || typeof token !== "string" || token.length > 2048) return false;
-  const parts = token.split(".");
-  if (parts.length !== 2) return false;
-  try {
-    const valid = await crypto.subtle.verify(
-      "HMAC",
-      await hmacKey(secret),
-      fromBase64url(parts[1]),
-      encoder.encode(parts[0])
-    );
-    if (!valid) return false;
-    const payload = JSON.parse(new TextDecoder().decode(fromBase64url(parts[0])));
-    return Number.isInteger(payload.exp) && payload.exp > Math.floor(Date.now() / 1000);
-  } catch {
-    return false;
-  }
-}
-
-function cookieValue(request, name) {
-  const header = request.headers.get("cookie") ?? "";
-  for (const part of header.split(";")) {
-    const separator = part.indexOf("=");
-    if (separator < 0) continue;
-    if (part.slice(0, separator).trim() === name) return part.slice(separator + 1).trim();
-  }
-  return null;
-}
-
-function sessionCookie(token, ttlSeconds = SESSION_TTL_SECONDS) {
-  return `${COOKIE_NAME}=${token}; Path=/; Max-Age=${ttlSeconds}; Secure; HttpOnly; SameSite=Strict`;
-}
-
-function clearSessionCookie() {
-  return `${COOKIE_NAME}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict`;
-}
-
-function sameOrigin(request) {
-  const origin = request.headers.get("origin");
-  return Boolean(origin) && origin === new URL(request.url).origin;
-}
-
 async function readJson(request) {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("application/json")) {
@@ -141,138 +62,121 @@ async function readJson(request) {
   }
 }
 
-function extractArray(body, key) {
-  if (Array.isArray(body)) return body;
-  if (body && Array.isArray(body[key])) return body[key];
-  throw new HttpError(400, `Body must be an array or contain a ${key} array`);
+async function readLedger(env) {
+  if (!env.DATA) throw new HttpError(503, "KV storage is not configured");
+  const stored = await env.DATA.get(LEDGER_KEY, "json");
+  const ledger = stored && typeof stored === "object" ? stored : {};
+  return {
+    trips: Array.isArray(ledger.trips) ? ledger.trips : [],
+    rewards: Array.isArray(ledger.rewards) ? ledger.rewards : [],
+    fuel: Array.isArray(ledger.fuel) ? ledger.fuel : [],
+    sessions: Array.isArray(ledger.sessions) ? ledger.sessions : []
+  };
 }
 
-async function insertTrips(db, input) {
-  if (input.length < 1 || input.length > 500) {
-    throw new HttpError(400, "Send between 1 and 500 trips per request");
+async function writeLedger(env, ledger) {
+  const serialized = JSON.stringify(ledger);
+  if (encoder.encode(serialized).byteLength > MAX_LEDGER_BYTES) {
+    throw new HttpError(413, "Ledger exceeds the KV value size limit");
   }
-  const trips = [];
-  for (const item of input) {
-    try {
-      trips.push(await normaliseTrip(item));
-    } catch (error) {
-      throw new HttpError(400, error.message);
-    }
-  }
-
-  const statements = trips.map((trip) => db.prepare(
-    `INSERT OR IGNORE INTO trips
-      (id, date, start, amount, km, min, platform, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    trip.id, trip.date, trip.start, trip.amount, trip.km, trip.min,
-    trip.platform, trip.source
-  ));
-
-  const results = await db.batch(statements);
-  const inserted = results.reduce((sum, result) => sum + Number(result.meta?.changes ?? 0), 0);
-  return { received: trips.length, inserted, duplicates: trips.length - inserted };
-}
-
-async function insertFuelLog(db, input) {
-  let entry;
-  try {
-    entry = await normaliseFuelLog(input);
-  } catch (error) {
-    throw new HttpError(400, error.message);
-  }
-  const result = await db.prepare(
-    `INSERT OR IGNORE INTO fuel_logs
-      (id, date, odometer_km, liters, total_ars, station, full_tank)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    entry.id, entry.date, entry.odometer_km, entry.liters,
-    entry.total_ars, entry.station, entry.full_tank
-  ).run();
-  const inserted = Number(result.meta?.changes ?? 0);
-  return { inserted, duplicate: inserted === 0, entry: { ...entry, price_per_liter: entry.price_per_liter } };
-}
-
-async function insertWorkSession(db, input) {
-  let entry;
-  try {
-    entry = await normaliseWorkSession(input);
-  } catch (error) {
-    throw new HttpError(400, error.message);
-  }
-  const result = await db.prepare(
-    `INSERT OR IGNORE INTO work_sessions
-      (id, date, platform, connected_start, connected_end, connected_minutes,
-       odometer_start, odometer_end, odometer_km)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    entry.id, entry.date, entry.platform, entry.connected_start, entry.connected_end,
-    entry.connected_minutes, entry.odometer_start, entry.odometer_end, entry.odometer_km
-  ).run();
-  const inserted = Number(result.meta?.changes ?? 0);
-  return { inserted, duplicate: inserted === 0, entry };
-}
-
-// The dashboard is intentionally public at the owner's request.
-// Write access remains protected separately: /api/ingest requires INGEST_TOKEN.
-async function requireSession(_request, _env) {
-  return;
-}
-
-async function listRows(db, table, limit = 5000) {
-  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 500, 1), 5000);
-  const result = await db.prepare(
-    `SELECT * FROM ${table} ORDER BY date DESC, created_at DESC LIMIT ?`
-  ).bind(safeLimit).all();
-  return result.results ?? [];
+  await env.DATA.put(LEDGER_KEY, serialized, {
+    metadata: { schema_version: 1, updated_at: new Date().toISOString() }
+  });
 }
 
 function validDateFilter(value) {
   if (value == null || value === "") return false;
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00.000Z`);
+  const date = new Date(value + "T00:00:00.000Z");
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-async function loginBucketId(request, secret) {
-  // Cloudflare supplies this header at the edge. Only a keyed digest is stored in D1.
-  const address = request.headers.get("cf-connecting-ip") ?? "unknown";
-  const digest = await crypto.subtle.sign(
-    "HMAC",
-    await hmacKey(secret),
-    encoder.encode("didi-dash-login:" + address)
-  );
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+function safeLimit(value, fallback = 2000) {
+  return Math.min(Math.max(Number.parseInt(value ?? String(fallback), 10) || fallback, 1), 5000);
 }
 
-async function getTrips(request, db) {
-  const url = new URL(request.url);
-  const where = [];
-  const values = [];
+function filterDateRange(rows, url) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  const platform = url.searchParams.get("platform");
-  if (from) {
-    if (!validDateFilter(from)) throw new HttpError(400, "Invalid from date");
-    where.push("date >= ?");
-    values.push(from);
+  if (from && !validDateFilter(from)) throw new HttpError(400, "Invalid from date");
+  if (to && !validDateFilter(to)) throw new HttpError(400, "Invalid to date");
+  return rows.filter((row) =>
+    (!from || row.date >= from) && (!to || row.date <= to)
+  );
+}
+
+function sorted(rows, limit) {
+  return rows.slice().sort((a, b) =>
+    (b.date + (b.start ?? "")).localeCompare(a.date + (a.start ?? ""))
+  ).slice(0, limit);
+}
+
+async function normaliseBatch(items, normaliser, existingRows) {
+  if (!Array.isArray(items)) throw new HttpError(400, "Each record collection must be an array");
+  const seen = new Set(existingRows.map((row) => row.id));
+  const rows = [];
+  let duplicates = 0;
+  for (const item of items) {
+    let row;
+    try {
+      row = await normaliser(item);
+    } catch (error) {
+      throw new HttpError(400, error.message);
+    }
+    if (seen.has(row.id)) {
+      duplicates += 1;
+      continue;
+    }
+    seen.add(row.id);
+    rows.push(row);
   }
-  if (to) {
-    if (!validDateFilter(to)) throw new HttpError(400, "Invalid to date");
-    where.push("date <= ?");
-    values.push(to);
+  return { rows, received: items.length, inserted: rows.length, duplicates };
+}
+
+async function handleIngest(request, env) {
+  if (!env.INGEST_TOKEN) throw new HttpError(503, "Ingestion is not configured");
+  const authorization = request.headers.get("authorization") ?? "";
+  const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  if (!constantTimeEqual(supplied, env.INGEST_TOKEN)) {
+    throw new HttpError(401, "Invalid ingestion token");
   }
-  if (platform) {
-    if (!/^[a-z][a-z0-9_-]{1,19}$/i.test(platform)) throw new HttpError(400, "Invalid platform");
-    where.push("platform = ?");
-    values.push(platform.toLowerCase());
+
+  const body = await readJson(request);
+  const legacyTripArray = Array.isArray(body);
+  const tripsInput = legacyTripArray ? body : (body?.trips ?? []);
+  const rewardsInput = legacyTripArray ? [] : (body?.rewards ?? []);
+  const fuelInput = legacyTripArray ? [] : (body?.fuel ?? []);
+  const sessionsInput = legacyTripArray ? [] : (body?.sessions ?? []);
+  const collections = [tripsInput, rewardsInput, fuelInput, sessionsInput];
+  if (!collections.every(Array.isArray)) {
+    throw new HttpError(400, "trips, rewards, fuel and sessions must be arrays");
   }
-  const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") ?? "2000", 10) || 2000, 1), 5000);
-  const sql = `SELECT id, date, start, amount, km, min, platform, source, created_at
-    FROM trips ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY date DESC, start DESC LIMIT ?`;
-  const result = await db.prepare(sql).bind(...values, limit).all();
-  return json({ trips: result.results ?? [], count: result.results?.length ?? 0, limit });
+  const total = collections.reduce((sum, value) => sum + value.length, 0);
+  if (total < 1) throw new HttpError(400, "Body must contain at least one record");
+  if (total > 500) throw new HttpError(400, "Send no more than 500 total records per request");
+
+  const ledger = await readLedger(env);
+  const trips = await normaliseBatch(tripsInput, normaliseTrip, ledger.trips);
+  const rewards = await normaliseBatch(rewardsInput, normaliseReward, ledger.rewards);
+  const fuel = await normaliseBatch(fuelInput, normaliseFuelLog, ledger.fuel);
+  const sessions = await normaliseBatch(sessionsInput, normaliseWorkSession, ledger.sessions);
+
+  ledger.trips.push(...trips.rows);
+  ledger.rewards.push(...rewards.rows);
+  ledger.fuel.push(...fuel.rows);
+  ledger.sessions.push(...sessions.rows);
+  await writeLedger(env, ledger);
+
+  return json({
+    ok: true,
+    trips: { received: trips.received, inserted: trips.inserted, duplicates: trips.duplicates },
+    rewards: { received: rewards.received, inserted: rewards.inserted, duplicates: rewards.duplicates },
+    fuel: { received: fuel.received, inserted: fuel.inserted, duplicates: fuel.duplicates },
+    sessions: { received: sessions.received, inserted: sessions.inserted, duplicates: sessions.duplicates },
+    received: total,
+    inserted: trips.inserted + rewards.inserted + fuel.inserted + sessions.inserted,
+    duplicates: trips.duplicates + rewards.duplicates + fuel.duplicates + sessions.duplicates
+  }, 201);
 }
 
 async function handleApi(request, env) {
@@ -281,136 +185,67 @@ async function handleApi(request, env) {
   const method = request.method.toUpperCase();
 
   if (path === "/api/health" && method === "GET") {
-    return json({ ok: true, service: "didi-dash", storage: env.DB ? "d1" : "unavailable" });
-  }
-
-  if (path === "/api/session" && method === "POST") {
-    if (!sameOrigin(request)) throw new HttpError(403, "Cross-origin login is not allowed");
-    if (!env.DASHBOARD_PASSWORD || !env.SESSION_SECRET) {
-      throw new HttpError(503, "Dashboard secrets have not been configured");
-    }
-    const bucketId = await loginBucketId(request, env.SESSION_SECRET);
-    const now = Math.floor(Date.now() / 1000);
-    const attempts = await env.DB.prepare(
-      "SELECT blocked_until FROM login_attempts WHERE ip_hash = ?"
-    ).bind(bucketId).first();
-    if (Number(attempts?.blocked_until ?? 0) > now) {
-      throw new HttpError(429, "Too many attempts. Try again in 15 minutes.");
-    }
-
-    const body = await readJson(request);
-    if (typeof body.password !== "string" || !constantTimeEqual(body.password, env.DASHBOARD_PASSWORD)) {
-      await env.DB.prepare(`
-        INSERT INTO login_attempts
-          (ip_hash, window_started_at, failures, blocked_until, updated_at)
-        VALUES (?, ?, 1, 0, ?)
-        ON CONFLICT(ip_hash) DO UPDATE SET
-          failures = CASE
-            WHEN excluded.updated_at - login_attempts.window_started_at >= ? THEN 1
-            ELSE login_attempts.failures + 1
-          END,
-          window_started_at = CASE
-            WHEN excluded.updated_at - login_attempts.window_started_at >= ? THEN excluded.updated_at
-            ELSE login_attempts.window_started_at
-          END,
-          blocked_until = CASE
-            WHEN (
-              CASE
-                WHEN excluded.updated_at - login_attempts.window_started_at >= ? THEN 1
-                ELSE login_attempts.failures + 1
-              END
-            ) >= ? THEN excluded.updated_at + ?
-            ELSE login_attempts.blocked_until
-          END,
-          updated_at = excluded.updated_at
-      `).bind(
-        bucketId, now, now,
-        LOGIN_WINDOW_SECONDS, LOGIN_WINDOW_SECONDS,
-        LOGIN_WINDOW_SECONDS, LOGIN_MAX_FAILURES, LOGIN_BLOCK_SECONDS
-      ).run();
-      throw new HttpError(401, "Incorrect password");
-    }
-
-    await env.DB.prepare("DELETE FROM login_attempts WHERE ip_hash = ?").bind(bucketId).run();
-    const ttlSeconds = body.remember === true
-      ? REMEMBERED_SESSION_TTL_SECONDS
-      : SESSION_TTL_SECONDS;
-    const token = await createSessionToken(env.SESSION_SECRET, ttlSeconds);
-    return json({ ok: true, expires_in: ttlSeconds }, 200, {
-      "set-cookie": sessionCookie(token, ttlSeconds)
-    });
-  }
-
-  if (path === "/api/logout" && method === "POST") {
-    if (!sameOrigin(request)) throw new HttpError(403, "Cross-origin logout is not allowed");
-    return json({ ok: true }, 200, { "set-cookie": clearSessionCookie() });
+    return json({ ok: true, service: "didi-dash", storage: env.DATA ? "kv" : "unavailable" });
   }
 
   if (path === "/api/ingest" && method === "POST") {
-    if (!env.INGEST_TOKEN) throw new HttpError(503, "Ingestion is not configured");
-    const authorization = request.headers.get("authorization") ?? "";
-    const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-    if (!constantTimeEqual(supplied, env.INGEST_TOKEN)) throw new HttpError(401, "Invalid ingestion token");
-    const body = await readJson(request);
-    const records = await insertTrips(env.DB, extractArray(body, "trips"));
-    return json({ ok: true, ...records }, 201);
+    return handleIngest(request, env);
   }
 
-  if (path.startsWith("/api/")) {
-    await requireSession(request, env);
-    if (method !== "GET" && !sameOrigin(request)) {
-      throw new HttpError(403, "Cross-origin writes are not allowed");
-    }
-
-    if (path === "/api/trips" && method === "GET") return getTrips(request, env.DB);
-    if (path === "/api/export" && method === "GET") {
-      const [trips, fuel, sessions] = await Promise.all([
-        listRows(env.DB, "trips", 5000),
-        listRows(env.DB, "fuel_logs", 5000),
-        listRows(env.DB, "work_sessions", 5000)
-      ]);
-      return json({
-        schema_version: 1,
-        exported_at: new Date().toISOString(),
-        trips,
-        fuel,
-        sessions,
-        truncated: {
-          trips: trips.length === 5000,
-          fuel: fuel.length === 5000,
-          sessions: sessions.length === 5000
-        }
-      }, 200, {
-        "content-disposition": 'attachment; filename="didi-dash-backup.json"'
-      });
-    }
-    if (path === "/api/trips" && method === "POST") {
-      const body = await readJson(request);
-      const records = await insertTrips(env.DB, extractArray(body, "trips"));
-      return json({ ok: true, ...records }, 201);
-    }
-    if (path === "/api/fuel" && method === "GET") {
-      const fuel = await listRows(env.DB, "fuel_logs", url.searchParams.get("limit"));
-      return json({ fuel });
-    }
-    if (path === "/api/fuel" && method === "POST") {
-      const body = await readJson(request);
-      const result = await insertFuelLog(env.DB, body);
-      return json({ ok: true, ...result }, result.inserted ? 201 : 200);
-    }
-    if (path === "/api/sessions" && method === "GET") {
-      const sessions = await listRows(env.DB, "work_sessions", url.searchParams.get("limit"));
-      return json({ sessions });
-    }
-    if (path === "/api/sessions" && method === "POST") {
-      const body = await readJson(request);
-      const result = await insertWorkSession(env.DB, body);
-      return json({ ok: true, ...result }, result.inserted ? 201 : 200);
-    }
-    throw new HttpError(404, "API route not found");
+  if (method !== "GET") {
+    throw new HttpError(405, "Dashboard is public read-only; writes require the private ingestion endpoint");
   }
 
-  throw new HttpError(404, "Not found");
+  const ledger = await readLedger(env);
+  if (path === "/api/trips") {
+    const rows = filterDateRange(ledger.trips, url);
+    const platform = url.searchParams.get("platform");
+    const filtered = platform
+      ? rows.filter((row) => row.platform === platform.toLowerCase())
+      : rows;
+    const limit = safeLimit(url.searchParams.get("limit"));
+    const trips = sorted(filtered, limit);
+    return json({ trips, count: trips.length, limit });
+  }
+
+  if (path === "/api/rewards") {
+    const limit = safeLimit(url.searchParams.get("limit"));
+    const rewards = sorted(filterDateRange(ledger.rewards, url), limit);
+    return json({ rewards, count: rewards.length, limit });
+  }
+
+  if (path === "/api/fuel") {
+    return json({ fuel: sorted(ledger.fuel, safeLimit(url.searchParams.get("limit"), 500)) });
+  }
+
+  if (path === "/api/sessions") {
+    return json({ sessions: sorted(ledger.sessions, safeLimit(url.searchParams.get("limit"), 500)) });
+  }
+
+  if (path === "/api/export") {
+    const trips = sorted(ledger.trips, 5000);
+    const rewards = sorted(ledger.rewards, 5000);
+    const fuel = sorted(ledger.fuel, 5000);
+    const sessions = sorted(ledger.sessions, 5000);
+    return json({
+      schema_version: 2,
+      exported_at: new Date().toISOString(),
+      trips,
+      rewards,
+      fuel,
+      sessions,
+      truncated: {
+        trips: trips.length < ledger.trips.length,
+        rewards: rewards.length < ledger.rewards.length,
+        fuel: fuel.length < ledger.fuel.length,
+        sessions: sessions.length < ledger.sessions.length
+      }
+    }, 200, {
+      "content-disposition": 'attachment; filename="didi-dash-backup.json"'
+    });
+  }
+
+  throw new HttpError(404, "API route not found");
 }
 
 export default {
@@ -426,7 +261,6 @@ export default {
       if (error instanceof HttpError) {
         return errorResponse(error.status, "request_rejected", error.message);
       }
-      // Avoid logging request bodies, tokens, passenger details or financial records.
       console.error("Didi Dash API failure:", error?.name ?? "UnknownError");
       return errorResponse(500, "internal_error", "The request could not be completed");
     }
