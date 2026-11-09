@@ -3,59 +3,95 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Didi Dash · Etios Earnings</title>
   <style>
-    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#202a35;background:#f3f6f8;font-synthesis:none}
-    *{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}
-    .shell{max-width:1180px;margin:auto;padding:22px 16px 52px}
-    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
-    h1{font-size:clamp(24px,4vw,34px);letter-spacing:-.04em;margin:0;font-weight:760}
-    .muted{color:#687683}.subtitle{margin:5px 0 0;color:#687683;font-size:14px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .mark{width:42px;height:42px;border-radius:14px;background:#172d3b;color:#fff;display:grid;place-items:center;font-weight:800}
-    .card{background:#fff;border:1px solid #e3e9ed;border-radius:18px;padding:18px;box-shadow:0 6px 18px rgba(23,45,59,.035);margin-bottom:14px}
-    .login-wrap{max-width:430px;margin:9vh auto 0}
-    .login-wrap h2{margin:0 0 5px}.login-wrap p{margin:0 0 18px}
-    label{font-size:12px;color:#687683;display:block;margin:0 0 5px}
-    input,select,textarea{width:100%;border:1px solid #dbe3e8;border-radius:11px;padding:10px 11px;background:#fbfcfd;color:#202a35;min-width:0}
-    input:focus,select:focus,textarea:focus{outline:2px solid #9cc8d7;border-color:#4e92a8}
-    button{border:0;border-radius:11px;background:#173747;color:#fff;padding:10px 15px;font-weight:650;cursor:pointer}
-    button.secondary{background:#edf2f5;color:#344653}button.ghost{background:transparent;color:#435560;border:1px solid #dbe3e8}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-    .login-form{display:grid;gap:12px}.full{width:100%}
-    .status{font-size:13px;min-height:18px;color:#536571;margin-top:10px}.status.error{color:#a93232}.status.good{color:#23734f}
-    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}
-    .period{display:flex;gap:5px;padding:4px;border:1px solid #e0e7eb;border-radius:12px;background:#fff}
-    .period button{background:transparent;color:#536571;padding:8px 13px}.period button.active{background:#173747;color:#fff}
-    .grid{display:grid;gap:12px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
-    .kpi{border:1px solid #e7edf0;background:#fbfcfd;border-radius:14px;padding:14px;min-height:91px}
-    .kpi .label{font-size:12px;color:#6e7b85}.kpi .value{font-size:clamp(20px,3vw,27px);font-weight:760;letter-spacing:-.04em;margin-top:6px;white-space:nowrap}
-    .kpi .hint{font-size:11px;color:#81909a;margin-top:3px}
-    h2{font-size:16px;margin:0 0 13px;letter-spacing:-.02em}h3{font-size:13px;margin:0 0 10px}
-    .two{grid-template-columns:1fr 1fr}.three{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
-    th{text-align:left;color:#72808a;font-size:11px;font-weight:650;padding:9px 8px;border-bottom:1px solid #e7edf0}
-    td{padding:10px 8px;border-bottom:1px solid #eef2f4}tbody tr:last-child td{border-bottom:0}
-    .right{text-align:right}.bar-row{display:grid;grid-template-columns:70px 1fr 88px;gap:9px;align-items:center;margin:10px 0;font-size:12px}
-    .bar{height:9px;border-radius:99px;background:#edf2f4;overflow:hidden}.bar>i{display:block;height:100%;background:#397f83;border-radius:99px}
-    .form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-    .form-grid.two-cols{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .form-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
-    .note{font-size:12px;line-height:1.5;color:#75838d;margin-top:9px}
-    .pill{display:inline-block;border-radius:99px;padding:3px 8px;background:#eef4f6;color:#49616e;font-size:11px}
-    .warning{background:#fff8e9;border:1px solid #f0e2bd;color:#745c27;border-radius:12px;padding:11px 13px;font-size:12px;line-height:1.45;margin-bottom:12px}
-    .hidden{display:none!important}.subhead{color:#697984;font-size:12px;margin-top:-5px;margin-bottom:14px}
-    .empty{padding:20px;text-align:center;color:#7a8993;font-size:13px}
-    .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-    .zone-list{display:grid;gap:8px}.zone-item{display:flex;justify-content:space-between;border-bottom:1px solid #edf1f3;padding:7px 0;font-size:13px}
-    footer{text-align:center;font-size:11px;color:#92a0a9;padding-top:12px}
-    @media(max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.shell{padding:15px 11px 40px}.card{padding:14px}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:430px){.form-grid,.form-grid.two-cols{grid-template-columns:1fr 1fr}.kpi{padding:11px}.kpi .value{font-size:20px}.brand .subtitle{font-size:12px}.mark{width:38px;height:38px}}
-  </style>
+:root{
+  color-scheme:dark;
+  --bg:#000;--surface:#0c0c0e;--surface2:#1c1c1e;--line:rgba(255,255,255,.085);
+  --text:#f5f5f7;--muted:#8e8e93;--green:#30d158;--amber:#ff9f0a;--blue:#0a84ff;--red:#ff453a;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;
+  font-synthesis:none;background:var(--bg);color:var(--text);font-variant-numeric:tabular-nums
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#000;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:999px;background:var(--text);color:#000;padding:11px 17px;font-weight:650;cursor:pointer;transition:transform .18s ease,opacity .18s ease}
+button:active{transform:scale(.97)}button:disabled{opacity:.45;cursor:not-allowed}
+button.secondary{background:var(--surface2);color:var(--text)}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+input,select,textarea{width:100%;min-width:0;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:var(--surface2);color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(10,132,255,.15)}
+input:disabled{opacity:.72}
+.shell{max-width:980px;margin:0 auto;padding:0 14px 54px}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 -14px 18px;padding:13px 16px;background:rgba(0,0,0,.76);backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);border-bottom:1px solid var(--line)}
+h1{font-size:18px;letter-spacing:-.02em;margin:0;font-weight:650}
+h2{font-size:14px;font-weight:650;letter-spacing:-.01em;margin:0 0 13px;color:var(--muted)}
+h3{font-size:13px;margin:0 0 10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:36px;height:36px;border-radius:12px;background:#f5f5f7;color:#000;display:grid;place-items:center;font-size:12px;font-weight:850;flex:0 0 auto}
+.muted,.subtitle{color:var(--muted)}.subtitle{font-size:11px;margin:3px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:23px;padding:17px;margin-bottom:12px;box-shadow:0 10px 30px rgba(0,0,0,.22);animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.login-wrap{max-width:430px;margin:10vh auto 0;border-radius:26px;padding:22px}
+.login-wrap h2{color:var(--text);margin:0 0 6px;font-size:18px}.login-wrap p{font-size:13px;line-height:1.55;margin:0 0 20px}
+.login-form{display:grid;gap:13px}.full{width:100%}
+label{display:block;font-size:11px;color:var(--muted);margin:0 0 5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:12px;min-height:17px;color:var(--muted);margin-top:9px}.status.error{color:var(--red)}.status.good{color:var(--green)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.toolbar strong{font-size:14px;font-weight:650}
+.period{position:relative;display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
+.period button{background:transparent;color:var(--muted);padding:8px 13px;font-size:12px;transition:background .2s,color .2s}
+.period button.active{background:#3a3a3c;color:var(--text);border-radius:9px}
+.grid{display:grid;gap:10px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpi{border:1px solid var(--line);background:linear-gradient(145deg,#151518,#0c0c0e);border-radius:17px;padding:14px;min-height:92px}
+.kpi .label{font-size:11px;color:var(--muted)}.kpi .value{font-size:clamp(19px,3vw,26px);font-weight:720;letter-spacing:-.045em;margin-top:7px;white-space:nowrap}
+.kpi .hint{font-size:10px;color:var(--muted);margin-top:4px}
+.two{grid-template-columns:1fr 1fr}.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hero-panel{position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:19px;border-radius:24px;background:radial-gradient(ellipse at 92% 8%,rgba(48,209,88,.13),transparent 45%),linear-gradient(135deg,#15191a,#09090a 68%);border:1px solid var(--line);margin-bottom:12px;min-height:146px}
+.hero-panel .eyebrow{font-size:12px;color:var(--muted);font-weight:550}
+.hero-value{font-size:clamp(38px,8vw,58px);letter-spacing:-.06em;line-height:1.08;font-weight:760;margin:7px 0}
+.hero-caption{font-size:11px;color:var(--muted);max-width:52ch}
+.hero-spark{width:31%;min-width:92px;max-width:180px;height:63px;align-self:center}
+.hero-spark svg{width:100%;height:100%;overflow:visible}
+.ratios{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ratio{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 0}
+.ratio-ring{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:conic-gradient(var(--ring-color) var(--ring-progress),#29292c 0);position:relative;animation:pop .5s ease both}
+.ratio-ring:before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
+.ratio-ring b{position:relative;font-size:11px;font-weight:700}
+.ratio-copy{min-width:0}.ratio-copy strong{display:block;font-size:12px;line-height:1.25}.ratio-copy span{display:block;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.35}
+.table-wrap{overflow:auto;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+th{text-align:left;color:var(--muted);font-size:10px;font-weight:600;padding:9px 8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.06);color:#e9e9eb}
+tbody tr:last-child td{border-bottom:0}
+.right{text-align:right}
+.bar-row{display:grid;grid-template-columns:66px 1fr 82px;gap:8px;align-items:center;margin:11px 0;font-size:11px}
+.bar{height:7px;border-radius:99px;background:#29292c;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#1d8f47,var(--green));border-radius:99px}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.form-grid.two-cols{grid-template-columns:repeat(2,minmax(0,1fr))}
+.form-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:9px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;background:rgba(48,209,88,.13);color:var(--green);font-size:10px;font-weight:650}
+.warning{background:rgba(255,159,10,.08);border:1px solid rgba(255,159,10,.22);color:#e6b85f;border-radius:13px;padding:11px 13px;font-size:11px;line-height:1.5;margin-bottom:12px}
+.hidden{display:none!important}.subhead{color:var(--muted);font-size:11px;margin:4px 0 13px}
+.empty{padding:21px;text-align:center;color:var(--muted);font-size:12px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.zone-list{display:grid;gap:6px}.zone-item{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);padding:8px 0;font-size:12px}.zone-item:last-child{border:0}
+footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
+.form-grid input[type=checkbox]{width:auto;accent-color:var(--green)}
+#connection{background:rgba(48,209,88,.13);color:var(--green)}
+@media(max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.shell{padding:0 11px 42px}.card{padding:14px}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{min-height:130px;padding:16px}}
+@media(max-width:430px){header{padding:11px 12px}.kpi{padding:11px}.kpi .value{font-size:20px}.brand .subtitle{font-size:10px}.mark{width:34px;height:34px}.ratios{grid-template-columns:1fr}.ratio{padding:6px 0}.hero-spark{width:28%;min-width:68px}.toolbar{align-items:flex-start}.period button{padding:8px 10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+</style>
 </head>
 <body>
   <div class="shell">
@@ -92,12 +128,28 @@
       </div>
 
       <div class="warning">El margen después de combustible es una estimación, no ganancia neta. No descuenta comisión de plataforma, seguro, mantenimiento, cubiertas, depreciación ni otros costos.</div>
+      <section class="hero-panel">
+        <div>
+          <div class="eyebrow">Margen estimado después de combustible</div>
+          <div id="hero-margin" class="hero-value">—</div>
+          <div id="hero-caption" class="hero-caption">El importe se habilita cuando registres viajes y tickets de combustible.</div>
+        </div>
+        <div id="hero-spark" class="hero-spark" aria-hidden="true"></div>
+      </section>
 
       <section class="grid kpis">
         <div class="kpi"><div class="label">Facturación bruta</div><div id="gross" class="value">—</div><div id="trip-count" class="hint">— viajes</div></div>
         <div class="kpi"><div class="label">Margen después de nafta</div><div id="fuel-margin" class="value">—</div><div id="fuel-hint" class="hint">Requiere tickets</div></div>
         <div class="kpi"><div class="label">Por hora conectada</div><div id="per-hour" class="value">—</div><div id="hours-hint" class="hint">Registrar turnos</div></div>
         <div class="kpi"><div class="label">Km del auto</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">—</div></div>
+      </section>
+
+      <section class="card">
+        <h2>Indicadores del período</h2>
+        <div id="ratio-grid" class="grid ratios">
+          <div class="empty">Cargando indicadores…</div>
+        </div>
+        <div class="note">Ratios calculados con los datos disponibles. Los km vacíos son estimados cuando no hay odómetro completo.</div>
       </section>
 
       <section class="card" style="margin-top:14px">
@@ -254,10 +306,10 @@
     $("connection").style.color = "#276044";
     render();
   }
-  function currentFuelPrice(fuel) {
-    const rows = fuel.length ? fuel : state.fuel;
-    if (!rows.length) return 0;
-    const latest = rows.slice().sort((a,b) => (b.date || "").localeCompare(a.date || ""))[0];
+  function currentFuelPrice() {
+    // Fuel unit price is the latest recorded ticket, even when its date is outside the selected trip range.
+    if (!state.fuel.length) return 0;
+    const latest = state.fuel.slice().sort((a,b) => (b.date || "").localeCompare(a.date || ""))[0];
     return asNumber(latest.total_ars) / Math.max(asNumber(latest.liters), 0.001);
   }
   function measuredKml(fuel) {
@@ -291,10 +343,16 @@
     const carKm = completeOdometer ? odometerKm : passengerKm * (1 + emptyPct / 100);
     const realKml = measuredKml(state.fuel);
     const kml = realKml || assumedKml;
-    const price = currentFuelPrice(fuel);
+    const price = currentFuelPrice();
     const fuelCost = price > 0 && carKm > 0 ? carKm / kml * price : null;
     const margin = fuelCost === null ? null : gross - fuelCost;
 
+    $("hero-margin").textContent = margin === null ? "—" : money.format(margin);
+    $("hero-caption").textContent = margin === null
+      ? "Cargá un ticket de combustible para estimar el margen después de nafta."
+      : money.format(gross) + " facturados · " + money.format(fuelCost) + " de nafta estimada.";
+    renderHeroSpark(trips);
+    renderRatios({ gross, fuelCost, passengerMinutes, connectedMinutes, passengerKm, carKm });
     $("gross").textContent = money.format(gross);
     $("trip-count").textContent = trips.length + " viajes";
     $("fuel-margin").textContent = margin === null ? "—" : money.format(margin);
@@ -315,6 +373,39 @@
     renderTrips(trips);
     renderSessions(sessions);
     renderFuel(fuel);
+  }
+  function renderHeroSpark(trips) {
+    const grouped = {};
+    for (const trip of trips) grouped[trip.date] = (grouped[trip.date] || 0) + asNumber(trip.amount);
+    const points = Object.entries(grouped).sort((a,b) => a[0].localeCompare(b[0])).slice(-12).map((x) => x[1]);
+    if (points.length < 2) { $("hero-spark").innerHTML = ""; return; }
+    const min = Math.min(...points), max = Math.max(...points);
+    const coords = points.map((value, index) => {
+      const x = index * 100 / (points.length - 1);
+      const y = 54 - ((value - min) / Math.max(max - min, 1)) * 42;
+      return [x, y];
+    });
+    const line = coords.map(([x,y], index) => (index ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2)).join(" ");
+    const area = line + " L100 64 L0 64 Z";
+    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de facturación">' +
+      '<defs><linearGradient id="spark-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>' +
+      '<path d="' + area + '" fill="url(#spark-fill)"/><path d="' + line + '" fill="none" stroke="#30d158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+  }
+  function renderRatios({ gross, fuelCost, passengerMinutes, connectedMinutes, passengerKm, carKm }) {
+    const ratio = (value) => Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+    const fuelShare = gross > 0 && fuelCost !== null ? ratio(fuelCost / gross * 100) : null;
+    const timeShare = connectedMinutes > 0 ? ratio(passengerMinutes / connectedMinutes * 100) : null;
+    const passengerDistanceShare = carKm > 0 ? ratio(passengerKm / carKm * 100) : null;
+    const items = [
+      { label:"Nafta / facturado", value:fuelShare, display:fuelShare === null ? "—" : Math.round(fuelShare) + "%", note:fuelShare === null ? "Falta un ticket" : "Costo estimado de combustible", color:"#ff9f0a" },
+      { label:"Minutos en viaje / conexión", value:timeShare, display:timeShare === null ? "—" : Math.round(timeShare) + "%", note:timeShare === null ? "Registrar turnos" : "Ratio de tiempo observado", color:"#0a84ff" },
+      { label:"Km con pasajero / km auto", value:passengerDistanceShare, display:passengerDistanceShare === null ? "—" : Math.round(passengerDistanceShare) + "%", note:passengerDistanceShare === null ? "Registrar odómetro" : "La diferencia son km vacíos", color:"#30d158" }
+    ];
+    $("ratio-grid").innerHTML = items.map((item) => {
+      const value = item.value === null ? 0 : item.value;
+      return '<div class="ratio"><div class="ratio-ring" style="--ring-progress:' + value + '%;--ring-color:' + item.color + '"><b>' + item.display + '</b></div>' +
+        '<div class="ratio-copy"><strong>' + item.label + '</strong><span>' + item.note + '</span></div></div>';
+    }).join("");
   }
   function renderDaily(trips) {
     const byDay = {};
