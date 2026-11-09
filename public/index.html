@@ -127,11 +127,11 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         <div class="kpi"><div class="label">Importe de viajes</div><div id="gross" class="value">—</div><div id="trip-count" class="hint">— viajes</div></div>
         <div class="kpi"><div class="label">Recompensas</div><div id="reward-total" class="value">—</div><div id="reward-count" class="hint">— registros</div></div>
         <div class="kpi"><div class="label">Promedio por viaje</div><div id="per-trip" class="value">—</div><div id="per-trip-hint" class="hint">Según importes registrados</div></div>
-        <div class="kpi"><div class="label">Km con pasajero</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">Sin distancias registradas</div></div>
-        <div class="kpi"><div class="label">Km por día activo</div><div id="km-per-day" class="value">—</div><div id="km-day-hint" class="hint">Requiere distancias completas</div></div>
-        <div class="kpi"><div class="label">Km del mes</div><div id="km-month" class="value">—</div><div id="km-month-hint" class="hint">Mes calendario actual</div></div>
-        <div class="kpi"><div class="label">Combustible mínimo</div><div id="fuel-estimate" class="value">—</div><div id="fuel-estimate-hint" class="hint">Solo km con pasajero</div></div>
-        <div class="kpi"><div class="label">Ganancia tras combustible</div><div id="net-estimate" class="value">—</div><div id="net-estimate-hint" class="hint">Estimación mínima</div></div>
+        <div class="kpi"><div class="label">Km reales con pasajero</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">Solo datos de Detalles</div></div>
+        <div class="kpi"><div class="label">Km estimados por ruta</div><div id="estimated-km" class="value">—</div><div id="estimated-km-hint" class="hint">Estimaciones separadas</div></div>
+        <div class="kpi"><div class="label">Km del auto</div><div id="vehicle-km" class="value">—</div><div id="vehicle-km-hint" class="hint">Odómetro de turnos</div></div>
+        <div class="kpi"><div class="label">Combustible estimado</div><div id="fuel-estimate" class="value">—</div><div id="fuel-estimate-hint" class="hint">Requiere km de odómetro y precio real</div></div>
+        <div class="kpi"><div class="label">Ingreso tras combustible</div><div id="net-estimate" class="value">—</div><div id="net-estimate-hint" class="hint">No es ganancia neta final</div></div>
       </section>
       <div class="grid two">
         <section class="card"><h2>Actividad por día</h2><div id="period-label" class="note">Últimos 30 días</div><div id="daily-chart"><div class="empty">Cargando actividad…</div></div></section>
@@ -157,7 +157,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
   const isoToday = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
   const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
   const number = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
-  const ETIOS_L_PER_100KM = 8; // conservative baseline until measured consumption is loaded
+  const ETIOS_L_PER_100KM = 8.5; // default urban/manual reference; replace with measured consumption when enough fuel logs exist
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -218,18 +218,20 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     const tripGross = trips.reduce((sum, row) => sum + asNumber(row.amount), 0);
     const rewardGross = rewards.reduce((sum, row) => sum + asNumber(row.amount), 0);
     const gross = tripGross + rewardGross;
-    const kmRows = trips.filter((row) => row.km !== null && row.km !== undefined && asNumber(row.km) > 0);
-    const passengerKm = kmRows.reduce((sum, row) => sum + asNumber(row.km), 0);
-    const activeDays = new Set(kmRows.map((row) => row.date)).size;
-    const kmPerDay = activeDays ? passengerKm / activeDays : null;
-    const monthPrefix = new Date().toLocaleDateString("sv-SE", { timeZone:"America/Argentina/Buenos_Aires" }).slice(0,7);
-    const monthKmRows = state.trips.filter((row) => String(row.date || "").startsWith(monthPrefix) && asNumber(row.km) > 0);
-    const monthKm = monthKmRows.reduce((sum, row) => sum + asNumber(row.km), 0);
+    const kmRows = trips.filter((row) => asNumber(row.km) > 0);
+    const actualKmRows = kmRows.filter((row) => (row.km_source ?? "actual") === "actual");
+    const estimatedKmRows = kmRows.filter((row) => row.km_source === "estimated");
+    const passengerKm = actualKmRows.reduce((sum, row) => sum + asNumber(row.km), 0);
+    const estimatedPassengerKm = estimatedKmRows.reduce((sum, row) => sum + asNumber(row.km), 0);
+    const vehicleKmRows = sessions.filter((row) => row.odometer_km != null && asNumber(row.odometer_km) > 0);
+    const vehicleKm = vehicleKmRows.reduce((sum, row) => sum + asNumber(row.odometer_km), 0);
+    const vehicleDays = new Set(vehicleKmRows.map((row) => row.date)).size;
+    const vehicleKmPerDay = vehicleDays ? vehicleKm / vehicleDays : null;
     const connectedMinutes = sessions.reduce((sum, row) => sum + asNumber(row.connected_minutes), 0);
     const fuelSpend = fuel.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
     const fuelLiters = fuel.reduce((sum, row) => sum + asNumber(row.liters), 0);
     const fuelPricePerLiter = fuelLiters > 0 ? fuelSpend / fuelLiters : null;
-    const estimatedFuelCost = fuelPricePerLiter && passengerKm > 0 ? passengerKm * ETIOS_L_PER_100KM / 100 * fuelPricePerLiter : null;
+    const estimatedFuelCost = fuelPricePerLiter && vehicleKm > 0 ? vehicleKm * ETIOS_L_PER_100KM / 100 * fuelPricePerLiter : null;
     const minimumNet = estimatedFuelCost === null ? null : gross - estimatedFuelCost;
     const average = trips.length ? tripGross / trips.length : null;
     $('hero-margin').textContent = money.format(gross);
@@ -240,16 +242,16 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     $('reward-count').textContent = rewards.length + ' registros';
     $('per-trip').textContent = average === null ? '—' : money.format(average);
     $('per-trip-hint').textContent = average === null ? 'Sin viajes en el período' : 'Promedio sobre ' + trips.length + ' viajes';
-    $('car-km').textContent = kmRows.length ? number.format(passengerKm) + ' km' : '—';
-    $('km-hint').textContent = kmRows.length ? kmRows.length + ' de ' + trips.length + ' viajes con distancia' : 'Sin distancias registradas';
-    $('km-per-day').textContent = kmPerDay === null ? '—' : number.format(kmPerDay) + ' km';
-    $('km-day-hint').textContent = activeDays ? activeDays + ' días con distancia registrada' : 'Sin datos suficientes';
-    $('km-month').textContent = monthKmRows.length ? number.format(monthKm) + ' km' : '—';
-    $('km-month-hint').textContent = monthKmRows.length + ' viajes del mes con distancia';
+    $('car-km').textContent = actualKmRows.length ? number.format(passengerKm) + ' km' : '—';
+    $('km-hint').textContent = actualKmRows.length ? actualKmRows.length + ' de ' + trips.length + ' viajes · Detalles' : 'Sin km reales importados';
+    $('estimated-km').textContent = estimatedKmRows.length ? number.format(estimatedPassengerKm) + ' km' : '—';
+    $('estimated-km-hint').textContent = estimatedKmRows.length ? estimatedKmRows.length + ' viajes · nunca se mezclan con km reales' : 'Todavía no hay estimaciones de ruta';
+    $('vehicle-km').textContent = vehicleKmRows.length ? number.format(vehicleKm) + ' km' : '—';
+    $('vehicle-km-hint').textContent = vehicleKmRows.length ? vehicleDays + ' días · ' + (vehicleKmPerDay === null ? '—' : number.format(vehicleKmPerDay) + ' km/día') : 'Cargá odómetro inicio/fin del turno';
     $('fuel-estimate').textContent = estimatedFuelCost === null ? '—' : money.format(estimatedFuelCost);
-    $('fuel-estimate-hint').textContent = fuelPricePerLiter ? number.format(ETIOS_L_PER_100KM) + ' L/100 km · ' + money.format(fuelPricePerLiter) + '/L · mínimo por km con pasajero' : 'Falta ticket real de combustible para estimar';
+    $('fuel-estimate-hint').textContent = fuelPricePerLiter && vehicleKm > 0 ? number.format(ETIOS_L_PER_100KM) + ' L/100 km · ' + money.format(fuelPricePerLiter) + '/L · sobre km reales del auto' : 'Falta ticket real o km de odómetro';
     $('net-estimate').textContent = minimumNet === null ? '—' : money.format(minimumNet);
-    $('net-estimate-hint').textContent = minimumNet === null ? 'No incluye mantenimiento ni km sin pasajero' : 'Ingresos menos combustible mínimo';
+    $('net-estimate-hint').textContent = minimumNet === null ? 'No hay base suficiente' : 'Ingresos menos combustible estimado; excluye otros costos';
     $('per-hour').textContent = connectedMinutes > 0 ? number.format(connectedMinutes / 60) + ' h' : '—';
     $('hours-hint').textContent = connectedMinutes > 0 ? sessions.length + ' turnos registrados' : 'Sin turnos registrados';
     $('fuel-margin').textContent = fuel.length ? money.format(fuelSpend) : '—';
@@ -321,7 +323,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     if (!trips.length) { $('trips-table').innerHTML = '<div class="empty">No hay viajes importados en este período.</div>'; return; }
     const rows = trips.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
     $('trips-table').innerHTML = rows.map((row) => {
-      const km = row.km != null && asNumber(row.km) > 0 ? number.format(row.km) + ' km' : 'Km —';
+      const km = row.km != null && asNumber(row.km) > 0 ? number.format(row.km) + ' km · ' + ((row.km_source ?? 'actual') === 'estimated' ? 'estimado' : 'real') : 'Km —';
       const duration = row.min != null && asNumber(row.min) > 0 ? number.format(row.min) + ' min' : 'Duración —';
       return '<article class="trip-row"><div class="trip-head"><div><div class="trip-platform">' + escapeHtml(String(row.platform || 'didi').toUpperCase()) + '</div><div class="trip-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="trip-amount">' + money.format(asNumber(row.amount)) + '</div></div><div class="trip-details"><span>' + km + '</span><span>' + duration + '</span></div></article>';
     }).join('');
