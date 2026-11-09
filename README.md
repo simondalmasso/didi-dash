@@ -133,3 +133,5 @@ Deployment is done by GitHub Actions. Do not run a production deployment until t
 ## Backups
 
 Use the authenticated **Backup JSON** button in the dashboard regularly. It exports trips, fuel tickets and work sessions. Keep copies outside the browser and outside the Worker account. The dashboard also offers CSV export for the filtered trips list. The JSON export is limited to 5,000 rows per table per download; check the `truncated` flags in the file.
+
+<!-- Deployment refresh requested 2026-11-09 -->
