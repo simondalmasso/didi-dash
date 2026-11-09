@@ -76,19 +76,13 @@ function runWrangler(args, env) {
 async function main() {
   const accountId = required("CLOUDFLARE_ACCOUNT_ID", 20);
   const apiToken = required("CLOUDFLARE_API_TOKEN", 20);
-  const dashboardPassword = required("DASHBOARD_PASSWORD", 18);
   const ingestToken = required("INGEST_TOKEN", 32);
-  const sessionSecret = required("SESSION_SECRET", 32);
 
   const databaseId = await ensureDatabase(accountId, apiToken);
   const config = JSON.parse(readFileSync(configTemplatePath, "utf8"));
   config.d1_databases[0].database_id = databaseId;
 
-  const workerSecrets = {
-    DASHBOARD_PASSWORD: dashboardPassword,
-    INGEST_TOKEN: ingestToken,
-    SESSION_SECRET: sessionSecret
-  };
+  const workerSecrets = { INGEST_TOKEN: ingestToken };
 
   writeFileSync(generatedConfigPath, JSON.stringify(config, null, 2), { mode: 0o600 });
   writeFileSync(secretsPath, JSON.stringify(workerSecrets), { mode: 0o600 });
@@ -108,7 +102,7 @@ async function main() {
       "--remote", "--config", generatedConfigPath
     ], env);
 
-    console.log("Deploying Worker and private secrets...");
+    console.log("Deploying Worker...");
     runWrangler([
       "deploy",
       "--config", generatedConfigPath,
