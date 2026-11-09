@@ -327,8 +327,7 @@ async function handleApi(request, env) {
       `).bind(
         bucketId, now, now,
         LOGIN_WINDOW_SECONDS, LOGIN_WINDOW_SECONDS,
-        LOGIN_WINDOW_SECONDS, LOGIN_MAX_FAILURES, LOGIN_BLOCK_SECONDS,
-        now
+        LOGIN_WINDOW_SECONDS, LOGIN_MAX_FAILURES, LOGIN_BLOCK_SECONDS
       ).run();
       throw new HttpError(401, "Incorrect password");
     }
