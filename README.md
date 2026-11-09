@@ -14,7 +14,8 @@ The public URL exposes financial activity. Do not store passenger-identifying in
 
 ## Dashboard contents
 
-- Ride KPIs and history: date, time, platform, amount, passenger kilometres and minutes.
+- Ride KPIs and history: date, time, platform, amount, passenger kilometres and minutes, plus kilometres by active day and calendar month.
+- Minimum fuel profitability estimate: uses passenger kilometres only, a conservative 8 L/100 km baseline, and the weighted price from real fuel tickets. It is explicitly not total vehicle fuel consumption.
 - Rewards and incentives are stored and displayed separately from rides. They contribute to gross earnings but not to ride count, ride kilometres or passenger minutes.
 - Fuel tickets and work sessions are separate collections.
 - JSON backup and CSV trip export are public.
@@ -31,16 +32,7 @@ Gross earnings = ride amounts + reward amounts. Fuel margin is an estimate, not 
 
 ## Deploy
 
-Use the authenticated Wrangler profile on the authorized Windows host:
-
-```powershell
-npm ci
-$env:INGEST_TOKEN = Get-Content "$env:LOCALAPPDATA\EtiosEarnings\ingest-token.txt" -Raw
-npm run deploy
-Remove-Item Env:INGEST_TOKEN
-```
-
-Wrangler needs permission to write Workers scripts and the KV namespace. The repository workflow runs tests on pushes and pull requests; production deployment is performed from the authorized Wrangler session because the prior GitHub Actions API token returned HTTP 401.
+Production deploy is automated by GitHub Actions on successful pushes to `main`. The workflow runs the test suite first and then deploys the Worker using repository secrets. The authorized Windows Wrangler profile remains available for recovery or manual deployment, but it is no longer the normal production path.
 
 ## Private ingestion
 
@@ -86,8 +78,8 @@ The API accepts the legacy bare trips array too. Repeated IDs are ignored. Passe
 
 ## Public read APIs
 
-- `GET /api/health`
-- `GET /api/trips?limit=5000&from=YYYY-MM-DD&to=YYYY-MM-DD&platform=didi`
+- `GET|HEAD /api/health`
+- `GET|HEAD /api/trips?limit=5000&from=YYYY-MM-DD&to=YYYY-MM-DD&platform=didi`
 - `GET /api/rewards?limit=5000&from=YYYY-MM-DD&to=YYYY-MM-DD`
 - `GET /api/fuel?limit=5000`
 - `GET /api/sessions?limit=5000`
