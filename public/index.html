@@ -157,7 +157,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
   const isoToday = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
   const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
   const number = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
-  const ETIOS_L_PER_100KM = 7.4; // Toyota Argentina reference: Etios hatchback 1.5, manual 6-speed, urban cycle; replace with measured tank-to-tank consumption
+  const ETIOS_L_PER_100KM = 8.8; // Measured urban test: Etios Hatchback 1.5 manual 6MT. Factory homologation is 7.4 L/100 km. Calibrate with full-tank odometer logs.
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -212,7 +212,6 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
   function render() {
     const trips = selected(state.trips);
     const rewards = selected(state.rewards);
-    const activity = trips.concat(rewards);
     const fuel = selected(state.fuel);
     const sessions = selected(state.sessions);
     const tripGross = trips.reduce((sum, row) => sum + asNumber(row.amount), 0);
@@ -258,7 +257,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     $('fuel-hint').textContent = fuel.length + ' tickets · gasto registrado';
     $('period-label').textContent = state.range === 0 ? 'Todo el historial' : 'Últimos ' + state.range + ' días';
     $('connection').textContent = 'Actualizado · ' + trips.length + ' viajes';
-    renderHeroSpark(activity);
+    renderHeroSpark(trips);
     renderDaily(trips);
     renderHours(trips);
     renderTrips(trips);
@@ -279,7 +278,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     });
     const line = coords.map(([x,y], index) => (index ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2)).join(" ");
     const area = line + " L100 64 L0 64 Z";
-    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de importes registrados">' +
+    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de ingresos de viajes">' +
       '<defs><linearGradient id="spark-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>' +
       '<path d="' + area + '" fill="url(#spark-fill)"/><path d="' + line + '" fill="none" stroke="#30d158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
   }
@@ -368,7 +367,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     }
   });
   $("export-csv").addEventListener("click", () => {
-    const cols = ["id","date","start","platform","amount","km","min","source"];
+    const cols = ["id","date","start","platform","amount","km","km_source","min","source"];
     const csv = [cols.join(","), ...selected(state.trips).map((t) => cols.map((key) => '"' + String(t[key] ?? "").replace(/"/g,'""') + '"').join(","))].join("\r\n");
     const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"}));
     const a = document.createElement("a"); a.href = url; a.download = "didi-dash-trips.csv"; a.click(); URL.revokeObjectURL(url);

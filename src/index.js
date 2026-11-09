@@ -133,6 +133,101 @@ async function normaliseBatch(items, normaliser, existingRows) {
   return { rows, received: items.length, inserted: rows.length, duplicates };
 }
 
+function sameTripIdentity(left, right) {
+  return left.date === right.date &&
+    left.start === right.start &&
+    Number(left.amount) === Number(right.amount) &&
+    String(left.platform ?? "").toLowerCase() === String(right.platform ?? "").toLowerCase();
+}
+
+function mergeTripDetails(existing, incoming) {
+  const next = { ...existing };
+  const existingKm = Number(existing.km) || 0;
+  const incomingKm = Number(incoming.km) || 0;
+  const existingSource = existing.km_source ?? (existingKm > 0 ? "actual" : "unknown");
+  const incomingSource = incoming.km_source ?? (incomingKm > 0 ? "actual" : "unknown");
+  let updated = false;
+
+  if (existingKm <= 0 && incomingKm > 0) {
+    next.km = incomingKm;
+    next.km_source = incomingSource;
+    updated = true;
+  } else if (existingKm > 0 && incomingKm > 0 &&
+      existingSource === "estimated" && incomingSource === "actual") {
+    next.km = incomingKm;
+    next.km_source = "actual";
+    updated = true;
+  }
+
+  const existingMinutes = Number(existing.min) || 0;
+  const incomingMinutes = Number(incoming.min) || 0;
+  if (existingMinutes <= 0 && incomingMinutes > 0) {
+    next.min = incomingMinutes;
+    updated = true;
+  }
+
+  if (!updated) return null;
+  next.km_source = (Number(next.km) || 0) > 0
+    ? (next.km_source ?? existingSource)
+    : "unknown";
+  next.source = incoming.source;
+  return next;
+}
+
+async function normaliseTripBatch(items, existingRows) {
+  if (!Array.isArray(items)) throw new HttpError(400, "Each record collection must be an array");
+  const rows = [];
+  let duplicates = 0;
+  let updated = 0;
+  let ambiguous = 0;
+
+  for (const item of items) {
+    let incoming;
+    try {
+      incoming = await normaliseTrip(item);
+    } catch (error) {
+      throw new HttpError(400, error.message);
+    }
+
+    const candidates = [
+      ...existingRows.map((row, index) => ({ row, bucket: "existing", index })),
+      ...rows.map((row, index) => ({ row, bucket: "new", index }))
+    ];
+    const exactMatches = candidates.filter(({ row }) => row.id === incoming.id);
+    const matches = exactMatches.length
+      ? exactMatches
+      : candidates.filter(({ row }) => sameTripIdentity(row, incoming));
+
+    if (matches.length > 1) {
+      ambiguous += 1;
+      continue;
+    }
+    if (matches.length === 1) {
+      const match = matches[0];
+      const enriched = mergeTripDetails(match.row, incoming);
+      if (!enriched) {
+        duplicates += 1;
+        continue;
+      }
+      if (match.bucket === "existing") existingRows[match.index] = enriched;
+      else rows[match.index] = enriched;
+      updated += 1;
+      continue;
+    }
+
+    rows.push(incoming);
+  }
+
+  return {
+    rows,
+    received: items.length,
+    inserted: rows.length,
+    updated,
+    duplicates,
+    ambiguous
+  };
+}
+
 async function handleIngest(request, env) {
   if (!env.INGEST_TOKEN) throw new HttpError(503, "Ingestion is not configured");
   const authorization = request.headers.get("authorization") ?? "";
@@ -156,7 +251,7 @@ async function handleIngest(request, env) {
   if (total > 500) throw new HttpError(400, "Send no more than 500 total records per request");
 
   const ledger = await readLedger(env);
-  const trips = await normaliseBatch(tripsInput, normaliseTrip, ledger.trips);
+  const trips = await normaliseTripBatch(tripsInput, ledger.trips);
   const rewards = await normaliseBatch(rewardsInput, normaliseReward, ledger.rewards);
   const fuel = await normaliseBatch(fuelInput, normaliseFuelLog, ledger.fuel);
   const sessions = await normaliseBatch(sessionsInput, normaliseWorkSession, ledger.sessions);
@@ -169,12 +264,14 @@ async function handleIngest(request, env) {
 
   return json({
     ok: true,
-    trips: { received: trips.received, inserted: trips.inserted, duplicates: trips.duplicates },
+    trips: { received: trips.received, inserted: trips.inserted, updated: trips.updated, duplicates: trips.duplicates, ambiguous: trips.ambiguous },
     rewards: { received: rewards.received, inserted: rewards.inserted, duplicates: rewards.duplicates },
     fuel: { received: fuel.received, inserted: fuel.inserted, duplicates: fuel.duplicates },
     sessions: { received: sessions.received, inserted: sessions.inserted, duplicates: sessions.duplicates },
     received: total,
     inserted: trips.inserted + rewards.inserted + fuel.inserted + sessions.inserted,
+    updated: trips.updated,
+    ambiguous: trips.ambiguous,
     duplicates: trips.duplicates + rewards.duplicates + fuel.duplicates + sessions.duplicates
   }, 201);
 }
