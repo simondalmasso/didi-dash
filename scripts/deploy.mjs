@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { chmodSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
