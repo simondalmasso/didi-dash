@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.wrangler.generated.jsonc
+.wrangler-secrets.json
+.dev.vars
+.env
+.env.*
+!.env.example

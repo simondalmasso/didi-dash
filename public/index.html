@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <title>Didi Dash · Etios Earnings</title>
+  <style>
+:root{
+  color-scheme:dark;
+  --bg:#000;--surface:#0c0c0e;--surface2:#1c1c1e;--line:rgba(255,255,255,.085);
+  --text:#f5f5f7;--muted:#8e8e93;--green:#30d158;--amber:#ff9f0a;--blue:#0a84ff;--red:#ff453a;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;
+  font-synthesis:none;background:var(--bg);color:var(--text);font-variant-numeric:tabular-nums
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#000;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:999px;background:var(--text);color:#000;padding:11px 17px;font-weight:650;cursor:pointer;transition:transform .18s ease,opacity .18s ease}
+button:active{transform:scale(.97)}button:disabled{opacity:.45;cursor:not-allowed}
+button.secondary{background:var(--surface2);color:var(--text)}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+input,select,textarea{width:100%;min-width:0;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:var(--surface2);color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(10,132,255,.15)}
+input:disabled{opacity:.72}
+.shell{max-width:980px;margin:0 auto;padding:0 14px 54px}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 -14px 18px;padding:13px 16px;background:rgba(0,0,0,.76);backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);border-bottom:1px solid var(--line)}
+h1{font-size:18px;letter-spacing:-.02em;margin:0;font-weight:650}
+h2{font-size:14px;font-weight:650;letter-spacing:-.01em;margin:0 0 13px;color:var(--muted)}
+h3{font-size:13px;margin:0 0 10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:36px;height:36px;border-radius:12px;background:#f5f5f7;color:#000;display:grid;place-items:center;font-size:12px;font-weight:850;flex:0 0 auto}
+.muted,.subtitle{color:var(--muted)}.subtitle{font-size:11px;margin:3px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:23px;padding:17px;margin-bottom:12px;box-shadow:0 10px 30px rgba(0,0,0,.22);animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.login-wrap{max-width:430px;margin:10vh auto 0;border-radius:26px;padding:22px}
+.login-wrap h2{color:var(--text);margin:0 0 6px;font-size:18px}.login-wrap p{font-size:13px;line-height:1.55;margin:0 0 20px}
+.login-form{display:grid;gap:13px}.full{width:100%}
+label{display:block;font-size:11px;color:var(--muted);margin:0 0 5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:12px;min-height:17px;color:var(--muted);margin-top:9px}.status.error{color:var(--red)}.status.good{color:var(--green)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.toolbar strong{font-size:14px;font-weight:650}
+.period{position:relative;display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
+.period button{background:transparent;color:var(--muted);padding:8px 13px;font-size:12px;transition:background .2s,color .2s}
+.period button.active{background:#3a3a3c;color:var(--text);border-radius:9px}
+.grid{display:grid;gap:10px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpi{border:1px solid var(--line);background:linear-gradient(145deg,#151518,#0c0c0e);border-radius:17px;padding:14px;min-height:92px}
+.kpi .label{font-size:11px;color:var(--muted)}.kpi .value{font-size:clamp(19px,3vw,26px);font-weight:720;letter-spacing:-.045em;margin-top:7px;white-space:nowrap}
+.kpi .hint{font-size:10px;color:var(--muted);margin-top:4px}
+.two{grid-template-columns:1fr 1fr}.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hero-panel{position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:19px;border-radius:24px;background:radial-gradient(ellipse at 92% 8%,rgba(48,209,88,.13),transparent 45%),linear-gradient(135deg,#15191a,#09090a 68%);border:1px solid var(--line);margin-bottom:12px;min-height:146px}
+.hero-panel .eyebrow{font-size:12px;color:var(--muted);font-weight:550}
+.hero-value{font-size:clamp(38px,8vw,58px);letter-spacing:-.06em;line-height:1.08;font-weight:760;margin:7px 0}
+.hero-caption{font-size:11px;color:var(--muted);max-width:52ch}
+.hero-spark{width:31%;min-width:92px;max-width:180px;height:63px;align-self:center}
+.hero-spark svg{width:100%;height:100%;overflow:visible}
+.ratios{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ratio{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 0}
+.ratio-ring{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:conic-gradient(var(--ring-color) var(--ring-progress),#29292c 0);position:relative;animation:pop .5s ease both}
+.ratio-ring:before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
+.ratio-ring b{position:relative;font-size:11px;font-weight:700}
+.ratio-copy{min-width:0}.ratio-copy strong{display:block;font-size:12px;line-height:1.25}.ratio-copy span{display:block;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.35}
+.table-wrap{overflow:auto;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+th{text-align:left;color:var(--muted);font-size:10px;font-weight:600;padding:9px 8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.06);color:#e9e9eb}
+tbody tr:last-child td{border-bottom:0}
+.right{text-align:right}
+.bar-row{display:grid;grid-template-columns:66px 1fr 82px;gap:8px;align-items:center;margin:11px 0;font-size:11px}
+.bar{height:7px;border-radius:99px;background:#29292c;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#1d8f47,var(--green));border-radius:99px}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.form-grid.two-cols{grid-template-columns:repeat(2,minmax(0,1fr))}
+.form-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:9px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;background:rgba(48,209,88,.13);color:var(--green);font-size:10px;font-weight:650}
+.warning{background:rgba(255,159,10,.08);border:1px solid rgba(255,159,10,.22);color:#e6b85f;border-radius:13px;padding:11px 13px;font-size:11px;line-height:1.5;margin-bottom:12px}
+.hidden{display:none!important}.subhead{color:var(--muted);font-size:11px;margin:4px 0 13px}
+.empty{padding:21px;text-align:center;color:var(--muted);font-size:12px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.zone-list{display:grid;gap:6px}.zone-item{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);padding:8px 0;font-size:12px}.zone-item:last-child{border:0}
+footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
+.form-grid input[type=checkbox]{width:auto;accent-color:var(--green)}
+#connection{background:rgba(48,209,88,.13);color:var(--green)}
+@media(max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.shell{padding:0 11px 42px}.card{padding:14px}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{min-height:130px;padding:16px}}
+@media(max-width:430px){header{padding:11px 12px}.kpi{padding:11px}.kpi .value{font-size:20px}.brand .subtitle{font-size:10px}.mark{width:34px;height:34px}.ratios{grid-template-columns:1fr}.ratio{padding:6px 0}.hero-spark{width:28%;min-width:68px}.toolbar{align-items:flex-start}.period button{padding:8px 10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+</style>
+</head>
+<body>
+  <div class="shell">
+    <section id="login" class="login-wrap card">
+      <div class="brand" style="margin-bottom:17px">
+        <div class="mark">ED</div>
+        <div><h1>Etios Earnings</h1><p class="subtitle">Registro privado de viajes y costos</p></div>
+      </div>
+      <h2>Ingresar al tablero</h2>
+      <p class="muted" style="font-size:13px">Los viajes y datos económicos están protegidos. Ingresá tu contraseña.</p>
+      <form id="login-form" class="login-form">
+        <div><label for="password">Contraseña del tablero</label><input id="password" type="password" autocomplete="current-password" required minlength="18"></div>
+        <button class="full" type="submit">Ingresar</button>
+      </form>
+      <div id="login-status" class="status" role="status"></div>
+    </section>
+
+    <main id="app" class="hidden">
+      <header>
+        <div class="brand">
+          <div class="mark">ED</div>
+          <div><h1>Etios Earnings</h1><p class="subtitle">DiDi · Uber · Combustible · Rentabilidad</p></div>
+        </div>
+        <div class="row"><span id="connection" class="pill">Conectando…</span><button id="logout" class="ghost" type="button">Salir</button></div>
+      </header>
+
+      <div class="toolbar">
+        <div><strong>Resumen económico</strong><div class="subhead" style="margin:3px 0 0">Los ingresos vienen de viajes; las horas y el odómetro, de tus turnos.</div></div>
+        <div class="period" aria-label="Período">
+          <button type="button" data-range="7">7 días</button>
+          <button type="button" data-range="30" class="active">30 días</button>
+          <button type="button" data-range="0">Todo</button>
+        </div>
+      </div>
+
+      <div class="warning">El margen después de combustible es una estimación, no ganancia neta. No descuenta comisión de plataforma, seguro, mantenimiento, cubiertas, depreciación ni otros costos.</div>
+      <section class="hero-panel">
+        <div>
+          <div class="eyebrow">Margen estimado después de combustible</div>
+          <div id="hero-margin" class="hero-value">—</div>
+          <div id="hero-caption" class="hero-caption">El importe se habilita cuando registres viajes y tickets de combustible.</div>
+        </div>
+        <div id="hero-spark" class="hero-spark" aria-hidden="true"></div>
+      </section>
+
+      <section class="grid kpis">
+        <div class="kpi"><div class="label">Facturación bruta</div><div id="gross" class="value">—</div><div id="trip-count" class="hint">— viajes</div></div>
+        <div class="kpi"><div class="label">Margen después de nafta</div><div id="fuel-margin" class="value">—</div><div id="fuel-hint" class="hint">Requiere tickets</div></div>
+        <div class="kpi"><div class="label">Por hora conectada</div><div id="per-hour" class="value">—</div><div id="hours-hint" class="hint">Registrar turnos</div></div>
+        <div class="kpi"><div class="label">Km del auto</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">—</div></div>
+      </section>
+
+      <section class="card">
+        <h2>Indicadores del período</h2>
+        <div id="ratio-grid" class="grid ratios">
+          <div class="empty">Cargando indicadores…</div>
+        </div>
+        <div class="note">Ratios calculados con los datos disponibles. Los km vacíos son estimados cuando no hay odómetro completo.</div>
+      </section>
+
+      <section class="card" style="margin-top:14px">
+        <div class="section-head"><h2>Actividad por día</h2><span id="period-label" class="pill">Últimos 30 días</span></div>
+        <div id="daily-chart"></div>
+      </section>
+
+      <div class="grid two">
+        <section class="card">
+          <h2>Rendimiento por hora de inicio</h2>
+          <div class="note" style="margin:0 0 8px">Suma de importes según la hora en que empezó cada viaje. No representa horas conectadas.</div>
+          <div id="hour-chart"></div>
+        </section>
+        <section class="card">
+          <h2>Zonas frecuentes</h2>
+          <div class="note" style="margin:0 0 8px">Solo se muestran zonas generales si el extractor las obtuvo. No se guardan domicilios.</div>
+          <div id="zones" class="zone-list"><div class="empty">Todavía no hay zonas registradas.</div></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="section-head"><h2>Supuestos de combustible</h2><span id="consumption-source" class="pill">Consumo estimado</span></div>
+        <div class="form-grid three">
+          <div><label for="assumed-kml">Km/L si no hay medición</label><input id="assumed-kml" type="number" min="1" max="30" step="0.1" value="11"></div>
+          <div><label for="empty-percent">Km vacíos adicionales (%)</label><input id="empty-percent" type="number" min="0" max="200" step="1" value="30"></div>
+          <div><label>Precio YPF por litro</label><input id="fuel-price" type="text" value="Desde tickets" disabled></div>
+        </div>
+        <div id="fuel-calculation" class="note">Cargá tickets de combustible para habilitar el cálculo monetario.</div>
+      </section>
+
+      <div class="grid two">
+        <section class="card">
+          <h2>Registrar turno</h2>
+          <form id="session-form">
+            <div class="form-grid">
+              <div><label for="s-date">Fecha</label><input id="s-date" type="date" required></div>
+              <div><label for="s-platform">Plataforma</label><select id="s-platform"><option value="didi">DiDi</option><option value="uber">Uber</option></select></div>
+              <div><label for="s-start">Conexión</label><input id="s-start" type="time" required></div>
+              <div><label for="s-end">Desconexión</label><input id="s-end" type="time" required></div>
+              <div><label for="s-odo-start">Odómetro inicial</label><input id="s-odo-start" type="number" min="0" step="0.1" inputmode="decimal"></div>
+              <div><label for="s-odo-end">Odómetro final</label><input id="s-odo-end" type="number" min="0" step="0.1" inputmode="decimal"></div>
+            </div>
+            <div class="form-actions"><button type="submit">Guardar turno</button><span id="session-status" class="status"></span></div>
+          </form>
+          <div id="sessions-list" class="note"></div>
+        </section>
+
+        <section class="card">
+          <h2>Registrar carga de combustible</h2>
+          <form id="fuel-form">
+            <div class="form-grid">
+              <div><label for="f-date">Fecha</label><input id="f-date" type="date" required></div>
+              <div><label for="f-odo">Odómetro</label><input id="f-odo" type="number" min="0" step="0.1" required inputmode="decimal"></div>
+              <div><label for="f-liters">Litros</label><input id="f-liters" type="number" min="0.01" step="0.001" required inputmode="decimal"></div>
+              <div><label for="f-total">Total del ticket ($)</label><input id="f-total" type="number" min="1" step="1" required inputmode="numeric"></div>
+              <div><label for="f-station">Estación</label><input id="f-station" value="YPF"></div>
+              <div style="display:flex;align-items:end"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#44545e"><input id="f-full" type="checkbox" style="width:auto"> Llené el tanque</label></div>
+            </div>
+            <div class="form-actions"><button type="submit">Guardar ticket</button><span id="fuel-status" class="status"></span></div>
+          </form>
+          <div id="fuel-list" class="note"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="section-head"><h2>Historial de viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">Exportar CSV</button></div></div>
+        <div class="table-wrap" id="trips-table"><div class="empty">Cargando viajes…</div></div>
+      </section>
+
+      <section class="card">
+        <h2>Importación manual de respaldo</h2>
+        <label for="trip-json">JSON de viajes — el extractor SentinelX usará el endpoint privado cuando esté conectado</label>
+        <textarea id="trip-json" rows="4" spellcheck="false" placeholder='[{"date":"2026-11-03","start":"17:35","amount":2300,"km":2.7,"min":9.9,"platform":"didi"}]'></textarea>
+        <div class="form-actions"><button id="import-json" type="button">Importar viajes</button><span id="import-status" class="status"></span></div>
+        <div class="note">La importación ignora IDs repetidos. No incluyas nombres, teléfonos ni domicilios de pasajeros.</div>
+      </section>
+
+      <footer>Los registros se guardan en D1. Las preferencias de visualización quedan en este navegador.</footer>
+    </main>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = { trips: [], fuel: [], sessions: [], range: 30 };
+  const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+  const number = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
+  const today = new Date();
+  const isoToday = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
+  $("s-date").value = isoToday;
+  $("f-date").value = isoToday;
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    })[char]);
+  }
+  function asNumber(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
+  function dateLabel(date) { return new Date(date + "T12:00:00").toLocaleDateString("es-AR"); }
+  function localDateDaysAgo(days) {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
+  }
+  function selected(items) {
+    if (state.range === 0) return items;
+    const from = localDateDaysAgo(state.range - 1);
+    return items.filter((item) => item.date >= from && item.date <= isoToday);
+  }
+  function setStatus(id, message, kind = "") {
+    $(id).textContent = message;
+    $(id).className = "status" + (kind ? " " + kind : "");
+  }
+  async function api(path, options = {}) {
+    const response = await fetch(path, {
+      credentials: "same-origin",
+      cache: "no-store",
+      ...options,
+      headers: { ...(options.headers ?? {}) }
+    });
+    const text = await response.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+    if (!response.ok) {
+      const error = new Error(data.message || data.error || ("HTTP " + response.status));
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  }
+  function showLogin(message = "") {
+    $("app").classList.add("hidden");
+    $("login").classList.remove("hidden");
+    $("password").value = "";
+    $("password").focus();
+    $("login-status").textContent = message;
+    $("login-status").className = "status" + (message ? " error" : "");
+  }
+  function showApp() {
+    $("login").classList.add("hidden");
+    $("app").classList.remove("hidden");
+  }
+  async function loadData() {
+    const [trips, fuel, sessions] = await Promise.all([
+      api("/api/trips?limit=5000"),
+      api("/api/fuel?limit=500"),
+      api("/api/sessions?limit=500")
+    ]);
+    state.trips = trips.trips || [];
+    state.fuel = fuel.fuel || [];
+    state.sessions = sessions.sessions || [];
+    $("connection").textContent = "D1 conectado";
+    $("connection").style.background = "#e7f4ed";
+    $("connection").style.color = "#276044";
+    render();
+  }
+  function currentFuelPrice() {
+    // Fuel unit price is the latest recorded ticket, even when its date is outside the selected trip range.
+    if (!state.fuel.length) return 0;
+    const latest = state.fuel.slice().sort((a,b) => (b.date || "").localeCompare(a.date || ""))[0];
+    return asNumber(latest.total_ars) / Math.max(asNumber(latest.liters), 0.001);
+  }
+  function measuredKml(fuel) {
+    const rows = fuel.slice().sort((a,b) => asNumber(a.odometer_km) - asNumber(b.odometer_km));
+    const full = rows.filter((x) => Number(x.full_tank) === 1);
+    if (full.length < 2) return null;
+    let distance = 0, litres = 0;
+    for (let i = 1; i < full.length; i++) {
+      const previous = asNumber(full[i-1].odometer_km);
+      const current = asNumber(full[i].odometer_km);
+      if (current <= previous) continue;
+      const between = rows.filter((entry) => asNumber(entry.odometer_km) > previous && asNumber(entry.odometer_km) <= current);
+      const used = between.reduce((sum, entry) => sum + asNumber(entry.liters), 0);
+      if (used > 0) { distance += current - previous; litres += used; }
+    }
+    return litres > 0 && distance > 0 ? distance / litres : null;
+  }
+  function render() {
+    const trips = selected(state.trips);
+    const fuel = selected(state.fuel);
+    const sessions = selected(state.sessions);
+    const gross = trips.reduce((sum, t) => sum + asNumber(t.amount), 0);
+    const passengerKm = trips.reduce((sum, t) => sum + asNumber(t.km), 0);
+    const passengerMinutes = trips.reduce((sum, t) => sum + asNumber(t.min), 0);
+    const connectedMinutes = sessions.reduce((sum, s) => sum + asNumber(s.connected_minutes), 0);
+    const connectedHours = connectedMinutes / 60;
+    const completeOdometer = sessions.length > 0 && sessions.every((s) => s.odometer_km !== null && s.odometer_km !== undefined);
+    const odometerKm = completeOdometer ? sessions.reduce((sum, s) => sum + asNumber(s.odometer_km), 0) : 0;
+    const emptyPct = Math.max(0, asNumber($("empty-percent").value));
+    const assumedKml = Math.max(1, asNumber($("assumed-kml").value));
+    const carKm = completeOdometer ? odometerKm : passengerKm * (1 + emptyPct / 100);
+    const realKml = measuredKml(state.fuel);
+    const kml = realKml || assumedKml;
+    const price = currentFuelPrice();
+    const fuelCost = price > 0 && carKm > 0 ? carKm / kml * price : null;
+    const margin = fuelCost === null ? null : gross - fuelCost;
+
+    $("hero-margin").textContent = margin === null ? "—" : money.format(margin);
+    $("hero-caption").textContent = margin === null
+      ? "Cargá un ticket de combustible para estimar el margen después de nafta."
+      : money.format(gross) + " facturados · " + money.format(fuelCost) + " de nafta estimada.";
+    renderHeroSpark(trips);
+    renderRatios({ gross, fuelCost, passengerMinutes, connectedMinutes, passengerKm, carKm });
+    $("gross").textContent = money.format(gross);
+    $("trip-count").textContent = trips.length + " viajes";
+    $("fuel-margin").textContent = margin === null ? "—" : money.format(margin);
+    $("fuel-hint").textContent = fuelCost === null ? "Cargá un ticket para estimar nafta" : money.format(fuelCost) + " de combustible estimado";
+    $("per-hour").textContent = connectedHours > 0 ? money.format(gross / connectedHours) : "—";
+    $("hours-hint").textContent = connectedHours > 0 ? number.format(connectedHours) + " h conectado" : "Registrar conexión y desconexión";
+    $("car-km").textContent = carKm > 0 ? number.format(carKm) + " km" : "—";
+    $("km-hint").textContent = completeOdometer ? "Odómetro de turnos" : (passengerKm > 0 ? "Estimación: km pasajero + " + emptyPct + "% vacío" : "Registrar odómetro");
+    $("fuel-price").value = price > 0 ? money.format(price) + "/L" : "Sin ticket cargado";
+    $("consumption-source").textContent = realKml ? number.format(realKml) + " km/L medidos" : number.format(assumedKml) + " km/L asumidos";
+    $("fuel-calculation").textContent = fuelCost === null
+      ? "El cálculo de margen se habilita cuando registres un ticket con litros y total pagado. Los km del auto se toman del odómetro si están completos; si no, se estima un adicional de km vacíos."
+      : "Cálculo: " + number.format(carKm) + " km ÷ " + number.format(kml) + " km/L × " + money.format(price) + "/L = " + money.format(fuelCost) + ". " + (realKml ? "Consumo derivado de cargas consecutivas con tanque lleno." : "Consumo todavía supuesto; se mide al registrar dos cargas completas consecutivas.");
+    $("period-label").textContent = state.range === 0 ? "Todo el historial" : "Últimos " + state.range + " días";
+    renderDaily(trips);
+    renderHours(trips);
+    renderZones(trips);
+    renderTrips(trips);
+    renderSessions(sessions);
+    renderFuel(fuel);
+  }
+  function renderHeroSpark(trips) {
+    const grouped = {};
+    for (const trip of trips) grouped[trip.date] = (grouped[trip.date] || 0) + asNumber(trip.amount);
+    const points = Object.entries(grouped).sort((a,b) => a[0].localeCompare(b[0])).slice(-12).map((x) => x[1]);
+    if (points.length < 2) { $("hero-spark").innerHTML = ""; return; }
+    const min = Math.min(...points), max = Math.max(...points);
+    const coords = points.map((value, index) => {
+      const x = index * 100 / (points.length - 1);
+      const y = 54 - ((value - min) / Math.max(max - min, 1)) * 42;
+      return [x, y];
+    });
+    const line = coords.map(([x,y], index) => (index ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2)).join(" ");
+    const area = line + " L100 64 L0 64 Z";
+    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de facturación">' +
+      '<defs><linearGradient id="spark-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>' +
+      '<path d="' + area + '" fill="url(#spark-fill)"/><path d="' + line + '" fill="none" stroke="#30d158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+  }
+  function renderRatios({ gross, fuelCost, passengerMinutes, connectedMinutes, passengerKm, carKm }) {
+    const ratio = (value) => Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+    const fuelShare = gross > 0 && fuelCost !== null ? ratio(fuelCost / gross * 100) : null;
+    const timeShare = connectedMinutes > 0 ? ratio(passengerMinutes / connectedMinutes * 100) : null;
+    const passengerDistanceShare = carKm > 0 ? ratio(passengerKm / carKm * 100) : null;
+    const items = [
+      { label:"Nafta / facturado", value:fuelShare, display:fuelShare === null ? "—" : Math.round(fuelShare) + "%", note:fuelShare === null ? "Falta un ticket" : "Costo estimado de combustible", color:"#ff9f0a" },
+      { label:"Minutos en viaje / conexión", value:timeShare, display:timeShare === null ? "—" : Math.round(timeShare) + "%", note:timeShare === null ? "Registrar turnos" : "Ratio de tiempo observado", color:"#0a84ff" },
+      { label:"Km con pasajero / km auto", value:passengerDistanceShare, display:passengerDistanceShare === null ? "—" : Math.round(passengerDistanceShare) + "%", note:passengerDistanceShare === null ? "Registrar odómetro" : "La diferencia son km vacíos", color:"#30d158" }
+    ];
+    $("ratio-grid").innerHTML = items.map((item) => {
+      const value = item.value === null ? 0 : item.value;
+      return '<div class="ratio"><div class="ratio-ring" style="--ring-progress:' + value + '%;--ring-color:' + item.color + '"><b>' + item.display + '</b></div>' +
+        '<div class="ratio-copy"><strong>' + item.label + '</strong><span>' + item.note + '</span></div></div>';
+    }).join("");
+  }
+  function renderDaily(trips) {
+    const byDay = {};
+    for (const t of trips) byDay[t.date] = (byDay[t.date] || 0) + asNumber(t.amount);
+    const rows = Object.entries(byDay).sort((a,b) => a[0].localeCompare(b[0])).slice(-14);
+    if (!rows.length) { $("daily-chart").innerHTML = '<div class="empty">Todavía no hay viajes en este período.</div>'; return; }
+    const max = Math.max(...rows.map((x) => x[1]), 1);
+    $("daily-chart").innerHTML = rows.map(([date, value]) =>
+      '<div class="bar-row"><span>' + escapeHtml(dateLabel(date)) + '</span><div class="bar"><i style="width:' + (value / max * 100).toFixed(1) + '%"></i></div><strong class="right">' + money.format(value) + '</strong></div>'
+    ).join("");
+  }
+  function renderHours(trips) {
+    const hours = Array(24).fill(0);
+    for (const t of trips) {
+      const hour = Number(String(t.start).slice(0,2));
+      if (Number.isInteger(hour) && hour >= 0 && hour < 24) hours[hour] += asNumber(t.amount);
+    }
+    const top = hours.map((value, hour) => ({hour, value})).filter((x) => x.value > 0).sort((a,b) => b.value - a.value).slice(0,6);
+    if (!top.length) { $("hour-chart").innerHTML = '<div class="empty">Sin viajes en este período.</div>'; return; }
+    const max = top[0].value;
+    $("hour-chart").innerHTML = top.map((x) =>
+      '<div class="bar-row"><span>' + String(x.hour).padStart(2,"0") + ':00</span><div class="bar"><i style="width:' + (x.value/max*100).toFixed(1) + '%"></i></div><strong class="right">' + money.format(x.value) + '</strong></div>'
+    ).join("");
+  }
+  function renderZones(trips) {
+    const counts = {};
+    for (const t of trips) {
+      for (const zone of [t.origin_zone, t.destination_zone]) {
+        if (zone) counts[zone] = (counts[zone] || 0) + 1;
+      }
+    }
+    const rows = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
+    $("zones").innerHTML = rows.length ? rows.map(([zone,count]) =>
+      '<div class="zone-item"><span>' + escapeHtml(zone) + '</span><strong>' + count + '</strong></div>'
+    ).join("") : '<div class="empty">Las zonas aparecerán cuando estén disponibles en los datos de cada viaje.</div>';
+  }
+  function renderTrips(trips) {
+    if (!trips.length) { $("trips-table").innerHTML = '<div class="empty">No hay viajes cargados todavía.</div>'; return; }
+    const rows = trips.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
+    $("trips-table").innerHTML = '<table><thead><tr><th>Fecha</th><th>Hora</th><th>Plataforma</th><th class="right">Importe</th><th class="right">Km</th><th class="right">Min</th><th class="right">$ / km</th><th>Zonas</th></tr></thead><tbody>' +
+      rows.map((t) => '<tr><td>' + escapeHtml(dateLabel(t.date)) + '</td><td>' + escapeHtml(t.start) + '</td><td>' + escapeHtml(String(t.platform).toUpperCase()) + '</td><td class="right">' + money.format(asNumber(t.amount)) + '</td><td class="right">' + number.format(asNumber(t.km)) + '</td><td class="right">' + number.format(asNumber(t.min)) + '</td><td class="right">' + (asNumber(t.km) > 0 ? money.format(asNumber(t.amount)/asNumber(t.km)) : "—") + '</td><td>' + escapeHtml([t.origin_zone,t.destination_zone].filter(Boolean).join(" → ") || "—") + '</td></tr>').join("") +
+      '</tbody></table>';
+  }
+  function renderSessions(sessions) {
+    if (!sessions.length) { $("sessions-list").textContent = "Todavía no hay turnos registrados."; return; }
+    $("sessions-list").textContent = sessions.length + " turnos en el período seleccionado.";
+  }
+  function renderFuel(fuel) {
+    if (!fuel.length) { $("fuel-list").textContent = "Todavía no hay tickets de combustible en el período seleccionado."; return; }
+    $("fuel-list").textContent = fuel.length + " tickets · " + number.format(fuel.reduce((s,x)=>s+asNumber(x.liters),0)) + " L registrados.";
+  }
+
+  $("login-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button");
+    button.disabled = true;
+    $("login-status").textContent = "Verificando…";
+    try {
+      await api("/api/session", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({password:$("password").value}) });
+      showApp();
+      await loadData();
+    } catch (error) {
+      showLogin(error.status === 401 ? "Contraseña incorrecta." : error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  $("logout").addEventListener("click", async () => {
+    try { await api("/api/logout", {method:"POST"}); } catch {}
+    showLogin("Sesión cerrada.");
+  });
+  document.querySelectorAll("[data-range]").forEach((button) => button.addEventListener("click", () => {
+    state.range = Number(button.dataset.range);
+    document.querySelectorAll("[data-range]").forEach((item) => item.classList.toggle("active", item === button));
+    render();
+  }));
+  $("assumed-kml").addEventListener("input", render);
+  $("empty-percent").addEventListener("input", render);
+
+  $("session-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const payload = {
+      date:$("s-date").value, platform:$("s-platform").value,
+      connected_start:$("s-start").value, connected_end:$("s-end").value,
+      odometer_start:$("s-odo-start").value || null, odometer_end:$("s-odo-end").value || null
+    };
+    try {
+      await api("/api/sessions", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+      setStatus("session-status","Turno guardado.","good");
+      await loadData();
+    } catch (error) { setStatus("session-status",error.message,"error"); }
+  });
+  $("fuel-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const payload = {
+      date:$("f-date").value, odometer_km:Number($("f-odo").value),
+      liters:Number($("f-liters").value), total_ars:Number($("f-total").value),
+      station:$("f-station").value, full_tank:$("f-full").checked
+    };
+    try {
+      await api("/api/fuel", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+      setStatus("fuel-status","Ticket guardado.","good");
+      event.currentTarget.reset();
+      $("f-date").value = isoToday;
+      $("f-station").value = "YPF";
+      await loadData();
+    } catch (error) { setStatus("fuel-status",error.message,"error"); }
+  });
+  $("import-json").addEventListener("click", async () => {
+    try {
+      const input = JSON.parse($("trip-json").value);
+      const trips = Array.isArray(input) ? input : input.trips;
+      if (!Array.isArray(trips)) throw new Error("El JSON debe ser una lista de viajes.");
+      const result = await api("/api/trips", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({trips})});
+      setStatus("import-status","Nuevos: " + result.inserted + " · repetidos: " + result.duplicates,"good");
+      await loadData();
+    } catch (error) { setStatus("import-status",error.message,"error"); }
+  });
+  $("backup-json").addEventListener("click", async () => {
+    try {
+      const response = await fetch("/api/export", { credentials:"same-origin", cache:"no-store" });
+      if (!response.ok) throw new Error(response.status === 401 ? "La sesión venció. Volvé a ingresar." : "No se pudo generar el backup.");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "didi-dash-backup.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      $("import-status").textContent = error.message;
+      $("import-status").className = "status error";
+    }
+  });
+  $("export-csv").addEventListener("click", () => {
+    const cols = ["id","date","start","platform","amount","km","min","source","origin_zone","destination_zone"];
+    const csv = [cols.join(","), ...selected(state.trips).map((t) => cols.map((key) => '"' + String(t[key] ?? "").replace(/"/g,'""') + '"').join(","))].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"}));
+    const a = document.createElement("a"); a.href = url; a.download = "didi-dash-trips.csv"; a.click(); URL.revokeObjectURL(url);
+  });
+
+  (async () => {
+    try {
+      await loadData();
+      showApp();
+    } catch (error) {
+      if (error.status === 401) showLogin();
+      else showLogin("No se pudo conectar con el tablero: " + error.message);
+    }
+  })();
+})();
+</script>
+</body>
+</html>
