@@ -28,8 +28,9 @@ Trip-level kilometres measure only the passenger ride. They are not the vehicle'
 ## Fuel and vehicle operating costs
 
 - Fuel cost estimation uses vehicle kilometres derived from work-session odometer readings (`odometer_end - odometer_start`), not passenger kilometres.
-- The initial baseline is **7.4 L/100 km**, Toyota Argentina's urban-cycle homologation for the Etios 1.5 with manual six-speed transmission. [Toyota Argentina energy-efficiency label](https://media.toyota.com.ar/db0d73f4-69fe-4d99-af5d-d47c7204e400.pdf).
-- This is a controlled laboratory reference, not a claim about real DiDi/urban use. Actual consumption depends on traffic, idle time, air conditioning, loading, driving style and maintenance. Calibrate with consecutive full-tank fuel entries and odometer readings before treating it as measured consumption.
+- The working baseline is **8.8 L/100 km**, taken from an Argentine road test of the Etios Hatchback 1.5 manual six-speed. A later Etios manual test reported 8.5 L/100 km in city use. These are observed test figures, not guarantees for this specific vehicle.
+- Toyota Argentina's controlled urban-cycle homologation for the Etios 1.5 M/T 6 is **7.4 L/100 km** ([official energy-efficiency label](https://media.toyota.com.ar/db0d73f4-69fe-4d99-af5d-d47c7204e400.pdf)). This is a laboratory reference, not a real DiDi-use estimate.
+- Actual consumption depends on traffic, idle time, air conditioning, loading, driving style and maintenance. Calibrate with consecutive full-tank fuel entries and odometer readings before treating it as measured consumption.
 - Fuel price is the weighted price per litre from real fuel tickets (`sum(total_ars) / sum(liters)`). No daily YPF pump-price feed is used as a substitute for the price actually paid.
 - The dashboard's "Ingreso tras combustible" is gross earnings less estimated fuel cost only. It is not final profit and excludes platform commissions, insurance, maintenance, tyres, depreciation and other operating costs.
 
