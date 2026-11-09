@@ -8,7 +8,7 @@ Mobile-first, public read-only dashboard for DiDi/Uber driving, ride earnings, r
 - Browser writes are rejected. The only write endpoint is `POST /api/ingest`, protected by a private `INGEST_TOKEN` bearer secret.
 - Passenger names, phone numbers, pickup/drop-off addresses and location fields are discarded by the record normalizers and are never persisted.
 - Cloudflare Workers KV stores the ledger under a single `ledger:v1` key.
-- Exact record IDs are deduplicated. Trip re-ingestion can enrich one incomplete record when date, start time, amount and platform identify exactly one existing trip. It preserves the original ID and fills missing kilometres and/or duration. If more than one trip matches that identity, the record is not inserted or merged; the response increments `ambiguous` so the collision can be reviewed.
+- Exact record IDs are deduplicated. Trip re-ingestion can enrich one incomplete record when date, start time and platform identify exactly one existing trip. A confirmed DiDi detail is authoritative for the final driver amount; if its amount differs from the history-list amount, the existing row is corrected while preserving its ID. It preserves the original ID and fills missing kilometres and/or duration. If more than one trip matches that identity, the record is not inserted or merged; the response increments `ambiguous` so the collision can be reviewed.
 - Rewards and incentives are stored separately from rides.
 
 The public URL exposes financial activity. Do not store passenger-identifying information in the ledger. Route addresses may be used transiently by an importer to estimate a route, but must not be sent to this API or persisted.
