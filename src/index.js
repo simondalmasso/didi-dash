@@ -7,6 +7,9 @@ import {
 const COOKIE_NAME = "__Host-didi_dash_session";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 const MAX_BODY_BYTES = 1024 * 1024;
+const LOGIN_MAX_FAILURES = 5;
+const LOGIN_WINDOW_SECONDS = 15 * 60;
+const LOGIN_BLOCK_SECONDS = 15 * 60;
 const encoder = new TextEncoder();
 
 class HttpError extends Error {
@@ -158,11 +161,11 @@ async function insertTrips(db, input) {
 
   const statements = trips.map((trip) => db.prepare(
     `INSERT OR IGNORE INTO trips
-      (id, date, start, amount, km, min, platform, source, origin_zone, destination_zone)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, date, start, amount, km, min, platform, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     trip.id, trip.date, trip.start, trip.amount, trip.km, trip.min,
-    trip.platform, trip.source, trip.origin_zone, trip.destination_zone
+    trip.platform, trip.source
   ));
 
   const results = await db.batch(statements);
@@ -232,6 +235,17 @@ function validDateFilter(value) {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+async function loginBucketId(request, secret) {
+  // Cloudflare supplies this header at the edge. Only a keyed digest is stored in D1.
+  const address = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const digest = await crypto.subtle.sign(
+    "HMAC",
+    await hmacKey(secret),
+    encoder.encode("didi-dash-login:" + address)
+  );
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 async function getTrips(request, db) {
   const url = new URL(request.url);
   const where = [];
@@ -255,7 +269,7 @@ async function getTrips(request, db) {
     values.push(platform.toLowerCase());
   }
   const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") ?? "2000", 10) || 2000, 1), 5000);
-  const sql = `SELECT id, date, start, amount, km, min, platform, source, origin_zone, destination_zone, created_at
+  const sql = `SELECT id, date, start, amount, km, min, platform, source, created_at
     FROM trips ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY date DESC, start DESC LIMIT ?`;
   const result = await db.prepare(sql).bind(...values, limit).all();
@@ -276,10 +290,50 @@ async function handleApi(request, env) {
     if (!env.DASHBOARD_PASSWORD || !env.SESSION_SECRET) {
       throw new HttpError(503, "Dashboard secrets have not been configured");
     }
+    const bucketId = await loginBucketId(request, env.SESSION_SECRET);
+    const now = Math.floor(Date.now() / 1000);
+    const attempts = await env.DB.prepare(
+      "SELECT blocked_until FROM login_attempts WHERE ip_hash = ?"
+    ).bind(bucketId).first();
+    if (Number(attempts?.blocked_until ?? 0) > now) {
+      throw new HttpError(429, "Too many attempts. Try again in 15 minutes.");
+    }
+
     const body = await readJson(request);
     if (typeof body.password !== "string" || !constantTimeEqual(body.password, env.DASHBOARD_PASSWORD)) {
+      await env.DB.prepare(`
+        INSERT INTO login_attempts
+          (ip_hash, window_started_at, failures, blocked_until, updated_at)
+        VALUES (?, ?, 1, 0, ?)
+        ON CONFLICT(ip_hash) DO UPDATE SET
+          failures = CASE
+            WHEN excluded.updated_at - login_attempts.window_started_at >= ? THEN 1
+            ELSE login_attempts.failures + 1
+          END,
+          window_started_at = CASE
+            WHEN excluded.updated_at - login_attempts.window_started_at >= ? THEN excluded.updated_at
+            ELSE login_attempts.window_started_at
+          END,
+          blocked_until = CASE
+            WHEN (
+              CASE
+                WHEN excluded.updated_at - login_attempts.window_started_at >= ? THEN 1
+                ELSE login_attempts.failures + 1
+              END
+            ) >= ? THEN excluded.updated_at + ?
+            ELSE login_attempts.blocked_until
+          END,
+          updated_at = excluded.updated_at
+      `).bind(
+        bucketId, now, now,
+        LOGIN_WINDOW_SECONDS, LOGIN_WINDOW_SECONDS,
+        LOGIN_WINDOW_SECONDS, LOGIN_MAX_FAILURES, LOGIN_BLOCK_SECONDS,
+        now
+      ).run();
       throw new HttpError(401, "Incorrect password");
     }
+
+    await env.DB.prepare("DELETE FROM login_attempts WHERE ip_hash = ?").bind(bucketId).run();
     const token = await createSessionToken(env.SESSION_SECRET);
     return json({ ok: true, expires_in: SESSION_TTL_SECONDS }, 200, {
       "set-cookie": sessionCookie(token)
