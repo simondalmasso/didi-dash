@@ -77,7 +77,7 @@ test("normaliseTrip discards location and any unrecognised passenger fields", as
     passenger_name: "Private Passenger", phone: "0000000000"
   });
   assert.deepEqual(Object.keys(trip).sort(), [
-    "amount", "date", "id", "km", "min", "platform", "source", "start"
+    "amount", "date", "id", "km", "km_source", "min", "platform", "source", "start"
   ]);
   assert.equal("origin_zone" in trip, false);
   assert.equal("destination_zone" in trip, false);
