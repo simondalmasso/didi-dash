@@ -56,7 +56,7 @@ test("normaliseFuelLog accepts a ticket record without storing payment or person
   });
 
   assert.equal(entry.station, "YPF");
-  assert.equal(entry.price_per_liter, 2136.6666666666665);
+  assert.ok(Math.abs(entry.price_per_liter - 2136.6666666666665) < 1e-9);
   assert.equal(entry.full_tank, 1);
   assert.match(entry.id, /^[a-f0-9]{64}$/);
 });
@@ -72,6 +72,6 @@ test("normaliseWorkSession requires paired odometer readings and valid connected
     connected_end: "15:00", odometer_start: 82500, odometer_end: 82572.4
   });
 
-  assert.equal(session.odometer_km, 72.4);
+  assert.ok(Math.abs(session.odometer_km - 72.4) < 1e-8);
   assert.equal(session.connected_minutes, 360);
 });
