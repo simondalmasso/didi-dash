@@ -213,12 +213,10 @@ async function insertWorkSession(db, input) {
   return { inserted, duplicate: inserted === 0, entry };
 }
 
-async function requireSession(request, env) {
-  if (!env.SESSION_SECRET) throw new HttpError(503, "Dashboard authentication is not configured");
-  const token = cookieValue(request, COOKIE_NAME);
-  if (!(await verifySessionToken(token, env.SESSION_SECRET))) {
-    throw new HttpError(401, "Sign in to view this dashboard");
-  }
+// The dashboard is intentionally public at the owner's request.
+// Write access remains protected separately: /api/ingest requires INGEST_TOKEN.
+async function requireSession(_request, _env) {
+  return;
 }
 
 async function listRows(db, table, limit = 5000) {
