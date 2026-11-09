@@ -77,15 +77,13 @@ export async function normaliseTrip(input) {
   const platform = platformName(input.platform);
   const source = String(input.source ?? "sentinelx_ocr").trim().toLowerCase();
   if (!SOURCE_RE.test(source)) throw new Error("source must be a short identifier");
-  const origin_zone = safeLabel(input.origin_zone, "origin_zone");
-  const destination_zone = safeLabel(input.destination_zone, "destination_zone");
   const providedId = safeId(input.id);
   const id = providedId ?? await stableId([
-    date, start, String(amount), km.toFixed(3), min.toFixed(2), platform,
-    origin_zone ?? "", destination_zone ?? ""
+    date, start, String(amount), km.toFixed(3), min.toFixed(2), platform
   ]);
 
-  return { id, date, start, amount, km, min, platform, source, origin_zone, destination_zone };
+  // Whitelist the trip contract; passenger or location fields are never persisted.
+  return { id, date, start, amount, km, min, platform, source };
 }
 
 export async function normaliseFuelLog(input) {

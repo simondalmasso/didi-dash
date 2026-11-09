@@ -64,7 +64,14 @@ test("dashboard login issues an HttpOnly, Secure, Strict session cookie", async 
   const response = await worker.fetch(request, {
     DASHBOARD_PASSWORD: "correct-horse-battery-staple",
     SESSION_SECRET: "s".repeat(48),
-    DB: {}
+    DB: {
+      prepare() {
+        return { bind() { return {
+          first: async () => null,
+          run: async () => ({ success: true })
+        }; } };
+      }
+    }
   });
 
   assert.equal(response.status, 200);
@@ -128,4 +135,61 @@ test("ingestion inserts a repeated trip once and reports the duplicate", async (
   assert.deepEqual(await response.json(), {
     ok: true, received: 2, inserted: 1, duplicates: 1
   });
+});
+
+
+test("login blocks an IP after five incorrect passwords", async () => {
+  let failures = 0;
+  let blockedUntil = 0;
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          if (sql.includes("SELECT blocked_until FROM login_attempts")) {
+            return { first: async () => ({ blocked_until: blockedUntil }) };
+          }
+          if (sql.includes("INSERT INTO login_attempts")) {
+            return { run: async () => {
+              failures += 1;
+              if (failures >= 5) blockedUntil = Math.floor(Date.now() / 1000) + 900;
+            } };
+          }
+          if (sql.includes("DELETE FROM login_attempts")) {
+            return { run: async () => { failures = 0; blockedUntil = 0; } };
+          }
+          throw new Error("Unexpected SQL in login rate-limit test");
+        }
+      };
+    }
+  };
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const request = new Request("https://didi-dash.example.workers.dev/api/session", {
+      method: "POST",
+      headers: {
+        origin: "https://didi-dash.example.workers.dev",
+        "cf-connecting-ip": "203.0.113.7",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ password: "wrong-password-value" })
+    });
+    const response = await worker.fetch(request, {
+      DASHBOARD_PASSWORD: "correct-password-value",
+      SESSION_SECRET: "s".repeat(48), DB: db
+    });
+    assert.equal(response.status, 401);
+  }
+  const blockedRequest = new Request("https://didi-dash.example.workers.dev/api/session", {
+    method: "POST",
+    headers: {
+      origin: "https://didi-dash.example.workers.dev",
+      "cf-connecting-ip": "203.0.113.7",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ password: "wrong-password-value" })
+  });
+  const blocked = await worker.fetch(blockedRequest, {
+    DASHBOARD_PASSWORD: "correct-password-value",
+    SESSION_SECRET: "s".repeat(48), DB: db
+  });
+  assert.equal(blocked.status, 429);
 });

@@ -8,8 +8,8 @@ Private trip ledger and operating dashboard for DiDi/Uber driving in Santa Fe.
 - D1 stores trips, work sessions and fuel tickets.
 - The dashboard uses a signed, HttpOnly, Secure, SameSite=Strict session cookie.
 - SentinelX sends validated trips to POST /api/ingest with a dedicated bearer token.
-- Trip IDs are supplied by the extractor when available; otherwise the API generates a deterministic SHA-256 ID and ignores duplicates.
-- Passenger names, phone numbers and exact home/work addresses are not part of the schema. Optional location fields accept coarse zone labels only.
+- Trip IDs are supplied by the extractor when available; otherwise the API generates a deterministic SHA-256 ID from the trip's date, start time, amount, distance, duration and platform.
+- Passenger names, phone numbers, addresses and location zones are excluded from the trip contract and database.
 
 The public dashboard shell contains no trip data. All financial and trip APIs require a session. The ingestion endpoint has a separate token and is not exposed in browser code. CORS is not enabled.
 
@@ -27,7 +27,7 @@ Add these repository secrets under **Settings → Secrets and variables → Acti
 
 Do not put any of these values in source code, the HTML, a commit, or a chat message. The Cloudflare API token is only used by the GitHub Actions deployment process. The dashboard password, ingestion token and session key are uploaded to the Worker as encrypted secrets.
 
-On merge/push to main, GitHub Actions:
+On pull requests, GitHub Actions runs tests only. Deployment runs only after a push to `main` or a manual dispatch targeting `main`.
 
 1. Installs the pinned Wrangler version and runs tests.
 2. Finds the D1 database named didi-dash, creating it if absent.
@@ -48,7 +48,7 @@ POST /api/session
 
     { "password": "your-dashboard-password" }
 
-Successful login sets a 12-hour HttpOnly session cookie. POST /api/logout clears it.
+Successful login sets a 12-hour HttpOnly session cookie. Five incorrect attempts from the same IP within 15 minutes trigger a 15-minute lockout; only a keyed digest of the IP is stored. POST /api/logout clears the cookie.
 
 ### SentinelX ingestion
 
@@ -70,14 +70,12 @@ Body:
           "km": 2.7,
           "min": 9.9,
           "platform": "didi",
-          "source": "sentinelx_ocr",
-          "origin_zone": "Centro",
-          "destination_zone": "Candioti"
+          "source": "sentinelx_ocr"
         }
       ]
     }
 
-The endpoint accepts 1–500 trips per request. id is optional. If omitted, the API derives a stable SHA-256 ID from date, time, amount, distance, duration, platform and coarse zones. Repeated IDs are ignored with INSERT OR IGNORE.
+The endpoint accepts 1–500 trips per request. id is optional. If omitted, the API derives a stable SHA-256 ID from date, time, amount, distance, duration and platform. Unknown fields are discarded; no passenger or location data is stored. Repeated IDs are ignored with INSERT OR IGNORE.
 
 Response:
 
