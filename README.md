@@ -2,25 +2,46 @@
 
 Mobile-first, public read-only dashboard for DiDi/Uber driving, ride earnings, rewards and vehicle operating costs.
 
-## Access and data model
+## Access, privacy and data model
 
-- Dashboard and JSON read APIs are public. Anyone with the URL can view and export the ledger, as explicitly requested by the owner.
+- Dashboard and JSON read APIs are public. Anyone with the URL can view and export the ledger.
 - Browser writes are rejected. The only write endpoint is `POST /api/ingest`, protected by a private `INGEST_TOKEN` bearer secret.
 - Passenger names, phone numbers, pickup/drop-off addresses and location fields are discarded by the record normalizers and are never persisted.
-- Cloudflare Workers KV stores the ledger under a single `ledger:v1` key. This avoids occupying another D1 database in the account.
-- Records are deduplicated by stable IDs.
+- Cloudflare Workers KV stores the ledger under a single `ledger:v1` key.
+- Exact record IDs are deduplicated. Trip re-ingestion can enrich one incomplete record when date, start time, amount and platform identify exactly one existing trip. It preserves the original ID and fills missing kilometres and/or duration. If more than one trip matches that identity, the record is not inserted or merged; the response increments `ambiguous` so the collision can be reviewed.
+- Rewards and incentives are stored separately from rides.
 
-The public URL exposes financial activity. Do not store passenger-identifying information in the ledger.
+The public URL exposes financial activity. Do not store passenger-identifying information in the ledger. Route addresses may be used transiently by an importer to estimate a route, but must not be sent to this API or persisted.
+
+## Kilometres and trip data
+
+Each trip has a `km_source`:
+
+- `actual`: kilometres read from the DiDi trip detail screen.
+- `estimated`: route-distance estimate computed from pickup to drop-off. Always send this value explicitly; the API must not infer it.
+- `unknown`: no distance is available. This is applied when `km` is zero.
+
+For backwards compatibility, a positive `km` without `km_source` defaults to `actual`. New importers should always send `km_source` explicitly.
+
+Trip-level kilometres measure only the passenger ride. They are not the vehicle's total kilometres and must not be used to calculate total fuel consumption.
+
+## Fuel and vehicle operating costs
+
+- Fuel cost estimation uses vehicle kilometres derived from work-session odometer readings (`odometer_end - odometer_start`), not passenger kilometres.
+- The initial baseline is **7.4 L/100 km**, Toyota Argentina's urban-cycle homologation for the Etios 1.5 with manual six-speed transmission. [Toyota Argentina energy-efficiency label](https://media.toyota.com.ar/db0d73f4-69fe-4d99-af5d-d47c7204e400.pdf).
+- This is a controlled laboratory reference, not a claim about real DiDi/urban use. Actual consumption depends on traffic, idle time, air conditioning, loading, driving style and maintenance. Calibrate with consecutive full-tank fuel entries and odometer readings before treating it as measured consumption.
+- Fuel price is the weighted price per litre from real fuel tickets (`sum(total_ars) / sum(liters)`). No daily YPF pump-price feed is used as a substitute for the price actually paid.
+- The dashboard's "Ingreso tras combustible" is gross earnings less estimated fuel cost only. It is not final profit and excludes platform commissions, insurance, maintenance, tyres, depreciation and other operating costs.
+
+Rewards contribute to total gross income but not ride count, ride kilometres, passenger minutes or trip-only activity charts. The top sparkline also shows ride income only, not rewards.
 
 ## Dashboard contents
 
-- Ride KPIs and history: date, time, platform, amount, passenger kilometres and minutes, plus kilometres by active day and calendar month.
-- Minimum fuel profitability estimate: uses passenger kilometres only, a conservative 8 L/100 km baseline, and the weighted price from real fuel tickets. It is explicitly not total vehicle fuel consumption.
-- Rewards and incentives are stored and displayed separately from rides. They contribute to gross earnings but not to ride count, ride kilometres or passenger minutes.
-- Fuel tickets and work sessions are separate collections.
+- Ride KPIs and history: date, time, platform, amount, actual passenger kilometres, estimated route kilometres and duration.
+- Vehicle kilometres and estimated fuel cost based on odometer sessions and real fuel tickets.
+- Daily/monthly totals for earnings and recorded kilometres, with actual and estimated passenger distance kept separate.
+- Rewards, fuel tickets and work sessions remain separate collections.
 - JSON backup and CSV trip export are public.
-
-Gross earnings = ride amounts + reward amounts. Fuel margin is an estimate, not net profit. It excludes platform commissions, insurance, maintenance, tyres, depreciation and other operating costs.
 
 ## Runtime
 
@@ -55,9 +76,20 @@ A request accepts up to 500 total records:
       "start": "17:35",
       "amount": 2300,
       "km": 2.7,
+      "km_source": "actual",
       "min": 9.9,
       "platform": "didi",
-      "source": "sentinelx_ocr"
+      "source": "didi_history_detail"
+    },
+    {
+      "date": "2026-11-03",
+      "start": "17:50",
+      "amount": 1800,
+      "km": 4.1,
+      "km_source": "estimated",
+      "min": 0,
+      "platform": "didi",
+      "source": "route_estimate"
     }
   ],
   "rewards": [
@@ -74,7 +106,7 @@ A request accepts up to 500 total records:
 }
 ```
 
-The API accepts the legacy bare trips array too. Repeated IDs are ignored. Passenger and location fields are excluded before storage.
+The API accepts the legacy bare trips array too. The response includes `inserted`, `updated`, `duplicates` and `ambiguous` counts for trips. Ambiguous trip identities are left untouched to avoid corrupting or silently duplicating the ledger. Passenger and location fields are excluded before storage.
 
 ## Public read APIs
 
