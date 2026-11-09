@@ -75,7 +75,10 @@ test("dashboard login issues an HttpOnly, Secure, Strict session cookie", async 
   });
 
   assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.expires_in, 12 * 60 * 60);
   const cookie = response.headers.get("set-cookie");
+  assert.match(cookie, /Max-Age=43200/);
   assert.match(cookie, /HttpOnly/);
   assert.match(cookie, /Secure/);
   assert.match(cookie, /SameSite=Strict/);
@@ -192,4 +195,42 @@ test("login blocks an IP after five incorrect passwords", async () => {
     SESSION_SECRET: "s".repeat(48), DB: db
   });
   assert.equal(blocked.status, 429);
+});
+
+
+test("remember me keeps the dashboard session for 30 days without storing the password", async () => {
+  const db = {
+    prepare(sql) {
+      return { bind() { return {
+        first: async () => null,
+        run: async () => ({ success: true })
+      }; } };
+    }
+  };
+  const request = new Request("https://didi-dash.example.workers.dev/api/session", {
+    method: "POST",
+    headers: {
+      origin: "https://didi-dash.example.workers.dev",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      password: "correct-horse-battery-staple",
+      remember: true
+    })
+  });
+  const response = await worker.fetch(request, {
+    DASHBOARD_PASSWORD: "correct-horse-battery-staple",
+    SESSION_SECRET: "s".repeat(48),
+    DB: db
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.expires_in, 30 * 24 * 60 * 60);
+  const cookie = response.headers.get("set-cookie");
+  assert.match(cookie, /Max-Age=2592000/);
+  assert.match(cookie, /HttpOnly/);
+  assert.match(cookie, /Secure/);
+  assert.match(cookie, /SameSite=Strict/);
+  assert.equal(cookie.includes("correct-horse-battery-staple"), false);
 });

@@ -48,7 +48,7 @@ POST /api/session
 
     { "password": "your-dashboard-password" }
 
-Successful login sets a 12-hour HttpOnly session cookie. Five incorrect attempts from the same IP within 15 minutes trigger a 15-minute lockout; only a keyed digest of the IP is stored. POST /api/logout clears the cookie.
+Successful login sets an HttpOnly, Secure, SameSite=Strict session cookie. By default it lasts 12 hours; when the user selects **Mantener sesión iniciada**, it lasts 30 days on that device. The password is never stored in browser storage. Five incorrect attempts from the same IP within 15 minutes trigger a 15-minute lockout; only a keyed digest of the IP is stored. POST /api/logout clears the cookie.
 
 ### SentinelX ingestion
 

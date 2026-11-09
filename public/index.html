@@ -103,6 +103,10 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
       <p class="muted" style="font-size:13px">Los viajes y datos económicos están protegidos. Ingresá tu contraseña.</p>
       <form id="login-form" class="login-form">
         <div><label for="password">Contraseña del tablero</label><input id="password" type="password" autocomplete="current-password" required minlength="18"></div>
+        <label for="remember-session" style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);margin:0">
+          <input id="remember-session" type="checkbox" style="width:auto;accent-color:var(--green)">
+          Mantener sesión iniciada durante 30 días en este dispositivo
+        </label>
         <button class="full" type="submit">Ingresar</button>
       </form>
       <div id="login-status" class="status" role="status"></div>
@@ -443,7 +447,10 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
     button.disabled = true;
     $("login-status").textContent = "Verificando…";
     try {
-      await api("/api/session", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({password:$("password").value}) });
+      await api("/api/session", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({
+        password:$("password").value,
+        remember:$("remember-session").checked
+      }) });
       showApp();
       await loadData();
     } catch (error) {

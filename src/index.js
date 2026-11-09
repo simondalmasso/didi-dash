@@ -6,6 +6,7 @@ import {
 
 const COOKIE_NAME = "__Host-didi_dash_session";
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
+const REMEMBERED_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 const MAX_BODY_BYTES = 1024 * 1024;
 const LOGIN_MAX_FAILURES = 5;
 const LOGIN_WINDOW_SECONDS = 15 * 60;
@@ -71,11 +72,11 @@ async function hmacKey(secret) {
   );
 }
 
-async function createSessionToken(secret) {
+async function createSessionToken(secret, ttlSeconds = SESSION_TTL_SECONDS) {
   const nonce = new Uint8Array(16);
   crypto.getRandomValues(nonce);
   const payload = base64url(encoder.encode(JSON.stringify({
-    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    exp: Math.floor(Date.now() / 1000) + ttlSeconds,
     nonce: base64url(nonce)
   })));
   const signature = await crypto.subtle.sign("HMAC", await hmacKey(secret), encoder.encode(payload));
@@ -111,8 +112,8 @@ function cookieValue(request, name) {
   return null;
 }
 
-function sessionCookie(token) {
-  return `${COOKIE_NAME}=${token}; Path=/; Max-Age=${SESSION_TTL_SECONDS}; Secure; HttpOnly; SameSite=Strict`;
+function sessionCookie(token, ttlSeconds = SESSION_TTL_SECONDS) {
+  return `${COOKIE_NAME}=${token}; Path=/; Max-Age=${ttlSeconds}; Secure; HttpOnly; SameSite=Strict`;
 }
 
 function clearSessionCookie() {
@@ -333,9 +334,12 @@ async function handleApi(request, env) {
     }
 
     await env.DB.prepare("DELETE FROM login_attempts WHERE ip_hash = ?").bind(bucketId).run();
-    const token = await createSessionToken(env.SESSION_SECRET);
-    return json({ ok: true, expires_in: SESSION_TTL_SECONDS }, 200, {
-      "set-cookie": sessionCookie(token)
+    const ttlSeconds = body.remember === true
+      ? REMEMBERED_SESSION_TTL_SECONDS
+      : SESSION_TTL_SECONDS;
+    const token = await createSessionToken(env.SESSION_SECRET, ttlSeconds);
+    return json({ ok: true, expires_in: ttlSeconds }, 200, {
+      "set-cookie": sessionCookie(token, ttlSeconds)
     });
   }
 
