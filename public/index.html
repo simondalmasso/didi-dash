@@ -157,7 +157,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
   const isoToday = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
   const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
   const number = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
-  const ETIOS_L_PER_100KM = 7.4; // Toyota Argentina reference: Etios hatchback 1.5, manual 6-speed, urban cycle; replace with measured tank-to-tank consumption
+  const ETIOS_L_PER_100KM = 8.8; // Measured urban test: Etios Hatchback 1.5 manual 6MT. Factory homologation is 7.4 L/100 km. Calibrate with full-tank odometer logs.
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -212,7 +212,6 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
   function render() {
     const trips = selected(state.trips);
     const rewards = selected(state.rewards);
-    const activity = trips.concat(rewards);
     const fuel = selected(state.fuel);
     const sessions = selected(state.sessions);
     const tripGross = trips.reduce((sum, row) => sum + asNumber(row.amount), 0);
