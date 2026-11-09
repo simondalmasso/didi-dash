@@ -64,7 +64,14 @@ test("dashboard login issues an HttpOnly, Secure, Strict session cookie", async 
   const response = await worker.fetch(request, {
     DASHBOARD_PASSWORD: "correct-horse-battery-staple",
     SESSION_SECRET: "s".repeat(48),
-    DB: {}
+    DB: {
+      prepare() {
+        return { bind() { return {
+          first: async () => null,
+          run: async () => ({ success: true })
+        }; } };
+      }
+    }
   });
 
   assert.equal(response.status, 200);
