@@ -350,7 +350,7 @@ test("detail amount corrections enrich the uniquely identified ride instead of i
   assert.equal(DATA.value().trips[0].id, originalId);
   assert.equal(DATA.value().trips[0].amount, 4800);
   assert.equal(DATA.value().trips[0].km, 3.8);
-  assert.equal(DATA.value().trips[0].min, Number((8 + 53/60).toFixed(4)));
+  assert.equal(DATA.value().trips[0].min, 8 + 53/60);
 
   const replay = await worker.fetch(apiRequest("/api/ingest", {
     method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify({ trips: [detail] })
