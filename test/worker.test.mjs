@@ -162,7 +162,7 @@ test("trusted ingestion stores trips, deduplicates and counts repeated trips onc
   }), { INGEST_TOKEN, DATA });
   assert.equal(response.status, 201);
   const body = await response.json();
-  assert.deepEqual(body.trips, { received: 2, inserted: 1, duplicates: 1 });
+  assert.deepEqual(body.trips, { received: 2, inserted: 1, updated: 0, duplicates: 1, ambiguous: 0 });
   assert.equal(body.inserted, 1);
   assert.equal(DATA.value().trips.length, 1);
 });
@@ -299,12 +299,14 @@ test("re-ingesting a ride with newly captured detail enriches the existing row i
 });
 
 test("ambiguous trip identity never merges or inserts an enriched ride silently", async () => {
-  const DATA = memoryKV();
   const base = { date: "2026-11-03", start: "17:35", amount: 2300, min: 0, platform: "didi" };
-  await worker.fetch(apiRequest("/api/ingest", {
-    method: "POST", headers: jsonHeaders(bearer()),
-    body: JSON.stringify({ trips: [{ ...base, km: 0 }, { ...base, km: 0.5, km_source: "estimated" }] })
-  }), { INGEST_TOKEN, DATA });
+  const DATA = memoryKV({
+    trips: [
+      { id: "legacy-1", ...base, km: 0, source: "didi_history" },
+      { id: "legacy-2", ...base, km: 0.5, km_source: "estimated", source: "route_estimate" }
+    ],
+    rewards: [], fuel: [], sessions: []
+  });
 
   const response = await worker.fetch(apiRequest("/api/ingest", {
     method: "POST", headers: jsonHeaders(bearer()),
@@ -313,4 +315,19 @@ test("ambiguous trip identity never merges or inserts an enriched ride silently"
   assert.equal(response.status, 201);
   assert.deepEqual((await response.json()).trips, { received: 1, inserted: 0, updated: 0, duplicates: 0, ambiguous: 1 });
   assert.equal(DATA.value().trips.length, 2);
+});
+
+
+test("actual trip kilometres are never downgraded by a later route estimate", async () => {
+  const DATA = memoryKV();
+  const actual = { date: "2026-11-04", start: "10:20", amount: 2100, km: 3.4, km_source: "actual", min: 11, platform: "didi" };
+  const estimated = { ...actual, km: 4.1, km_source: "estimated", source: "route_estimate" };
+  for (const trip of [actual, estimated]) {
+    await worker.fetch(apiRequest("/api/ingest", {
+      method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify({ trips: [trip] })
+    }), { INGEST_TOKEN, DATA });
+  }
+  assert.equal(DATA.value().trips.length, 1);
+  assert.equal(DATA.value().trips[0].km, 3.4);
+  assert.equal(DATA.value().trips[0].km_source, "actual");
 });
