@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#000000">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
-  <title>Didi Dash · Etios Earnings</title>
+  <title>Etios</title>
   <style>
 :root{
   color-scheme:dark;
@@ -38,9 +38,6 @@ h3{font-size:13px;margin:0 0 10px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:23px;padding:17px;margin-bottom:12px;box-shadow:0 10px 30px rgba(0,0,0,.22);animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
-.login-wrap{max-width:430px;margin:10vh auto 0;border-radius:26px;padding:22px}
-.login-wrap h2{color:var(--text);margin:0 0 6px;font-size:18px}.login-wrap p{font-size:13px;line-height:1.55;margin:0 0 20px}
-.login-form{display:grid;gap:13px}.full{width:100%}
 label{display:block;font-size:11px;color:var(--muted);margin:0 0 5px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .status{font-size:12px;min-height:17px;color:var(--muted);margin-top:9px}.status.error{color:var(--red)}.status.good{color:var(--green)}
@@ -60,12 +57,6 @@ label{display:block;font-size:11px;color:var(--muted);margin:0 0 5px}
 .hero-caption{font-size:11px;color:var(--muted);max-width:52ch}
 .hero-spark{width:31%;min-width:92px;max-width:180px;height:63px;align-self:center}
 .hero-spark svg{width:100%;height:100%;overflow:visible}
-.ratios{grid-template-columns:repeat(3,minmax(0,1fr))}
-.ratio{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 0}
-.ratio-ring{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:conic-gradient(var(--ring-color) var(--ring-progress),#29292c 0);position:relative;animation:pop .5s ease both}
-.ratio-ring:before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
-.ratio-ring b{position:relative;font-size:11px;font-weight:700}
-.ratio-copy{min-width:0}.ratio-copy strong{display:block;font-size:12px;line-height:1.25}.ratio-copy span{display:block;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.35}
 .table-wrap{overflow:auto;border-radius:12px}
 table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
 th{text-align:left;color:var(--muted);font-size:10px;font-weight:600;padding:9px 8px;border-bottom:1px solid var(--line)}
@@ -74,111 +65,86 @@ tbody tr:last-child td{border-bottom:0}
 .right{text-align:right}
 .bar-row{display:grid;grid-template-columns:66px 1fr 82px;gap:8px;align-items:center;margin:11px 0;font-size:11px}
 .bar{height:7px;border-radius:99px;background:#29292c;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#1d8f47,var(--green));border-radius:99px}
-.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.form-grid.two-cols{grid-template-columns:repeat(2,minmax(0,1fr))}
-.form-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
 .note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:9px}
 .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;background:rgba(48,209,88,.13);color:var(--green);font-size:10px;font-weight:650}
-.warning{background:rgba(255,159,10,.08);border:1px solid rgba(255,159,10,.22);color:#e6b85f;border-radius:13px;padding:11px 13px;font-size:11px;line-height:1.5;margin-bottom:12px}
-.hidden{display:none!important}.subhead{color:var(--muted);font-size:11px;margin:4px 0 13px}
 .empty{padding:21px;text-align:center;color:var(--muted);font-size:12px}
 .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
-.form-grid input[type=checkbox]{width:auto;accent-color:var(--green)}
 #connection{background:rgba(48,209,88,.13);color:var(--green)}
-@media(max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.shell{padding:0 11px 42px}.card{padding:14px}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{min-height:130px;padding:16px}}
-@media(max-width:430px){header{padding:11px 12px}.kpi{padding:11px}.kpi .value{font-size:20px}.brand .subtitle{font-size:10px}.mark{width:34px;height:34px}.ratios{grid-template-columns:1fr}.ratio{padding:6px 0}.hero-spark{width:28%;min-width:68px}.toolbar{align-items:flex-start}.period button{padding:8px 10px}}
 @media(max-width:600px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.shell{padding:0 10px 38px}.card{padding:13px}.toolbar{align-items:flex-start}.period{width:100%;justify-content:space-between}.period button{flex:1}.hero-panel{display:block}.hero-spark{width:100%;height:48px;max-width:none;margin-top:10px}.bar-row{grid-template-columns:54px 1fr 76px;gap:6px}table{font-size:11px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+:root{--bg:#050506;--surface:#101013;--surface2:#19191d;--line:rgba(255,255,255,.075);--text:#f5f5f7;--muted:#92929a;--green:#c7f36a;--amber:#f4c76a;--blue:#78a9ff}
+body{background:radial-gradient(ellipse at 50% -20%,rgba(255,255,255,.055),transparent 40%),var(--bg);letter-spacing:-.012em}
+.shell{max-width:1120px;padding:0 22px 64px}
+header{margin:0 -22px 28px;padding:16px 22px;background:rgba(5,5,6,.78);border-bottom:1px solid rgba(255,255,255,.07)}
+.mark{border-radius:13px;background:var(--green);color:#111;font-size:17px;font-weight:800;box-shadow:0 0 28px rgba(199,243,106,.12)}
+h1{font-size:19px;letter-spacing:-.04em;font-weight:700}
+.subtitle{font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.pill,#connection{background:rgba(255,255,255,.06)!important;color:#c9c9cf!important;border:1px solid rgba(255,255,255,.07)}
+.toolbar{margin-bottom:18px;align-items:center}.toolbar strong{font-size:18px;letter-spacing:-.035em}.subhead{font-size:12px;color:#85858d}
+.period{background:#111114;border-color:rgba(255,255,255,.08);padding:4px;border-radius:14px}.period button{padding:9px 16px;font-size:12px}.period button.active{background:#ededf0;color:#111;border-radius:10px}
+.hero-panel{min-height:214px;padding:28px 30px;border-radius:28px;background:radial-gradient(ellipse at 88% 12%,rgba(199,243,106,.17),transparent 38%),linear-gradient(130deg,#17191a,#0c0c0e 62%,#09090a);border:1px solid rgba(255,255,255,.09);box-shadow:0 22px 65px rgba(0,0,0,.25);margin-bottom:14px}
+.hero-panel .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.13em;color:#a7a7ae}.hero-value{font-size:clamp(42px,8vw,68px);letter-spacing:-.075em;font-weight:740;margin:12px 0 8px;color:#f6f7f0}.hero-caption{font-size:12px;color:#a0a0a6}
+.hero-spark{width:34%;max-width:250px;height:90px}.hero-spark svg{filter:drop-shadow(0 0 12px rgba(199,243,106,.15))}
+.kpis{gap:11px;margin-bottom:14px}.kpi{background:linear-gradient(145deg,#141417,#0c0c0e);border:1px solid rgba(255,255,255,.07);border-radius:21px;padding:17px 18px;min-height:108px;transition:transform .2s ease,border-color .2s ease}.kpi:hover{transform:translateY(-2px);border-color:rgba(199,243,106,.22)}
+.kpi .label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#909098}.kpi .value{font-size:clamp(21px,3.2vw,29px);font-weight:700;letter-spacing:-.055em;margin-top:10px}.kpi .hint{font-size:10px;color:#85858d;margin-top:5px}
+.card{background:linear-gradient(150deg,rgba(20,20,23,.98),rgba(11,11,13,.98));border:1px solid rgba(255,255,255,.075);border-radius:25px;padding:21px;margin-bottom:13px;box-shadow:0 18px 45px rgba(0,0,0,.18);animation:rise .35s ease both}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;margin:0 0 16px}.section-head{margin-bottom:8px}.section-head h2{margin-bottom:8px}
+.bar{height:8px;background:#252529}.bar>i{background:linear-gradient(90deg,#8baa49,var(--green))}
+.bar-row{font-size:12px;grid-template-columns:74px 1fr 92px;margin:13px 0}.bar-row strong{font-size:11px}
+.warning{display:none}.note{font-size:11px;color:#85858d;line-height:1.6}.empty{padding:26px 14px;color:#85858d}
+.table-wrap{overflow:visible}table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}th{padding:12px 10px;text-transform:uppercase;letter-spacing:.09em;font-size:9px;color:#85858d}td{padding:13px 10px;border-bottom:1px solid rgba(255,255,255,.055)}
+.grid.two{gap:13px}.section-link{color:#c7f36a;text-decoration:none;font-size:11px}
+.chart-svg{display:block;width:100%;height:auto;overflow:visible}.chart-grid{stroke:rgba(255,255,255,.075);stroke-width:1}.chart-line{fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.chart-dot{fill:var(--green);stroke:#151518;stroke-width:3}.chart-label{fill:#85858d;font-size:10px;font-family:inherit}.chart-value{fill:#bdbdc3;font-size:10px;font-family:inherit}
+.trip-list,.reward-list{display:grid;gap:8px}.trip-row,.reward-row{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:17px;padding:13px 14px}.trip-head,.reward-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.trip-date,.reward-date{font-size:11px;color:#92929a}.trip-platform{font-size:11px;color:#c7f36a;text-transform:uppercase;letter-spacing:.08em}.trip-amount,.reward-amount{font-size:17px;font-weight:700;letter-spacing:-.04em;white-space:nowrap}.trip-details{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.trip-details span{font-size:10px;color:#a5a5ac;background:rgba(255,255,255,.055);padding:5px 8px;border-radius:8px}.reward-head{align-items:flex-start}.reward-label{font-size:12px;font-weight:600;margin-top:3px}
+.data-count{font-size:11px;color:#888891}footer{font-size:10px;color:#66666e;padding-top:18px}
+@media(max-width:760px){.shell{padding:0 12px 40px}header{margin:0 -12px 20px;padding:13px 13px}.hero-panel{padding:22px 20px;min-height:180px;border-radius:23px}.hero-spark{width:100%;max-width:none;height:52px;margin-top:12px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.kpi{padding:13px;min-height:96px;border-radius:17px}.kpi .value{font-size:22px}.card{padding:16px;border-radius:21px}.grid.two{grid-template-columns:1fr}.toolbar{align-items:flex-start}.period{width:100%;justify-content:space-between}.period button{flex:1;padding:9px 8px}.bar-row{grid-template-columns:60px 1fr 80px;gap:7px}.trip-row,.reward-row{padding:12px}.trip-amount,.reward-amount{font-size:16px}}
+@media(max-width:390px){.brand{gap:8px}.mark{width:32px;height:32px}.subtitle{font-size:9px}.hero-value{font-size:43px}.kpi .value{font-size:19px}.kpi .label{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
   <div class="shell">
     <main id="app">
       <header>
-        <div class="brand">
-          <div class="mark">ED</div>
-          <div><h1>Etios Earnings</h1><p class="subtitle">DiDi · Uber · Combustible · Rentabilidad</p></div>
-        </div>
-        <div class="row"><span id="connection" class="pill">Cargando historial…</span><span class="pill">Público · solo lectura</span></div>
+        <div class="brand"><div class="mark">E</div><div><h1>Etios</h1><p class="subtitle">DiDi · Historial de viajes</p></div></div>
+        <div class="row"><span id="connection" class="pill">Conectando…</span></div>
       </header>
-
       <div class="toolbar">
-        <div><strong>Resumen económico</strong><div class="subhead" style="margin:3px 0 0">Los viajes y las recompensas se suman a la facturación; las métricas de km y duración usan solo viajes.</div></div>
+        <div><strong>Resumen</strong><div class="subhead" style="margin:4px 0 0">Viajes y recompensas registrados.</div></div>
         <div class="period" aria-label="Período">
           <button type="button" data-range="7">7 días</button>
           <button type="button" data-range="30" class="active">30 días</button>
           <button type="button" data-range="0">Todo</button>
         </div>
       </div>
-
-      <div class="warning">El margen después de combustible es una estimación, no ganancia neta. No descuenta comisión de plataforma, seguro, mantenimiento, cubiertas, depreciación ni otros costos.</div>
       <section class="hero-panel">
-        <div>
-          <div class="eyebrow">Margen estimado después de combustible</div>
-          <div id="hero-margin" class="hero-value">—</div>
-          <div id="hero-caption" class="hero-caption">El importe se habilita cuando registres viajes y tickets de combustible.</div>
-        </div>
+        <div><div class="eyebrow">Ingresos registrados</div><div id="hero-margin" class="hero-value">—</div><div id="hero-caption" class="hero-caption">Cargando registros…</div></div>
         <div id="hero-spark" class="hero-spark" aria-hidden="true"></div>
       </section>
-
       <section class="grid kpis">
-        <div class="kpi"><div class="label">Facturación bruta</div><div id="gross" class="value">—</div><div id="trip-count" class="hint">— viajes · — recompensas</div></div>
-        <div class="kpi"><div class="label">Margen después de nafta</div><div id="fuel-margin" class="value">—</div><div id="fuel-hint" class="hint">Requiere tickets</div></div>
-        <div class="kpi"><div class="label">Por hora conectada</div><div id="per-hour" class="value">—</div><div id="hours-hint" class="hint">Registrar turnos</div></div>
-        <div class="kpi"><div class="label">Km del auto</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">—</div></div>
+        <div class="kpi"><div class="label">Importe de viajes</div><div id="gross" class="value">—</div><div id="trip-count" class="hint">— viajes</div></div>
+        <div class="kpi"><div class="label">Recompensas</div><div id="reward-total" class="value">—</div><div id="reward-count" class="hint">— registros</div></div>
+        <div class="kpi"><div class="label">Promedio por viaje</div><div id="per-trip" class="value">—</div><div id="per-trip-hint" class="hint">Según importes registrados</div></div>
+        <div class="kpi"><div class="label">Km con pasajero</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">Sin distancias registradas</div></div>
       </section>
-
-      <section class="card">
-        <h2>Indicadores del período</h2>
-        <div id="ratio-grid" class="grid ratios">
-          <div class="empty">Cargando indicadores…</div>
-        </div>
-        <div class="note">Ratios calculados con los datos disponibles. Los km vacíos son estimados cuando no hay odómetro completo.</div>
-      </section>
-
-      <section class="card" style="margin-top:14px">
-        <div class="section-head"><h2>Actividad por día</h2><span id="period-label" class="pill">Últimos 30 días</span></div>
-        <div id="daily-chart"></div>
-      </section>
-
-              <section class="card">
-          <h2>Rendimiento por hora de inicio</h2>
-          <div class="note" style="margin:0 0 8px">Suma de importes según la hora en que empezó cada viaje. No representa horas conectadas.</div>
-          <div id="hour-chart"></div>
-        </section>
-
-      <section class="card">
-        <div class="section-head"><h2>Supuestos de combustible</h2><span id="consumption-source" class="pill">Consumo estimado</span></div>
-        <div class="form-grid three">
-          <div><label for="assumed-kml">Km/L si no hay medición</label><input id="assumed-kml" type="number" min="1" max="30" step="0.1" value="11"></div>
-          <div><label for="empty-percent">Km vacíos adicionales (%)</label><input id="empty-percent" type="number" min="0" max="200" step="1" value="30"></div>
-          <div><label>Precio YPF por litro</label><input id="fuel-price" type="text" value="Desde tickets" disabled></div>
-        </div>
-        <div id="fuel-calculation" class="note">Cargá tickets de combustible para habilitar el cálculo monetario.</div>
-      </section>
-
       <div class="grid two">
-        <section class="card"><h2>Turnos registrados</h2><div id="sessions-list" class="note">Cargando turnos…</div></section>
-        <section class="card"><h2>Combustible registrado</h2><div id="fuel-list" class="note">Cargando cargas…</div></section>
+        <section class="card"><h2>Actividad por día</h2><div id="period-label" class="note">Últimos 30 días</div><div id="daily-chart"><div class="empty">Cargando actividad…</div></div></section>
+        <section class="card"><h2>Ingresos por hora de inicio</h2><div class="note" style="margin:0 0 12px">Importes agrupados por la hora que figura en el historial.</div><div id="hour-chart"><div class="empty">Cargando…</div></div></section>
       </div>
-
+      <div class="grid two">
+        <section class="card"><h2>Horas conectadas</h2><div id="per-hour" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="hours-hint" class="note">Sin turnos registrados.</div><div id="sessions-list" class="note"></div></section>
+        <section class="card"><h2>Combustible comprado</h2><div id="fuel-margin" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="fuel-hint" class="note">Sin tickets registrados.</div><div id="fuel-list" class="note"></div></section>
+      </div>
       <section class="card">
-        <div class="section-head"><h2>Historial de viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">Exportar CSV</button></div></div>
-        <div class="table-wrap" id="trips-table"><div class="empty">Cargando viajes…</div></div>
+        <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
+        <div id="trips-table" class="trip-list"><div class="empty">Cargando viajes…</div></div>
       </section>
-
-      <section class="card">
-        <h2>Recompensas y bonos</h2>
-        <div class="note">Se muestran aparte de los viajes. No suman kilómetros, minutos ni cantidad de viajes.</div>
-        <div class="table-wrap" id="rewards-table"><div class="empty">Cargando recompensas…</div></div>
-      </section>
-
-      <footer>Los registros se guardan en Cloudflare KV. Dashboard público de solo lectura.</footer>
+      <section class="card"><h2>Recompensas</h2><div id="rewards-table" class="reward-list"><div class="empty">Cargando recompensas…</div></div></section>
+      <footer>Etios · Historial de viajes</footer>
     </main>
   </div>
-
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -204,10 +170,6 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
     if (state.range === 0) return items;
     const from = localDateDaysAgo(state.range - 1);
     return items.filter((item) => item.date >= from && item.date <= isoToday);
-  }
-  function setStatus(id, message, kind = "") {
-    $(id).textContent = message;
-    $(id).className = "status" + (kind ? " " + kind : "");
   }
   async function api(path, options = {}) {
     const response = await fetch(path, {
@@ -242,73 +204,39 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
     $("connection").style.color = "var(--green)";
     render();
   }
-  function currentFuelPrice() {
-    // Fuel unit price is the latest recorded ticket, even when its date is outside the selected trip range.
-    if (!state.fuel.length) return 0;
-    const latest = state.fuel.slice().sort((a,b) => (b.date || "").localeCompare(a.date || ""))[0];
-    return asNumber(latest.total_ars) / Math.max(asNumber(latest.liters), 0.001);
-  }
-  function measuredKml(fuel) {
-    const rows = fuel.slice().sort((a,b) => asNumber(a.odometer_km) - asNumber(b.odometer_km));
-    const full = rows.filter((x) => Number(x.full_tank) === 1);
-    if (full.length < 2) return null;
-    let distance = 0, litres = 0;
-    for (let i = 1; i < full.length; i++) {
-      const previous = asNumber(full[i-1].odometer_km);
-      const current = asNumber(full[i].odometer_km);
-      if (current <= previous) continue;
-      const between = rows.filter((entry) => asNumber(entry.odometer_km) > previous && asNumber(entry.odometer_km) <= current);
-      const used = between.reduce((sum, entry) => sum + asNumber(entry.liters), 0);
-      if (used > 0) { distance += current - previous; litres += used; }
-    }
-    return litres > 0 && distance > 0 ? distance / litres : null;
-  }
   function render() {
     const trips = selected(state.trips);
     const rewards = selected(state.rewards);
-    const activities = trips.concat(rewards);
+    const activity = trips.concat(rewards);
     const fuel = selected(state.fuel);
     const sessions = selected(state.sessions);
-    const tripGross = trips.reduce((sum, t) => sum + asNumber(t.amount), 0);
-    const rewardGross = rewards.reduce((sum, reward) => sum + asNumber(reward.amount), 0);
+    const tripGross = trips.reduce((sum, row) => sum + asNumber(row.amount), 0);
+    const rewardGross = rewards.reduce((sum, row) => sum + asNumber(row.amount), 0);
     const gross = tripGross + rewardGross;
-    const passengerKm = trips.reduce((sum, t) => sum + asNumber(t.km), 0);
-    const passengerMinutes = trips.reduce((sum, t) => sum + asNumber(t.min), 0);
-    const connectedMinutes = sessions.reduce((sum, s) => sum + asNumber(s.connected_minutes), 0);
-    const connectedHours = connectedMinutes / 60;
-    const completeOdometer = sessions.length > 0 && sessions.every((s) => s.odometer_km !== null && s.odometer_km !== undefined);
-    const odometerKm = completeOdometer ? sessions.reduce((sum, s) => sum + asNumber(s.odometer_km), 0) : 0;
-    const emptyPct = Math.max(0, asNumber($("empty-percent").value));
-    const assumedKml = Math.max(1, asNumber($("assumed-kml").value));
-    const carKm = completeOdometer ? odometerKm : passengerKm * (1 + emptyPct / 100);
-    const realKml = measuredKml(state.fuel);
-    const kml = realKml || assumedKml;
-    const price = currentFuelPrice();
-    const fuelCost = price > 0 && carKm > 0 ? carKm / kml * price : null;
-    const margin = fuelCost === null ? null : gross - fuelCost;
-
-    $("hero-margin").textContent = margin === null ? "—" : money.format(margin);
-    $("hero-caption").textContent = margin === null
-      ? "Cargá un ticket de combustible para estimar el margen después de nafta."
-      : money.format(gross) + " facturados · " + money.format(fuelCost) + " de nafta estimada.";
-    renderHeroSpark(activities);
-    renderRatios({ gross, fuelCost, passengerMinutes, connectedMinutes, passengerKm, carKm });
-    $("gross").textContent = money.format(gross);
-    $("trip-count").textContent = trips.length + " viajes · " + rewards.length + " recompensas (" + money.format(rewardGross) + ")";
-    $("fuel-margin").textContent = margin === null ? "—" : money.format(margin);
-    $("fuel-hint").textContent = fuelCost === null ? "Cargá un ticket para estimar nafta" : money.format(fuelCost) + " de combustible estimado";
-    $("per-hour").textContent = connectedHours > 0 ? money.format(gross / connectedHours) : "—";
-    $("hours-hint").textContent = connectedHours > 0 ? number.format(connectedHours) + " h conectado" : "Registrar conexión y desconexión";
-    $("car-km").textContent = carKm > 0 ? number.format(carKm) + " km" : "—";
-    $("km-hint").textContent = completeOdometer ? "Odómetro de turnos" : (passengerKm > 0 ? "Estimación: km pasajero + " + emptyPct + "% vacío" : "Registrar odómetro");
-    $("fuel-price").value = price > 0 ? money.format(price) + "/L" : "Sin ticket cargado";
-    $("consumption-source").textContent = realKml ? number.format(realKml) + " km/L medidos" : number.format(assumedKml) + " km/L asumidos";
-    $("fuel-calculation").textContent = fuelCost === null
-      ? "El cálculo de margen se habilita cuando registres un ticket con litros y total pagado. Los km del auto se toman del odómetro si están completos; si no, se estima un adicional de km vacíos."
-      : "Cálculo: " + number.format(carKm) + " km ÷ " + number.format(kml) + " km/L × " + money.format(price) + "/L = " + money.format(fuelCost) + ". " + (realKml ? "Consumo derivado de cargas consecutivas con tanque lleno." : "Consumo todavía supuesto; se mide al registrar dos cargas completas consecutivas.");
-    $("period-label").textContent = state.range === 0 ? "Todo el historial" : "Últimos " + state.range + " días";
-    renderDaily(activities);
-    renderHours(activities);
+    const kmRows = trips.filter((row) => row.km !== null && row.km !== undefined && asNumber(row.km) > 0);
+    const passengerKm = kmRows.reduce((sum, row) => sum + asNumber(row.km), 0);
+    const connectedMinutes = sessions.reduce((sum, row) => sum + asNumber(row.connected_minutes), 0);
+    const fuelSpend = fuel.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
+    const average = trips.length ? tripGross / trips.length : null;
+    $('hero-margin').textContent = money.format(gross);
+    $('hero-caption').textContent = trips.length + ' viajes · ' + rewards.length + ' recompensas';
+    $('gross').textContent = money.format(tripGross);
+    $('trip-count').textContent = trips.length + ' viajes';
+    $('reward-total').textContent = money.format(rewardGross);
+    $('reward-count').textContent = rewards.length + ' registros';
+    $('per-trip').textContent = average === null ? '—' : money.format(average);
+    $('per-trip-hint').textContent = average === null ? 'Sin viajes en el período' : 'Promedio sobre ' + trips.length + ' viajes';
+    $('car-km').textContent = kmRows.length ? number.format(passengerKm) + ' km' : '—';
+    $('km-hint').textContent = kmRows.length ? kmRows.length + ' viajes con distancia' : 'Sin distancias registradas';
+    $('per-hour').textContent = connectedMinutes > 0 ? number.format(connectedMinutes / 60) + ' h' : '—';
+    $('hours-hint').textContent = connectedMinutes > 0 ? sessions.length + ' turnos registrados' : 'Sin turnos registrados';
+    $('fuel-margin').textContent = fuel.length ? money.format(fuelSpend) : '—';
+    $('fuel-hint').textContent = fuel.length + ' tickets · gasto registrado';
+    $('period-label').textContent = state.range === 0 ? 'Todo el historial' : 'Últimos ' + state.range + ' días';
+    $('connection').textContent = 'Actualizado · ' + trips.length + ' viajes';
+    renderHeroSpark(activity);
+    renderDaily(activity);
+    renderHours(trips);
     renderTrips(trips);
     renderRewards(rewards);
     renderSessions(sessions);
@@ -327,35 +255,32 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
     });
     const line = coords.map(([x,y], index) => (index ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2)).join(" ");
     const area = line + " L100 64 L0 64 Z";
-    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de facturación">' +
+    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de importes registrados">' +
       '<defs><linearGradient id="spark-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>' +
       '<path d="' + area + '" fill="url(#spark-fill)"/><path d="' + line + '" fill="none" stroke="#30d158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
   }
-  function renderRatios({ gross, fuelCost, passengerMinutes, connectedMinutes, passengerKm, carKm }) {
-    const ratio = (value) => Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
-    const fuelShare = gross > 0 && fuelCost !== null ? ratio(fuelCost / gross * 100) : null;
-    const timeShare = connectedMinutes > 0 ? ratio(passengerMinutes / connectedMinutes * 100) : null;
-    const passengerDistanceShare = carKm > 0 ? ratio(passengerKm / carKm * 100) : null;
-    const items = [
-      { label:"Nafta / facturado", value:fuelShare, display:fuelShare === null ? "—" : Math.round(fuelShare) + "%", note:fuelShare === null ? "Falta un ticket" : "Costo estimado de combustible", color:"#ff9f0a" },
-      { label:"Minutos en viaje / conexión", value:timeShare, display:timeShare === null ? "—" : Math.round(timeShare) + "%", note:timeShare === null ? "Registrar turnos" : "Ratio de tiempo observado", color:"#0a84ff" },
-      { label:"Km con pasajero / km auto", value:passengerDistanceShare, display:passengerDistanceShare === null ? "—" : Math.round(passengerDistanceShare) + "%", note:passengerDistanceShare === null ? "Registrar odómetro" : "La diferencia son km vacíos", color:"#30d158" }
-    ];
-    $("ratio-grid").innerHTML = items.map((item) => {
-      const value = item.value === null ? 0 : item.value;
-      return '<div class="ratio"><div class="ratio-ring" style="--ring-progress:' + value + '%;--ring-color:' + item.color + '"><b>' + item.display + '</b></div>' +
-        '<div class="ratio-copy"><strong>' + item.label + '</strong><span>' + item.note + '</span></div></div>';
-    }).join("");
-  }
-  function renderDaily(trips) {
-    const byDay = {};
-    for (const t of trips) byDay[t.date] = (byDay[t.date] || 0) + asNumber(t.amount);
-    const rows = Object.entries(byDay).sort((a,b) => a[0].localeCompare(b[0])).slice(-14);
-    if (!rows.length) { $("daily-chart").innerHTML = '<div class="empty">Todavía no hay viajes en este período.</div>'; return; }
-    const max = Math.max(...rows.map((x) => x[1]), 1);
-    $("daily-chart").innerHTML = rows.map(([date, value]) =>
-      '<div class="bar-row"><span>' + escapeHtml(dateLabel(date)) + '</span><div class="bar"><i style="width:' + (value / max * 100).toFixed(1) + '%"></i></div><strong class="right">' + money.format(value) + '</strong></div>'
-    ).join("");
+  function renderDaily(rows) {
+    const totals = {};
+    for (const row of rows) totals[row.date] = (totals[row.date] || 0) + asNumber(row.amount);
+    const points = Object.entries(totals).sort((a,b) => a[0].localeCompare(b[0])).slice(-14);
+    if (!points.length) { $('daily-chart').innerHTML = '<div class="empty">Todavía no hay importes para este período.</div>'; return; }
+    const width = 680, height = 230, left = 40, right = 18, top = 18, bottom = 34;
+    const values = points.map((point) => point[1]);
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values, 0);
+    const span = Math.max(max - min, 1);
+    const plotW = width - left - right, plotH = height - top - bottom;
+    const coords = points.map((point, index) => {
+      const x = left + (points.length === 1 ? plotW / 2 : index * plotW / (points.length - 1));
+      const y = top + (max - point[1]) / span * plotH;
+      return { x, y, date: point[0], value: point[1] };
+    });
+    const line = coords.map((point, index) => (index ? 'L' : 'M') + point.x.toFixed(1) + ' ' + point.y.toFixed(1)).join(' ');
+    const area = line + ' L' + coords[coords.length - 1].x.toFixed(1) + ' ' + (height - bottom) + ' L' + coords[0].x.toFixed(1) + ' ' + (height - bottom) + ' Z';
+    const grid = [0, .5, 1].map((part) => { const y = top + part * plotH; return '<line class="chart-grid" x1="' + left + '" y1="' + y + '" x2="' + (width-right) + '" y2="' + y + '"/>'; }).join('');
+    const dots = coords.map((point) => '<circle class="chart-dot" cx="' + point.x + '" cy="' + point.y + '" r="3.6"><title>' + escapeHtml(dateLabel(point.date)) + ': ' + escapeHtml(money.format(point.value)) + '</title></circle>').join('');
+    const labels = [0, Math.floor((points.length - 1) / 2), points.length - 1].filter((value, index, arr) => arr.indexOf(value) === index).map((index) => '<text class="chart-label" x="' + coords[index].x + '" y="' + (height-9) + '" text-anchor="middle">' + escapeHtml(new Date(points[index][0] + 'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'})) + '</text>').join('');
+    $('daily-chart').innerHTML = '<svg class="chart-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Importes registrados por día"><defs><linearGradient id="daily-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#c7f36a" stop-opacity=".27"/><stop offset="1" stop-color="#c7f36a" stop-opacity="0"/></linearGradient></defs>' + grid + '<path d="' + area + '" fill="url(#daily-fill)"/><path class="chart-line" d="' + line + '"/>' + dots + labels + '</svg>';
   }
   function renderHours(trips) {
     const hours = Array(24).fill(0);
@@ -371,28 +296,37 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
     ).join("");
   }
   function renderTrips(trips) {
-    if (!trips.length) { $("trips-table").innerHTML = '<div class="empty">No hay viajes cargados todavía.</div>'; return; }
+    if (!trips.length) { $('trips-table').innerHTML = '<div class="empty">No hay viajes importados en este período.</div>'; return; }
     const rows = trips.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
-    $("trips-table").innerHTML = '<table><thead><tr><th>Fecha</th><th>Hora</th><th>Plataforma</th><th class="right">Importe</th><th class="right">Km</th><th class="right">Min</th><th class="right">$ / km</th></tr></thead><tbody>' +
-      rows.map((t) => '<tr><td>' + escapeHtml(dateLabel(t.date)) + '</td><td>' + escapeHtml(t.start) + '</td><td>' + escapeHtml(String(t.platform).toUpperCase()) + '</td><td class="right">' + money.format(asNumber(t.amount)) + '</td><td class="right">' + number.format(asNumber(t.km)) + '</td><td class="right">' + number.format(asNumber(t.min)) + '</td><td class="right">' + (asNumber(t.km) > 0 ? money.format(asNumber(t.amount)/asNumber(t.km)) : "—") + '</td></tr>').join("") +
-      '</tbody></table>';
+    $('trips-table').innerHTML = rows.map((row) => {
+      const km = row.km != null && asNumber(row.km) > 0 ? number.format(row.km) + ' km' : 'Km —';
+      const duration = row.min != null && asNumber(row.min) > 0 ? number.format(row.min) + ' min' : 'Duración —';
+      return '<article class="trip-row"><div class="trip-head"><div><div class="trip-platform">' + escapeHtml(String(row.platform || 'didi').toUpperCase()) + '</div><div class="trip-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="trip-amount">' + money.format(asNumber(row.amount)) + '</div></div><div class="trip-details"><span>' + km + '</span><span>' + duration + '</span></div></article>';
+    }).join('');
   }
+
   function renderSessions(sessions) {
     if (!sessions.length) { $("sessions-list").textContent = "Todavía no hay turnos importados."; return; }
     const minutes = sessions.reduce((sum, row) => sum + asNumber(row.connected_minutes), 0);
     $("sessions-list").textContent = sessions.length + " turnos · " + number.format(minutes / 60) + " horas conectadas registradas.";
   }
   function renderFuel(fuel) {
-    if (!fuel.length) { $("fuel-list").textContent = "Todavía no hay tickets de combustible importados."; return; }
-    $("fuel-list").textContent = fuel.length + " tickets · " + number.format(fuel.reduce((s,x)=>s+asNumber(x.liters),0)) + " L · " + money.format(fuel.reduce((s,x)=>s+asNumber(x.total_ars),0)) + " registrados.";
+    if (!fuel.length) { $('fuel-list').textContent = 'No hay tickets de combustible cargados.'; return; }
+    const litres = fuel.reduce((sum, row) => sum + asNumber(row.liters), 0);
+    $('fuel-list').textContent = fuel.length + ' tickets · ' + number.format(litres) + ' L · ' + money.format(fuel.reduce((sum,row) => sum + asNumber(row.total_ars),0)) + ' en compras registradas.';
   }
   function renderRewards(rewards) {
+    if (!rewards.length) { $('rewards-table').innerHTML = '<div class="empty">No hay recompensas importadas en este período.</div>'; return; }
     const rows = rewards.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
-    $("rewards-table").innerHTML = rows.length ?
-      '<table><thead><tr><th>Fecha</th><th>Hora</th><th>Concepto</th><th class="right">Importe</th></tr></thead><tbody>' +
-      rows.map((r) => '<tr><td>' + escapeHtml(dateLabel(r.date)) + '</td><td>' + escapeHtml(r.start) + '</td><td>' + escapeHtml(r.label || "Recompensa") + '</td><td class="right">' + money.format(asNumber(r.amount)) + '</td></tr>').join("") +
-      '</tbody></table>' : '<div class="empty">Todavía no hay recompensas importadas.</div>';
+    $('rewards-table').innerHTML = rows.map((row) => '<article class="reward-row"><div class="reward-head"><div><div class="reward-label">' + escapeHtml(row.label || 'Recompensa') + '</div><div class="reward-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="reward-amount">' + money.format(asNumber(row.amount)) + '</div></div></article>').join('');
   }
+  document.querySelectorAll('[data-range]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.range = Number(button.dataset.range);
+      document.querySelectorAll('[data-range]').forEach((item) => item.classList.toggle('active', item === button));
+      render();
+    });
+  });
 
   $("backup-json").addEventListener("click", async () => {
     try {
@@ -417,7 +351,7 @@ footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
   });
 
   loadData().catch((error) => {
-    $("connection").textContent = "No se pudo conectar: " + error.message;
+    $("connection").textContent = "Sin conexión: " + error.message;
     $("connection").style.background = "rgba(255,69,58,.13)";
     $("connection").style.color = "var(--red)";
   });
