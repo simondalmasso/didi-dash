@@ -58,7 +58,7 @@ test("blank monthly costs remain unknown, not silently treated as zero", () => {
     sessions: [{ date: "2026-11-08", odometer_km: 20 }],
     fuelLogs: [],
     priceHistory: PRICE_HISTORY,
-    monthlyCosts: { insurance: 1000, maintenance: null, tyres: 0, tax: 0, other: 0 },
+    monthlyCosts: { insurance: 1000, maintenance: null, tires: 0, tax: 0, other: 0 },
     oneOffExpenses: [],
     periodDays: 30
   });
