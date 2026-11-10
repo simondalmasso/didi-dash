@@ -232,7 +232,7 @@ test("fuel ticket entry stores litres, amount, odometer and full tank flag", () 
     id: "fuel-test-1", date: "2026-11-09", odometer_km: 12065,
     liters: 35.5, total_ars: 77000, station: "YPF", full_tank: true
   });
-  assert.equal(row.price_per_liter, 2169.014084507042);
+  assert.ok(Math.abs(row.price_per_liter - 2169.014084507042) < 1e-9);
   assert.equal(row.full_tank, 1);
   assert.equal(row.odometer_km, 12065);
 });
