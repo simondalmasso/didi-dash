@@ -253,6 +253,113 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     const from = localDateDaysAgo(state.range - 1);
     return items.filter((item) => item.date >= from && item.date <= isoToday);
   }
+  function historyDays(items) {
+    const dates = items.map((row) => row.date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
+    if (!dates.length) return 30;
+    const startDate = new Date(dates[0] + "T00:00:00Z");
+    const endDate = new Date(isoToday + "T00:00:00Z");
+    return Math.max(1, Math.floor((endDate - startDate) / 86400000) + 1);
+  }
+  function costLabel(key) {
+    return ({insurance:"seguro",maintenance:"mantenimiento",tires:"cubiertas",tax:"patente/impuestos",other:"otros fijos"})[key] || key;
+  }
+  function renderYpfHistory() {
+    const prices = localSettings.priceHistory.slice().sort((a,b) => b.effective_from.localeCompare(a.effective_from));
+    $("ypf-price-history").innerHTML = prices.map((row) =>
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.effective_from)) + ' · ' + escapeHtml(row.station || "YPF Súper") + '</span><strong>' + money.format(asNumber(row.price_ars_per_liter)) + '/L</strong></div>'
+    ).join("");
+  }
+  function renderOneOffExpenses() {
+    const rows = selected(localSettings.oneOffExpenses).slice().sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
+    $("one-off-expenses").innerHTML = rows.length ? rows.map((row) =>
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.category_label || row.category || "Gasto") + (row.note ? " · " + escapeHtml(row.note) : "") + '</span><strong>' + money.format(asNumber(row.amount_ars)) + '</strong><button class="ghost mini" type="button" data-remove-expense="' + escapeHtml(row.id) + '">Quitar</button></div>'
+    ).join("") : '<div class="note">Todavía no hay gastos puntuales registrados.</div>';
+  }
+  function initCostForms() {
+    for (const key of ["insurance","maintenance","tires","tax","other"]) {
+      $("cost-" + key).value = localSettings.monthlyCosts[key] == null ? "" : String(localSettings.monthlyCosts[key]);
+    }
+    const prices = localSettings.priceHistory.slice().sort((a,b) => a.effective_from.localeCompare(b.effective_from));
+    const latest = prices[prices.length - 1];
+    $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
+    $("ypf-price-date").value = isoToday;
+    $("ypf-price-context").textContent = latest
+      ? "Última referencia: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + ". Ajustala al precio de la estación donde cargás."
+      : "No hay precio de referencia cargado.";
+    $("expense-date").value = isoToday;
+    renderYpfHistory();
+
+    $("monthly-cost-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      for (const key of ["insurance","maintenance","tires","tax","other"]) {
+        const value = $("cost-" + key).value.trim();
+        localSettings.monthlyCosts[key] = value === "" ? null : Math.max(0, Number(value));
+      }
+      const saved = saveLocalSettings();
+      $("monthly-cost-status").textContent = saved ? "Costos guardados en este navegador." : "No se pudo guardar el almacenamiento local.";
+      render();
+    });
+
+    $("save-ypf-price").addEventListener("click", () => {
+      const price = Number($("ypf-price").value);
+      const effectiveFrom = $("ypf-price-date").value;
+      if (!(price > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) {
+        $("ypf-price-context").textContent = "Ingresá un precio por litro y una fecha válida.";
+        return;
+      }
+      localSettings.priceHistory = localSettings.priceHistory.filter((row) => row.effective_from !== effectiveFrom);
+      localSettings.priceHistory.push({
+        effective_from: effectiveFrom,
+        price_ars_per_liter: price,
+        station: "YPF Súper · precio ingresado",
+        source_url: ""
+      });
+      localSettings.priceHistory.sort((a,b) => a.effective_from.localeCompare(b.effective_from));
+      saveLocalSettings();
+      initYpfFormOnly();
+      render();
+    });
+
+    $("one-off-cost-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const date = $("expense-date").value;
+      const category = $("expense-category").value;
+      const amount = Number($("expense-amount").value);
+      const note = $("expense-note").value.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !(amount > 0)) {
+        $("expense-status").textContent = "Ingresá fecha e importe válidos.";
+        return;
+      }
+      const categoryLabels = {repair:"Reparación",service:"Service",tires:"Cubiertas",wash:"Lavado",toll:"Peaje",parking:"Estacionamiento",other:"Otro"};
+      localSettings.oneOffExpenses.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        date, category, category_label: categoryLabels[category] || category,
+        amount_ars: amount, note
+      });
+      saveLocalSettings();
+      $("expense-amount").value = "";
+      $("expense-note").value = "";
+      $("expense-status").textContent = "Gasto agregado.";
+      render();
+    });
+    $("one-off-expenses").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-expense]");
+      if (!button) return;
+      localSettings.oneOffExpenses = localSettings.oneOffExpenses.filter((row) => row.id !== button.dataset.removeExpense);
+      saveLocalSettings();
+      render();
+    });
+  }
+  function initYpfFormOnly() {
+    const prices = localSettings.priceHistory.slice().sort((a,b) => a.effective_from.localeCompare(b.effective_from));
+    const latest = prices[prices.length - 1];
+    $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
+    $("ypf-price-date").value = isoToday;
+    $("ypf-price-context").textContent = latest
+      ? "Última referencia: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + "."
+      : "No hay precio de referencia cargado.";
+    renderYpfHistory();
+  }
   async function api(path, options = {}) {
     const response = await fetch(path, {
       credentials: "same-origin",
@@ -306,34 +413,64 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     const connectedMinutes = sessions.reduce((sum, row) => sum + asNumber(row.connected_minutes), 0);
     const fuelSpend = fuel.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
     const fuelLiters = fuel.reduce((sum, row) => sum + asNumber(row.liters), 0);
-    const fuelPricePerLiter = fuelLiters > 0 ? fuelSpend / fuelLiters : null;
-    const estimatedFuelCost = fuelPricePerLiter && vehicleKm > 0 ? vehicleKm * ETIOS_L_PER_100KM / 100 * fuelPricePerLiter : null;
-    const minimumNet = estimatedFuelCost === null ? null : gross - estimatedFuelCost;
     const average = trips.length ? tripGross / trips.length : null;
-    $('hero-margin').textContent = money.format(gross);
-    $('hero-caption').textContent = trips.length + ' viajes · ' + rewards.length + ' recompensas';
-    $('gross').textContent = money.format(tripGross);
-    $('trip-count').textContent = trips.length + ' viajes';
-    $('reward-total').textContent = money.format(rewardGross);
-    $('reward-count').textContent = rewards.length + ' registros';
-    $('per-trip').textContent = average === null ? '—' : money.format(average);
-    $('per-trip-hint').textContent = average === null ? 'Sin viajes en el período' : 'Promedio sobre ' + trips.length + ' viajes';
-    $('car-km').textContent = actualKmRows.length ? number.format(passengerKm) + ' km' : '—';
-    $('km-hint').textContent = actualKmRows.length ? actualKmRows.length + ' de ' + trips.length + ' viajes · Detalles' : 'Sin km reales importados';
-    $('estimated-km').textContent = estimatedKmRows.length ? number.format(estimatedPassengerKm) + ' km' : '—';
-    $('estimated-km-hint').textContent = estimatedKmRows.length ? estimatedKmRows.length + ' viajes · nunca se mezclan con km reales' : 'Todavía no hay estimaciones de ruta';
-    $('vehicle-km').textContent = vehicleKmRows.length ? number.format(vehicleKm) + ' km' : '—';
-    $('vehicle-km-hint').textContent = vehicleKmRows.length ? vehicleDays + ' días · ' + (vehicleKmPerDay === null ? '—' : number.format(vehicleKmPerDay) + ' km/día') : 'Cargá odómetro inicio/fin del turno';
-    $('fuel-estimate').textContent = estimatedFuelCost === null ? '—' : money.format(estimatedFuelCost);
-    $('fuel-estimate-hint').textContent = fuelPricePerLiter && vehicleKm > 0 ? number.format(ETIOS_L_PER_100KM) + ' L/100 km · ' + money.format(fuelPricePerLiter) + '/L · sobre km reales del auto' : 'Falta ticket real o km de odómetro';
-    $('net-estimate').textContent = minimumNet === null ? '—' : money.format(minimumNet);
-    $('net-estimate-hint').textContent = minimumNet === null ? 'No hay base suficiente' : 'Ingresos menos combustible estimado; excluye otros costos';
-    $('per-hour').textContent = connectedMinutes > 0 ? number.format(connectedMinutes / 60) + ' h' : '—';
-    $('hours-hint').textContent = connectedMinutes > 0 ? sessions.length + ' turnos registrados' : 'Sin turnos registrados';
-    $('fuel-margin').textContent = fuel.length ? money.format(fuelSpend) : '—';
-    $('fuel-hint').textContent = fuel.length + ' tickets · gasto registrado';
-    $('period-label').textContent = state.range === 0 ? 'Todo el historial' : 'Últimos ' + state.range + ' días';
-    $('connection').textContent = 'Actualizado · ' + trips.length + ' viajes';
+    const periodDays = state.range > 0 ? state.range : historyDays([...trips, ...rewards, ...sessions]);
+    const oneOffExpenses = selected(localSettings.oneOffExpenses);
+    const financial = calculateProfitability({
+      trips, rewards, sessions,
+      fuelLogs: state.fuel,
+      priceHistory: localSettings.priceHistory,
+      monthlyCosts: localSettings.monthlyCosts,
+      oneOffExpenses,
+      periodDays
+    });
+
+    $("hero-margin").textContent = money.format(gross);
+    $("hero-caption").textContent = trips.length + " viajes · " + rewards.length + " recompensas · bruto";
+    $("gross").textContent = money.format(tripGross);
+    $("trip-count").textContent = trips.length + " viajes";
+    $("reward-total").textContent = money.format(rewardGross);
+    $("reward-count").textContent = rewards.length + " registros";
+    $("per-trip").textContent = average === null ? "—" : money.format(average);
+    $("per-trip-hint").textContent = average === null ? "Sin viajes en el período" : "Promedio sobre " + trips.length + " viajes";
+    $("car-km").textContent = actualKmRows.length ? number.format(passengerKm) + " km" : "—";
+    $("km-hint").textContent = actualKmRows.length ? actualKmRows.length + " de " + trips.length + " viajes · Detalles" : "Sin km reales importados";
+    $("estimated-km").textContent = estimatedKmRows.length ? number.format(estimatedPassengerKm) + " km" : "—";
+    $("estimated-km-hint").textContent = estimatedKmRows.length ? estimatedKmRows.length + " viajes · separados de los reales" : "Todavía no hay estimaciones de ruta";
+    $("vehicle-km").textContent = vehicleKmRows.length ? number.format(vehicleKm) + " km" : "—";
+    $("vehicle-km-hint").textContent = vehicleKmRows.length ? vehicleDays + " días · " + (vehicleKmPerDay === null ? "—" : number.format(vehicleKmPerDay) + " km/día") : "Cargá odómetro inicio/fin del turno";
+    $("fuel-estimate").textContent = financial.fuelCost === null ? "—" : money.format(financial.fuelCost);
+    $("fuel-estimate-hint").textContent = financial.fuelCost === null
+      ? "Falta km real y precio YPF registrado"
+      : number.format(financial.fuelLiters) + " L · " + number.format(financial.consumptionLPer100Km) + " L/100 km · " + (financial.fuelMode === "vehicle_odometer" ? "odómetro del auto" : "solo km con pasajero · parcial");
+    $("other-cost-estimate").textContent = financial.otherCosts > 0 ? money.format(financial.otherCosts) : "—";
+    $("other-cost-hint").textContent = financial.missingCosts.length
+      ? "Faltan: " + financial.missingCosts.map(costLabel).join(", ")
+      : "Gastos fijos prorrateados + gastos puntuales";
+    $("net-estimate-label").textContent = financial.netComplete ? "Ganancia neta operativa" : "Neto parcial · incompleto";
+    $("net-estimate").textContent = financial.netComplete
+      ? money.format(financial.netOperating)
+      : financial.netPartial === null ? "—" : money.format(financial.netPartial);
+    const gaps = [];
+    if (financial.fuelMode !== "vehicle_odometer") gaps.push("odómetro del auto");
+    if (financial.missingCosts.length) gaps.push(...financial.missingCosts.map(costLabel));
+    if (financial.missingPriceDates) gaps.push("precio YPF para algunas fechas");
+    $("net-estimate-hint").textContent = financial.netComplete
+      ? "Bruto − nafta − otros costos. Estimación con odómetro y costos completos."
+      : financial.netPartial === null
+        ? "No hay kilómetros suficientes para calcular combustible."
+        : "No es neto final. Faltan: " + [...new Set(gaps)].join(", ") + ".";
+    $("finance-status").textContent = financial.netComplete ? "Costos completos" : "Faltan datos";
+    $("per-hour").textContent = connectedMinutes > 0 ? number.format(connectedMinutes / 60) + " h" : "—";
+    $("hours-hint").textContent = connectedMinutes > 0 ? sessions.length + " turnos registrados" : "Sin turnos registrados";
+    $("fuel-margin").textContent = fuel.length ? money.format(fuelSpend) : "—";
+    $("fuel-hint").textContent = fuel.length + " tickets · " + number.format(fuelLiters) + " L comprados";
+    $("period-label").textContent = state.range === 0 ? "Todo el historial" : "Últimos " + state.range + " días";
+    $("connection").textContent = "Actualizado " + new Date().toLocaleTimeString("es-AR", {hour:"2-digit",minute:"2-digit"}) + " · " + trips.length + " viajes";
+    $("finance-coverage").textContent = "Bruto: " + money.format(financial.gross) +
+      " · Nafta: " + (financial.fuelCost === null ? "sin base" : money.format(financial.fuelCost)) +
+      " · Otros gastos: " + money.format(financial.otherCosts) +
+      (financial.fuelMode === "passenger_km_partial" ? " · Nafta calculada solo sobre km con pasajero; falta odómetro." : "");
     renderHeroSpark(trips);
     renderDaily(trips);
     renderHours(trips);
@@ -341,7 +478,9 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     renderRewards(rewards);
     renderSessions(sessions);
     renderFuel(fuel);
+    renderOneOffExpenses();
   }
+
   function renderHeroSpark(trips) {
     const grouped = {};
     for (const trip of trips) grouped[trip.date] = (grouped[trip.date] || 0) + asNumber(trip.amount);
@@ -432,7 +571,9 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     try {
       const response = await fetch("/api/export", { credentials:"same-origin", cache:"no-store" });
       if (!response.ok) throw new Error("No se pudo generar el backup.");
-      const blob = await response.blob();
+      const exportData = await response.json();
+      exportData.local_operating_settings = localSettings;
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -450,6 +591,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     const a = document.createElement("a"); a.href = url; a.download = "didi-dash-trips.csv"; a.click(); URL.revokeObjectURL(url);
   });
 
+  initCostForms();
   loadData().catch((error) => {
     $("connection").textContent = "Sin conexión: " + error.message;
     $("connection").style.background = "rgba(255,69,58,.13)";
