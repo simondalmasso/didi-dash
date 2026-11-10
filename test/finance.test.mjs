@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "../public/finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings } from "../public/finance.mjs";
 
 const PRICE_HISTORY = [
   { effective_from: "2026-11-02", price_ars_per_liter: 2167, station: "YPF San Carlos Centro" }
@@ -142,4 +142,59 @@ test("fuel estimates apply the YPF Super price snapshot in force on each trip da
   });
   assert.equal(result.fuelLiters, 17.6);
   assert.equal(result.fuelCost, 36960);
+});
+
+
+test("a future YPF price is not applied retroactively to earlier trip dates", () => {
+  const result = calculateProfitability({
+    trips: [{ date: "2026-10-31", amount: 5000, km: 10, km_source: "actual" }],
+    rewards: [],
+    sessions: [],
+    fuelLogs: [],
+    priceHistory: [{ effective_from: "2026-11-02", price_ars_per_liter: 2167 }],
+    monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
+    oneOffExpenses: [],
+    periodDays: 1
+  });
+  assert.equal(result.fuelCost, null);
+  assert.equal(result.missingPriceDates, 1);
+  assert.equal(result.netPartial, null);
+  assert.equal(result.netComplete, false);
+});
+
+test("daily and monthly summaries split gross, passenger and vehicle kilometres, and dated YPF fuel", () => {
+  const summary = summarizeEarnings({
+    trips: [
+      { date: "2026-11-02", amount: 10000, km: 10, km_source: "actual" },
+      { date: "2026-11-02", amount: 5000, km: 8, km_source: "estimated" },
+      { date: "2026-11-03", amount: 8000, km: 20, km_source: "actual" }
+    ],
+    rewards: [{ date: "2026-11-02", amount: 2000 }],
+    sessions: [
+      { date: "2026-11-02", odometer_km: 30 },
+      { date: "2026-11-03", odometer_km: null }
+    ],
+    priceHistory: [
+      { effective_from: "2026-11-02", price_ars_per_liter: 2000 },
+      { effective_from: "2026-11-03", price_ars_per_liter: 2200 }
+    ]
+  });
+  assert.equal(summary.daily.length, 2);
+  assert.equal(summary.daily[0].date, "2026-11-02");
+  assert.equal(summary.daily[0].tripGross, 15000);
+  assert.equal(summary.daily[0].rewardGross, 2000);
+  assert.equal(summary.daily[0].gross, 17000);
+  assert.equal(summary.daily[0].actualPassengerKm, 10);
+  assert.equal(summary.daily[0].estimatedRouteKm, 8);
+  assert.equal(summary.daily[0].vehicleKm, 30);
+  assert.equal(summary.daily[0].fuelCost, 5280);
+  assert.equal(summary.daily[1].fuelMode, "passenger_km_partial");
+  assert.equal(summary.daily[1].fuelCost, 3872);
+  assert.equal(summary.monthly.length, 1);
+  assert.equal(summary.monthly[0].gross, 25000);
+  assert.equal(summary.monthly[0].actualPassengerKm, 30);
+  assert.equal(summary.monthly[0].estimatedRouteKm, 8);
+  assert.equal(summary.monthly[0].vehicleKm, 30);
+  assert.equal(summary.monthly[0].fuelCost, 9152);
+  assert.equal(summary.monthly[0].netAfterFuelPartial, 15848);
 });
