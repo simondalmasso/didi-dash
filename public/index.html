@@ -604,6 +604,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
       (financial.fuelMode === "passenger_km_partial" ? " · Nafta calculada solo sobre km con pasajero; falta odómetro." : financial.fuelMode === "vehicle_odometer_partial" ? " · Hay turnos sin odómetro." : "");
     const periodSummary = summarizeEarnings({
       trips, rewards, sessions,
+      fuelLogs: allFuelLogs,
       priceHistory: localSettings.priceHistory
     });
     renderHeroSpark(trips);
@@ -682,12 +683,14 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
       const mode = row.fuelMode || (row.vehicleKm > 0
         ? (row.sessionsWithoutOdometer > 0 ? "vehicle_odometer_partial" : "vehicle_odometer")
         : row.actualPassengerKm > 0 ? "passenger_km_partial" : "unavailable");
+      const consumptionHint = number.format(row.consumptionLPer100Km) + " L/100 km · " +
+        (row.consumptionSource === "tank_to_tank" ? "medido" : "referencia urbana");
       return '<tr><td>' + escapeHtml(period) + '</td><td class="right">' + row.tripCount +
         '</td><td class="right">' + money.format(row.gross) +
         '</td><td class="right">' + kmReal +
         '</td><td class="right">' + kmRoute +
         '</td><td class="right">' + kmAuto +
-        '</td><td class="right"><strong>' + fuel + '</strong><div class="table-hint">' + escapeHtml(fuelModeLabel(mode)) + '</div></td><td class="right">' + net + '</td></tr>';
+        '</td><td class="right"><strong>' + fuel + '</strong><div class="table-hint">' + escapeHtml(fuelModeLabel(mode)) + ' · ' + escapeHtml(consumptionHint) + '</div></td><td class="right">' + net + '</td></tr>';
     }).join("");
     return '<div class="summary-scroll"><table class="summary-table"><thead><tr>' + headings.map((x) => '<th>' + x + '</th>').join("") +
       '</tr></thead><tbody>' + body + '</tbody></table></div>';
