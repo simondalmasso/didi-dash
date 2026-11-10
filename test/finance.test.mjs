@@ -48,7 +48,7 @@ test("odometer distance replaces passenger kilometres for total vehicle fuel", (
   assert.equal(result.fuelCost, 28604.4);
   assert.equal(result.fixedCosts, 40000);
   assert.equal(result.oneOffCosts, 6000);
-  assert.equal(result.netOperating, 254?);
+  assert.equal(result.netOperating, 25395.6);
 });
 
 test("blank monthly costs remain unknown, not silently treated as zero", () => {
