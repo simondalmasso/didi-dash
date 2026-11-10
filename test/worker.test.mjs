@@ -377,3 +377,58 @@ test("a detail with changed amount is not merged when date, time and platform ar
   assert.equal(DATA.value().trips[0].amount, 5100);
   assert.equal(DATA.value().trips[1].amount, 5200);
 });
+
+
+test("a changed detail never overwrites an already detailed same-minute trip", async () => {
+  const DATA = memoryKV({
+    trips: [{
+      id: "verified-existing", date: "2026-11-07", start: "21:03", amount: 3500,
+      km: 1.4, km_source: "actual", min: 7.8, platform: "didi", source: "didi_history_detail"
+    }],
+    rewards: [], fuel: [], sessions: []
+  });
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [{
+      date: "2026-11-07", start: "21:03", amount: 4800,
+      km: 3.8, km_source: "actual", min: 8.9, platform: "didi", source: "didi_history_detail"
+    }] })
+  }), { INGEST_TOKEN, DATA });
+  assert.deepEqual((await response.json()).trips, { received: 1, inserted: 0, updated: 0, duplicates: 0, ambiguous: 1 });
+  assert.equal(DATA.value().trips.length, 1);
+  assert.equal(DATA.value().trips[0].amount, 3500);
+  assert.equal(DATA.value().trips[0].km, 1.4);
+});
+
+test("fare corrections retain a timestamped audit trail", async () => {
+  const DATA = memoryKV();
+  const summary = { date: "2026-11-07", start: "22:09", amount: 5100, km: 0, min: 0, platform: "didi", source: "didi_history" };
+  const detail = { ...summary, amount: 4800, km: 3.8, km_source: "actual", min: 8 + 53/60, source: "didi_history_detail" };
+  await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify({ trips: [summary] })
+  }), { INGEST_TOKEN, DATA });
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify({ trips: [detail] })
+  }), { INGEST_TOKEN, DATA });
+  assert.deepEqual((await response.json()).trips, { received: 1, inserted: 0, updated: 1, duplicates: 0, ambiguous: 0 });
+  const row = DATA.value().trips[0];
+  assert.equal(row.amount, 4800);
+  assert.equal(row.amount_history.length, 1);
+  assert.equal(row.amount_history[0].amount, 5100);
+  assert.equal(row.amount_history[0].replaced_by_source, "didi_history_detail");
+  assert.ok(Number.isFinite(Date.parse(row.amount_history[0].recorded_at)));
+  assert.ok(Number.isFinite(Date.parse(row.updated_at)));
+});
+
+test("static dashboard assets explicitly disable browser and CDN caching", async () => {
+  const response = await worker.fetch(apiRequest("/"), {
+    ASSETS: {
+      fetch: async () => new Response("<main>Etios</main>", {
+        headers: { "cache-control": "public, max-age=3600" }
+      })
+    }
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("cache-control") || "", /no-store/i);
+  assert.match(response.headers.get("cdn-cache-control") || "", /no-store/i);
+});
