@@ -103,7 +103,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 @media(max-width:390px){.brand{gap:8px}.mark{width:32px;height:32px}.subtitle{font-size:9px}.hero-value{font-size:43px}.kpi .value{font-size:19px}.kpi .label{font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 .cost-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.cost-actions{margin-top:12px;align-items:flex-start}.cost-history{display:grid;gap:6px;margin-top:10px}.cost-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}.cost-history-row strong{color:var(--text);white-space:nowrap}.cost-history-row .mini{padding:6px 10px;font-size:10px}.divider{height:1px;background:var(--line);margin:18px 0}@media(max-width:600px){.cost-fields{grid-template-columns:1fr}.cost-history-row{flex-wrap:wrap}}
-.summary-grid{align-items:start}.summary-table{min-width:820px;font-size:11px}.summary-table th{white-space:normal;min-width:76px}.summary-table td{padding:11px 8px;vertical-align:top}.summary-table td:first-child{font-weight:650}.table-hint{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:760px){.summary-grid{grid-template-columns:1fr}.summary-table{min-width:780px}}
+.summary-grid{align-items:start}.summary-scroll{max-width:100%;overflow-x:auto}.summary-table{min-width:820px;font-size:11px}.summary-table th{white-space:normal;min-width:76px}.summary-table td{padding:11px 8px;vertical-align:top}.summary-table td:first-child{font-weight:650}.table-hint{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:760px){.summary-grid{grid-template-columns:1fr}.summary-table{min-width:780px}}
 </style>
 </head>
 <body>
@@ -297,7 +297,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
     $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
     $("ypf-price-date").value = isoToday;
     $("ypf-price-context").textContent = latest
-      ? "Última referencia: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + ". Ajustala al precio de la estación donde cargás."
+      ? "Última referencia publicada: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · declarada vigente desde " + dateLabel(latest.effective_from) + ". Los reportes oficiales de surtidor pueden quedar desactualizados; confirmá en tu estación y actualizá cuando cambie el precio."
       : "No hay precio de referencia cargado.";
     $("expense-date").value = isoToday;
     renderYpfHistory();
@@ -369,7 +369,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
     $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
     $("ypf-price-date").value = isoToday;
     $("ypf-price-context").textContent = latest
-      ? "Última referencia: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + "."
+      ? "Última referencia publicada: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · declarada vigente desde " + dateLabel(latest.effective_from) + "."
       : "No hay precio de referencia cargado.";
     renderYpfHistory();
   }
@@ -570,8 +570,8 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
         '</td><td class="right">' + kmAuto +
         '</td><td class="right"><strong>' + fuel + '</strong><div class="table-hint">' + escapeHtml(fuelModeLabel(mode)) + '</div></td><td class="right">' + net + '</td></tr>';
     }).join("");
-    return '<table class="summary-table"><thead><tr>' + headings.map((x) => '<th>' + x + '</th>').join("") +
-      '</tr></thead><tbody>' + body + '</tbody></table>';
+    return '<div class="summary-scroll"><table class="summary-table"><thead><tr>' + headings.map((x) => '<th>' + x + '</th>').join("") +
+      '</tr></thead><tbody>' + body + '</tbody></table></div>';
   }
   function renderDailySummary(rows) {
     $("daily-summary").innerHTML = summaryTable(rows, false);
