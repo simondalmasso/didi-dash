@@ -121,3 +121,25 @@ test("partial odometer coverage cannot be reported as complete net profit", () =
   assert.equal(result.netComplete, false);
   assert.equal(result.netOperating, null);
 });
+
+
+test("fuel estimates apply the YPF Super price snapshot in force on each trip date", () => {
+  const result = calculateProfitability({
+    trips: [
+      { date: "2026-11-02", amount: 4000, km: 100, km_source: "actual" },
+      { date: "2026-11-08", amount: 5000, km: 100, km_source: "actual" }
+    ],
+    rewards: [],
+    sessions: [],
+    fuelLogs: [],
+    priceHistory: [
+      { effective_from: "2026-11-02", price_ars_per_liter: 2000 },
+      { effective_from: "2026-11-06", price_ars_per_liter: 2200 }
+    ],
+    monthlyCosts: {},
+    oneOffExpenses: [],
+    periodDays: 7
+  });
+  assert.equal(result.fuelLiters, 17.6);
+  assert.equal(result.fuelCost, 36960);
+});
