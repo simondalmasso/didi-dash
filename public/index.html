@@ -442,7 +442,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     $("fuel-estimate").textContent = financial.fuelCost === null ? "—" : money.format(financial.fuelCost);
     $("fuel-estimate-hint").textContent = financial.fuelCost === null
       ? "Falta km real y precio YPF registrado"
-      : number.format(financial.fuelLiters) + " L · " + number.format(financial.consumptionLPer100Km) + " L/100 km · " + (financial.fuelMode === "vehicle_odometer" ? "odómetro del auto" : "solo km con pasajero · parcial");
+      : number.format(financial.fuelLiters) + " L · " + number.format(financial.consumptionLPer100Km) + " L/100 km · " + (financial.fuelMode === "vehicle_odometer" ? "odómetro completo" : financial.fuelMode === "vehicle_odometer_partial" ? "odómetro parcial · faltan turnos" : "solo km con pasajero · parcial");
     $("other-cost-estimate").textContent = financial.otherCosts > 0 ? money.format(financial.otherCosts) : "—";
     $("other-cost-hint").textContent = financial.missingCosts.length
       ? "Faltan: " + financial.missingCosts.map(costLabel).join(", ")
@@ -452,7 +452,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
       ? money.format(financial.netOperating)
       : financial.netPartial === null ? "—" : money.format(financial.netPartial);
     const gaps = [];
-    if (financial.fuelMode !== "vehicle_odometer") gaps.push("odómetro del auto");
+    if (!financial.odometerComplete) gaps.push("odómetro completo de todos los turnos");
     if (financial.missingCosts.length) gaps.push(...financial.missingCosts.map(costLabel));
     if (financial.missingPriceDates) gaps.push("precio YPF para algunas fechas");
     $("net-estimate-hint").textContent = financial.netComplete
@@ -470,7 +470,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     $("finance-coverage").textContent = "Bruto: " + money.format(financial.gross) +
       " · Nafta: " + (financial.fuelCost === null ? "sin base" : money.format(financial.fuelCost)) +
       " · Otros gastos: " + money.format(financial.otherCosts) +
-      (financial.fuelMode === "passenger_km_partial" ? " · Nafta calculada solo sobre km con pasajero; falta odómetro." : "");
+      (financial.fuelMode === "passenger_km_partial" ? " · Nafta calculada solo sobre km con pasajero; falta odómetro." : financial.fuelMode === "vehicle_odometer_partial" ? " · Hay turnos sin odómetro." : "");
     renderHeroSpark(trips);
     renderDaily(trips);
     renderHours(trips);
