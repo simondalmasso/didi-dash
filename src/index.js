@@ -139,6 +139,19 @@ function sameTripIdentity(left, right) {
     String(left.platform ?? "").toLowerCase() === String(right.platform ?? "").toLowerCase();
 }
 
+function conflictsWithDetailedRide(existing, incoming) {
+  if (existing.source !== "didi_history_detail") return false;
+  if (incoming.source !== "didi_history_detail") {
+    return incoming.source === "didi_history" &&
+      Number(incoming.amount) > 0 &&
+      Number(incoming.amount) !== Number(existing.amount);
+  }
+  const amountChanged = Number(incoming.amount) !== Number(existing.amount);
+  const kmChanged = Math.abs((Number(incoming.km) || 0) - (Number(existing.km) || 0)) > 0.01;
+  const minutesChanged = Math.abs((Number(incoming.min) || 0) - (Number(existing.min) || 0)) > 0.02;
+  return amountChanged || kmChanged || minutesChanged;
+}
+
 function mergeTripDetails(existing, incoming) {
   const next = { ...existing };
   const existingKm = Number(existing.km) || 0;
@@ -153,6 +166,15 @@ function mergeTripDetails(existing, incoming) {
   const incomingAmount = Number(incoming.amount) || 0;
   if (incoming.source === "didi_history_detail" &&
       incomingAmount > 0 && incomingAmount !== existingAmount) {
+    const recordedAt = new Date().toISOString();
+    next.amount_history = [
+      ...(Array.isArray(existing.amount_history) ? existing.amount_history : []),
+      {
+        amount: existingAmount,
+        recorded_at: recordedAt,
+        replaced_by_source: incoming.source
+      }
+    ];
     next.amount = incomingAmount;
     updated = true;
   }
@@ -180,6 +202,7 @@ function mergeTripDetails(existing, incoming) {
     ? (next.km_source ?? existingSource)
     : "unknown";
   next.source = incoming.source;
+  next.updated_at = new Date().toISOString();
   return next;
 }
 
@@ -213,6 +236,10 @@ async function normaliseTripBatch(items, existingRows) {
     }
     if (matches.length === 1) {
       const match = matches[0];
+      if (conflictsWithDetailedRide(match.row, incoming)) {
+        ambiguous += 1;
+        continue;
+      }
       const enriched = mergeTripDetails(match.row, incoming);
       if (!enriched) {
         duplicates += 1;
@@ -359,7 +386,16 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) {
-      return env.ASSETS.fetch(request);
+      const asset = await env.ASSETS.fetch(request);
+      const headers = new Headers(asset.headers);
+      headers.set("cache-control", "no-store, max-age=0, must-revalidate");
+      headers.set("cdn-cache-control", "no-store");
+      headers.set("cloudflare-cdn-cache-control", "no-store");
+      return new Response(asset.body, {
+        status: asset.status,
+        statusText: asset.statusText,
+        headers
+      });
     }
 
     try {
