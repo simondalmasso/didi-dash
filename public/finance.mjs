@@ -42,7 +42,8 @@ export function estimateFuelForDistance(km, date, priceHistory, consumptionLPer1
   };
 }
 
-export function summarizeEarnings({ trips = [], rewards = [], sessions = [], priceHistory = [] } = {}) {
+export function summarizeEarnings({ trips = [], rewards = [], sessions = [], fuelLogs = [], priceHistory = [] } = {}) {
+  const consumption = measuredConsumption(fuelLogs);
   const days = new Map();
   const dayFor = (date) => {
     if (!validDate(date)) return null;
@@ -53,7 +54,8 @@ export function summarizeEarnings({ trips = [], rewards = [], sessions = [], pri
         estimatedTripCount: 0, estimatedRouteKm: 0,
         vehicleKm: 0, sessions: 0, sessionsWithoutOdometer: 0,
         fuelKm: 0, fuelLiters: 0, fuelCost: null, fuelMode: "unavailable",
-        netAfterFuelPartial: null, priceEffectiveFrom: null
+        netAfterFuelPartial: null, priceEffectiveFrom: null,
+        consumptionLPer100Km: consumption.value, consumptionSource: consumption.source
       });
     }
     return days.get(date);
@@ -96,7 +98,7 @@ export function summarizeEarnings({ trips = [], rewards = [], sessions = [], pri
     day.fuelMode = day.vehicleKm > 0
       ? (day.sessionsWithoutOdometer > 0 ? "vehicle_odometer_partial" : "vehicle_odometer")
       : day.actualPassengerKm > 0 ? "passenger_km_partial" : "unavailable";
-    const estimate = estimateFuelForDistance(day.fuelKm, day.date, priceHistory);
+    const estimate = estimateFuelForDistance(day.fuelKm, day.date, priceHistory, consumption.value);
     if (estimate) {
       day.fuelLiters = estimate.liters;
       day.fuelCost = estimate.costArs;
@@ -118,7 +120,8 @@ export function summarizeEarnings({ trips = [], rewards = [], sessions = [], pri
         estimatedTripCount: 0, estimatedRouteKm: 0,
         vehicleKm: 0, sessions: 0, sessionsWithoutOdometer: 0,
         fuelKm: 0, fuelLiters: 0, fuelCostKnown: 0, missingPriceDays: 0,
-        fuelCost: null, netAfterFuelPartial: null
+        fuelCost: null, netAfterFuelPartial: null,
+        consumptionLPer100Km: consumption.value, consumptionSource: consumption.source
       });
     }
     const month = monthMap.get(monthKey);
@@ -251,7 +254,6 @@ export function calculateProfitability({
   let fuelKm = 0;
   let fuelLiters = 0;
   let fuelCost = 0;
-  let priceFallback = false;
   let missingPriceDates = 0;
   for (const [date, km] of fuelDistanceByDate) {
     const price = priceForDate(priceHistory, date);
@@ -313,8 +315,7 @@ export function calculateProfitability({
     netOperating,
     netComplete,
     missingCosts,
-    missingPriceDates,
-    priceFallback
+    missingPriceDates
   };
 }
 
