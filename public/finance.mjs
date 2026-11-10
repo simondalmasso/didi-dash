@@ -17,14 +17,130 @@ function validDate(value) {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function priceForDate(history, date) {
+export function priceForDate(history, date) {
   const snapshots = (Array.isArray(history) ? history : [])
     .filter((row) => validDate(row.effective_from) && amount(row.price_ars_per_liter) > 0)
     .slice()
     .sort((a, b) => a.effective_from.localeCompare(b.effective_from));
-  if (!snapshots.length) return null;
+  if (!snapshots.length || !validDate(date)) return null;
   const eligible = snapshots.filter((row) => row.effective_from <= date);
-  return eligible.length ? eligible[eligible.length - 1] : snapshots[0];
+  return eligible.length ? eligible[eligible.length - 1] : null;
+}
+
+export function estimateFuelForDistance(km, date, priceHistory, consumptionLPer100Km = ETIOS_BASELINE_L_PER_100KM) {
+  const distance = amount(km);
+  const consumption = amount(consumptionLPer100Km);
+  const price = priceForDate(priceHistory, date);
+  if (!(distance > 0) || !(consumption > 0) || !price) return null;
+  const liters = distance * consumption / 100;
+  return {
+    km: distance,
+    liters: Math.round((liters + Number.EPSILON) * 10000) / 10000,
+    priceArsPerLiter: Number(price.price_ars_per_liter),
+    priceEffectiveFrom: price.effective_from,
+    costArs: Math.round((liters * Number(price.price_ars_per_liter) + Number.EPSILON) * 100) / 100
+  };
+}
+
+export function summarizeEarnings({ trips = [], rewards = [], sessions = [], priceHistory = [] } = {}) {
+  const days = new Map();
+  const dayFor = (date) => {
+    if (!validDate(date)) return null;
+    if (!days.has(date)) {
+      days.set(date, {
+        date, tripCount: 0, tripGross: 0, rewardGross: 0, gross: 0,
+        actualTripCount: 0, actualPassengerKm: 0,
+        estimatedTripCount: 0, estimatedRouteKm: 0,
+        vehicleKm: 0, sessions: 0, sessionsWithoutOdometer: 0,
+        fuelKm: 0, fuelLiters: 0, fuelCost: null, fuelMode: "unavailable",
+        netAfterFuelPartial: null, priceEffectiveFrom: null
+      });
+    }
+    return days.get(date);
+  };
+
+  for (const row of trips) {
+    const day = dayFor(row.date);
+    if (!day) continue;
+    day.tripCount += 1;
+    day.tripGross += amount(row.amount);
+    const km = amount(row.km);
+    const source = row.km_source ?? (km > 0 ? "actual" : "unknown");
+    if (km > 0 && source === "actual") {
+      day.actualTripCount += 1;
+      day.actualPassengerKm += km;
+    } else if (km > 0 && source === "estimated") {
+      day.estimatedTripCount += 1;
+      day.estimatedRouteKm += km;
+    }
+  }
+  for (const row of rewards) {
+    const day = dayFor(row.date);
+    if (day) day.rewardGross += amount(row.amount);
+  }
+  for (const row of sessions) {
+    const day = dayFor(row.date);
+    if (!day) continue;
+    day.sessions += 1;
+    if (row.odometer_km != null && Number.isFinite(Number(row.odometer_km)) && Number(row.odometer_km) > 0) {
+      day.vehicleKm += Number(row.odometer_km);
+    } else {
+      day.sessionsWithoutOdometer += 1;
+    }
+  }
+
+  const daily = [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
+  for (const day of daily) {
+    day.gross = day.tripGross + day.rewardGross;
+    day.fuelKm = day.vehicleKm > 0 ? day.vehicleKm : day.actualPassengerKm;
+    day.fuelMode = day.vehicleKm > 0
+      ? (day.sessionsWithoutOdometer > 0 ? "vehicle_odometer_partial" : "vehicle_odometer")
+      : day.actualPassengerKm > 0 ? "passenger_km_partial" : "unavailable";
+    const estimate = estimateFuelForDistance(day.fuelKm, day.date, priceHistory);
+    if (estimate) {
+      day.fuelLiters = estimate.liters;
+      day.fuelCost = estimate.costArs;
+      day.priceEffectiveFrom = estimate.priceEffectiveFrom;
+      day.netAfterFuelPartial = Math.round((day.gross - day.fuelCost + Number.EPSILON) * 100) / 100;
+    }
+    for (const key of ["tripGross", "rewardGross", "gross", "actualPassengerKm", "estimatedRouteKm", "vehicleKm", "fuelKm"]) {
+      day[key] = Math.round((day[key] + Number.EPSILON) * 100) / 100;
+    }
+  }
+
+  const monthMap = new Map();
+  for (const day of daily) {
+    const monthKey = day.date.slice(0, 7);
+    if (!monthMap.has(monthKey)) {
+      monthMap.set(monthKey, {
+        month: monthKey, tripCount: 0, tripGross: 0, rewardGross: 0, gross: 0,
+        actualTripCount: 0, actualPassengerKm: 0,
+        estimatedTripCount: 0, estimatedRouteKm: 0,
+        vehicleKm: 0, sessions: 0, sessionsWithoutOdometer: 0,
+        fuelKm: 0, fuelLiters: 0, fuelCostKnown: 0, missingPriceDays: 0,
+        fuelCost: null, netAfterFuelPartial: null
+      });
+    }
+    const month = monthMap.get(monthKey);
+    for (const key of ["tripCount","tripGross","rewardGross","gross","actualTripCount","actualPassengerKm","estimatedTripCount","estimatedRouteKm","vehicleKm","sessions","sessionsWithoutOdometer","fuelKm","fuelLiters"]) {
+      month[key] += day[key];
+    }
+    if (day.fuelKm > 0 && day.fuelCost == null) month.missingPriceDays += 1;
+    if (day.fuelCost != null) month.fuelCostKnown += day.fuelCost;
+  }
+
+  const monthly = [...monthMap.values()].sort((a, b) => a.month.localeCompare(b.month));
+  for (const month of monthly) {
+    if (month.fuelKm > 0 && month.missingPriceDays === 0) {
+      month.fuelCost = Math.round((month.fuelCostKnown + Number.EPSILON) * 100) / 100;
+      month.netAfterFuelPartial = Math.round((month.gross - month.fuelCost + Number.EPSILON) * 100) / 100;
+    }
+    delete month.fuelCostKnown;
+    for (const key of ["tripGross","rewardGross","gross","actualPassengerKm","estimatedRouteKm","vehicleKm","fuelKm","fuelLiters"]) {
+      month[key] = Math.round((month[key] + Number.EPSILON) * 100) / 100;
+    }
+  }
+  return { daily, monthly };
 }
 
 function measuredConsumption(fuelLogs) {
@@ -136,7 +252,6 @@ export function calculateProfitability({
       missingPriceDates += 1;
       continue;
     }
-    if (price.effective_from > date) priceFallback = true;
     const litres = km * consumption.value / 100;
     fuelKm += km;
     fuelLiters += litres;
