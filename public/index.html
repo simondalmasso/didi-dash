@@ -102,7 +102,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 @media(max-width:760px){.shell{padding:0 12px 40px}header{margin:0 -12px 20px;padding:13px 13px}.hero-panel{padding:22px 20px;min-height:180px;border-radius:23px}.hero-spark{width:100%;max-width:none;height:52px;margin-top:12px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.kpi{padding:13px;min-height:96px;border-radius:17px}.kpi .value{font-size:22px}.card{padding:16px;border-radius:21px}.grid.two{grid-template-columns:1fr}.toolbar{align-items:flex-start}.period{width:100%;justify-content:space-between}.period button{flex:1;padding:9px 8px}.bar-row{grid-template-columns:60px 1fr 80px;gap:7px}.trip-row,.reward-row{padding:12px}.trip-amount,.reward-amount{font-size:16px}}
 @media(max-width:390px){.brand{gap:8px}.mark{width:32px;height:32px}.subtitle{font-size:9px}.hero-value{font-size:43px}.kpi .value{font-size:19px}.kpi .label{font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-.cost-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.cost-actions{margin-top:12px;align-items:flex-start}.cost-history{display:grid;gap:6px;margin-top:10px}.cost-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}.cost-history-row strong{color:var(--text);white-space:nowrap}.cost-history-row .mini{padding:6px 10px;font-size:10px}.divider{height:1px;background:var(--line);margin:18px 0}@media(max-width:600px){.cost-fields{grid-template-columns:1fr}.cost-history-row{flex-wrap:wrap}}
+.cost-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.checkbox-field{display:flex;align-items:end}.checkbox-field label{display:flex;align-items:center;gap:8px}.checkbox-field input{width:auto;margin:0}.cost-actions{margin-top:12px;align-items:flex-start}.cost-history{display:grid;gap:6px;margin-top:10px}.cost-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}.cost-history-row strong{color:var(--text);white-space:nowrap}.cost-history-row .mini{padding:6px 10px;font-size:10px}.divider{height:1px;background:var(--line);margin:18px 0}@media(max-width:600px){.cost-fields{grid-template-columns:1fr}.cost-history-row{flex-wrap:wrap}}
 .summary-grid{align-items:start}.summary-scroll{max-width:100%;overflow-x:auto}.summary-table{min-width:820px;font-size:11px}.summary-table th{white-space:normal;min-width:76px}.summary-table td{padding:11px 8px;vertical-align:top}.summary-table td:first-child{font-weight:650}.table-hint{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:760px){.summary-grid{grid-template-columns:1fr}.summary-table{min-width:780px}}
 </style>
 </head>
@@ -176,6 +176,34 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
           <div class="row cost-actions"><button type="submit">Agregar gasto</button><span id="expense-status" class="note"></span></div>
         </form>
         <div id="one-off-expenses" class="cost-history"></div>
+        <div class="divider"></div>
+        <h3>Turno trabajado · odómetro del Etios</h3>
+        <form id="local-session-form">
+          <div class="cost-fields">
+            <div><label for="session-date">Fecha del turno</label><input id="session-date" type="date" required></div>
+            <div><label for="session-platform">Plataforma</label><select id="session-platform"><option value="didi">DiDi</option><option value="uber">Uber</option></select></div>
+            <div><label for="session-start">Hora de inicio</label><input id="session-start" type="time" required></div>
+            <div><label for="session-end">Hora de fin</label><input id="session-end" type="time" required></div>
+            <div><label for="session-odo-start">Odómetro al iniciar (km)</label><input id="session-odo-start" type="number" min="0" step="0.1" required placeholder="Ej. 84520,0"></div>
+            <div><label for="session-odo-end">Odómetro al terminar (km)</label><input id="session-odo-end" type="number" min="0.1" step="0.1" required placeholder="Ej. 84642,5"></div>
+          </div>
+          <div class="row cost-actions"><button type="submit">Guardar turno</button><span id="session-entry-status" class="note">Se calcula la diferencia de odómetro; admite turnos que cruzan medianoche.</span></div>
+        </form>
+        <div id="local-sessions" class="cost-history"></div>
+        <div class="divider"></div>
+        <h3>Ticket de nafta · YPF Súper</h3>
+        <form id="local-fuel-form">
+          <div class="cost-fields">
+            <div><label for="fuel-date">Fecha de carga</label><input id="fuel-date" type="date" required></div>
+            <div><label for="fuel-odometer">Odómetro al cargar (km)</label><input id="fuel-odometer" type="number" min="0" step="0.1" required placeholder="Ej. 84642,5"></div>
+            <div><label for="fuel-liters">Litros cargados</label><input id="fuel-liters" type="number" min="0.01" max="200" step="0.01" required placeholder="Ej. 35,50"></div>
+            <div><label for="fuel-total">Total pagado ($)</label><input id="fuel-total" type="number" min="1" step="0.01" required placeholder="Importe del ticket"></div>
+            <div><label for="fuel-station">Estación (opcional)</label><input id="fuel-station" type="text" maxlength="60" placeholder="YPF · dirección o zona"></div>
+            <div class="checkbox-field"><label for="fuel-full-tank"><input id="fuel-full-tank" type="checkbox"> Carga hasta llenar el tanque</label></div>
+          </div>
+          <div class="row cost-actions"><button type="submit">Guardar ticket</button><span id="fuel-entry-status" class="note">Con dos cargas completas y sus odómetros se calcula tu consumo real tanque a tanque.</span></div>
+        </form>
+        <div id="local-fuel-entries" class="cost-history"></div>
         <div id="finance-coverage" class="note"></div>
         <div class="note">Estos costos se guardan en este navegador, no en el ledger público. El backup JSON los incluye. Sin odómetro, la nafta se calcula solo sobre km reales con pasajero y se marca parcial.</div>
       </section>
@@ -208,7 +236,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings } from "./finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry } from "./finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -217,6 +245,8 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
   const DEFAULT_SETTINGS = {
     monthlyCosts: { insurance: null, maintenance: null, tires: null, tax: null, other: null },
     oneOffExpenses: [],
+    vehicleSessions: [],
+    fuelLogs: [],
     priceHistory: [{
       effective_from: "2026-11-02",
       price_ars_per_liter: 2167,
@@ -231,6 +261,8 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
       return {
         monthlyCosts: { ...DEFAULT_SETTINGS.monthlyCosts, ...(saved.monthlyCosts || {}) },
         oneOffExpenses: Array.isArray(saved.oneOffExpenses) ? saved.oneOffExpenses : [],
+        vehicleSessions: Array.isArray(saved.vehicleSessions) ? saved.vehicleSessions : [],
+        fuelLogs: Array.isArray(saved.fuelLogs) ? saved.fuelLogs : [],
         priceHistory: Array.isArray(saved.priceHistory) && saved.priceHistory.length
           ? saved.priceHistory : structuredClone(DEFAULT_SETTINGS.priceHistory)
       };
@@ -288,6 +320,18 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
       '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.category_label || row.category || "Gasto") + (row.note ? " · " + escapeHtml(row.note) : "") + '</span><strong>' + money.format(asNumber(row.amount_ars)) + '</strong><button class="ghost mini" type="button" data-remove-expense="' + escapeHtml(row.id) + '">Quitar</button></div>'
     ).join("") : '<div class="note">Todavía no hay gastos puntuales registrados.</div>';
   }
+  function renderLocalVehicleLogs() {
+    const sessions = selected(localSettings.vehicleSessions).slice().sort((a,b)=>(b.date+b.connected_start).localeCompare(a.date+a.connected_start));
+    $("local-sessions").innerHTML = sessions.length ? sessions.map((row) =>
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.platform.toUpperCase()) + ' · ' + escapeHtml(row.connected_start) + '–' + escapeHtml(row.connected_end) + ' · odómetro ' + number.format(row.odometer_start) + ' → ' + number.format(row.odometer_end) + '</span><strong>' + number.format(row.odometer_km) + ' km</strong><button class="ghost mini" type="button" data-remove-local-session="' + escapeHtml(row.id) + '">Quitar</button></div>'
+    ).join("") : '<div class="note">Todavía no hay turnos con odómetro guardados.</div>';
+
+    const fuels = selected(localSettings.fuelLogs).slice().sort((a,b)=>(b.date+String(b.odometer_km)).localeCompare(a.date+String(a.odometer_km)));
+    $("local-fuel-entries").innerHTML = fuels.length ? fuels.map((row) =>
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.station || "Combustible") + ' · odómetro ' + number.format(row.odometer_km) + (row.full_tank ? ' · tanque completo' : '') + '</span><strong>' + number.format(row.liters) + ' L · ' + money.format(row.total_ars) + '</strong><button class="ghost mini" type="button" data-remove-local-fuel="' + escapeHtml(row.id) + '">Quitar</button></div>'
+    ).join("") : '<div class="note">Todavía no hay tickets de nafta guardados localmente.</div>';
+  }
+
   function initCostForms() {
     for (const key of ["insurance","maintenance","tires","tax","other"]) {
       $("cost-" + key).value = localSettings.monthlyCosts[key] == null ? "" : String(localSettings.monthlyCosts[key]);
@@ -300,7 +344,10 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
       ? "Última referencia publicada: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · declarada vigente desde " + dateLabel(latest.effective_from) + ". Los reportes oficiales de surtidor pueden quedar desactualizados; confirmá en tu estación y actualizá cuando cambie el precio."
       : "No hay precio de referencia cargado.";
     $("expense-date").value = isoToday;
+    $("session-date").value = isoToday;
+    $("fuel-date").value = isoToday;
     renderYpfHistory();
+    renderLocalVehicleLogs();
 
     $("monthly-cost-form").addEventListener("submit", (event) => {
       event.preventDefault();
@@ -362,6 +409,75 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
       saveLocalSettings();
       render();
     });
+
+    $("local-session-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      try {
+        const row = createWorkSession({
+          date: $("session-date").value,
+          platform: $("session-platform").value,
+          connected_start: $("session-start").value,
+          connected_end: $("session-end").value,
+          odometer_start: $("session-odo-start").value,
+          odometer_end: $("session-odo-end").value
+        });
+        localSettings.vehicleSessions.push(row);
+        const saved = saveLocalSettings();
+        $("session-entry-status").textContent = saved
+          ? row.odometer_km.toLocaleString("es-AR",{maximumFractionDigits:1}) + " km del auto guardados en este navegador."
+          : "No se pudo guardar en este navegador.";
+        $("session-start").value = "";
+        $("session-end").value = "";
+        $("session-odo-start").value = "";
+        $("session-odo-end").value = "";
+        render();
+      } catch (error) {
+        $("session-entry-status").textContent = error.message;
+      }
+    });
+
+    $("local-fuel-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      try {
+        const row = createFuelEntry({
+          date: $("fuel-date").value,
+          odometer_km: $("fuel-odometer").value,
+          liters: $("fuel-liters").value,
+          total_ars: $("fuel-total").value,
+          station: $("fuel-station").value,
+          full_tank: $("fuel-full-tank").checked
+        });
+        localSettings.fuelLogs.push(row);
+        const saved = saveLocalSettings();
+        $("fuel-entry-status").textContent = saved
+          ? row.liters.toLocaleString("es-AR",{maximumFractionDigits:2}) + " L guardados · " + money.format(row.price_per_liter) + "/L"
+          : "No se pudo guardar en este navegador.";
+        $("fuel-odometer").value = "";
+        $("fuel-liters").value = "";
+        $("fuel-total").value = "";
+        $("fuel-station").value = "";
+        $("fuel-full-tank").checked = false;
+        render();
+      } catch (error) {
+        $("fuel-entry-status").textContent = error.message;
+      }
+    });
+
+    $("local-sessions").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-local-session]");
+      if (!button) return;
+      localSettings.vehicleSessions = localSettings.vehicleSessions.filter((row) => row.id !== button.dataset.removeLocalSession);
+      saveLocalSettings();
+      render();
+    });
+
+    $("local-fuel-entries").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-local-fuel]");
+      if (!button) return;
+      localSettings.fuelLogs = localSettings.fuelLogs.filter((row) => row.id !== button.dataset.removeLocalFuel);
+      saveLocalSettings();
+      render();
+    });
   }
   function initYpfFormOnly() {
     const prices = localSettings.priceHistory.slice().sort((a,b) => a.effective_from.localeCompare(b.effective_from));
@@ -409,8 +525,10 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
   function render() {
     const trips = selected(state.trips);
     const rewards = selected(state.rewards);
-    const fuel = selected(state.fuel);
-    const sessions = selected(state.sessions);
+    const allFuelLogs = [...state.fuel, ...localSettings.fuelLogs];
+    const allSessions = [...state.sessions, ...localSettings.vehicleSessions];
+    const fuel = selected(allFuelLogs);
+    const sessions = selected(allSessions);
     const tripGross = trips.reduce((sum, row) => sum + asNumber(row.amount), 0);
     const rewardGross = rewards.reduce((sum, row) => sum + asNumber(row.amount), 0);
     const gross = tripGross + rewardGross;
@@ -431,7 +549,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
     const oneOffExpenses = selected(localSettings.oneOffExpenses);
     const financial = calculateProfitability({
       trips, rewards, sessions,
-      fuelLogs: state.fuel,
+      fuelLogs: allFuelLogs,
       priceHistory: localSettings.priceHistory,
       monthlyCosts: localSettings.monthlyCosts,
       oneOffExpenses,
@@ -498,6 +616,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings }
     renderSessions(sessions);
     renderFuel(fuel);
     renderOneOffExpenses();
+    renderLocalVehicleLogs();
   }
 
   function renderHeroSpark(trips) {
