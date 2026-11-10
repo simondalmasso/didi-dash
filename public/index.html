@@ -103,6 +103,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 @media(max-width:390px){.brand{gap:8px}.mark{width:32px;height:32px}.subtitle{font-size:9px}.hero-value{font-size:43px}.kpi .value{font-size:19px}.kpi .label{font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 .cost-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.cost-actions{margin-top:12px;align-items:flex-start}.cost-history{display:grid;gap:6px;margin-top:10px}.cost-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}.cost-history-row strong{color:var(--text);white-space:nowrap}.cost-history-row .mini{padding:6px 10px;font-size:10px}.divider{height:1px;background:var(--line);margin:18px 0}@media(max-width:600px){.cost-fields{grid-template-columns:1fr}.cost-history-row{flex-wrap:wrap}}
+.summary-grid{align-items:start}.summary-table{min-width:820px;font-size:11px}.summary-table th{white-space:normal;min-width:76px}.summary-table td{padding:11px 8px;vertical-align:top}.summary-table td:first-child{font-weight:650}.table-hint{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:760px){.summary-grid{grid-template-columns:1fr}.summary-table{min-width:780px}}
 </style>
 </head>
 <body>
@@ -182,6 +183,18 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         <section class="card"><h2>Actividad por día</h2><div id="period-label" class="note">Últimos 30 días</div><div id="daily-chart"><div class="empty">Cargando actividad…</div></div></section>
         <section class="card"><h2>Ingresos por hora de inicio</h2><div class="note" style="margin:0 0 12px">Importes agrupados por la hora que figura en el historial.</div><div id="hour-chart"><div class="empty">Cargando…</div></div></section>
       </div>
+      <div class="grid two summary-grid">
+        <section class="card">
+          <div class="section-head"><h2>Detalle diario</h2><span id="daily-coverage" class="note">Importes y kilómetros</span></div>
+          <div id="daily-summary" class="table-wrap"><div class="empty">Cargando resumen diario…</div></div>
+          <div class="note">Nafta y saldo diario son parciales cuando se calculan con km de pasajero; no incluyen los trayectos sin pasajero.</div>
+        </section>
+        <section class="card">
+          <div class="section-head"><h2>Resumen mensual</h2><span class="note">Por mes calendario</span></div>
+          <div id="monthly-summary" class="table-wrap"><div class="empty">Cargando resumen mensual…</div></div>
+          <div class="note">Los meses en curso muestran solo los días disponibles en el historial. Los km de ruta estimados se mantienen separados y nunca calculan nafta.</div>
+        </section>
+      </div>
       <div class="grid two">
         <section class="card"><h2>Horas conectadas</h2><div id="per-hour" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="hours-hint" class="note">Sin turnos registrados.</div><div id="sessions-list" class="note"></div></section>
         <section class="card"><h2>Combustible comprado</h2><div id="fuel-margin" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="fuel-hint" class="note">Sin tickets registrados.</div><div id="fuel-list" class="note"></div></section>
@@ -195,7 +208,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings } from "./finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -471,8 +484,14 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
       " · Nafta: " + (financial.fuelCost === null ? "sin base" : money.format(financial.fuelCost)) +
       " · Otros gastos: " + money.format(financial.otherCosts) +
       (financial.fuelMode === "passenger_km_partial" ? " · Nafta calculada solo sobre km con pasajero; falta odómetro." : financial.fuelMode === "vehicle_odometer_partial" ? " · Hay turnos sin odómetro." : "");
+    const periodSummary = summarizeEarnings({
+      trips, rewards, sessions,
+      priceHistory: localSettings.priceHistory
+    });
     renderHeroSpark(trips);
     renderDaily(trips);
+    renderDailySummary(periodSummary.daily);
+    renderMonthlySummary(periodSummary.monthly);
     renderHours(trips);
     renderTrips(trips);
     renderRewards(rewards);
@@ -520,6 +539,48 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM } from "./finance.mj
     const dots = coords.map((point) => '<circle class="chart-dot" cx="' + point.x + '" cy="' + point.y + '" r="3.6"><title>' + escapeHtml(dateLabel(point.date)) + ': ' + escapeHtml(money.format(point.value)) + '</title></circle>').join('');
     const labels = [0, Math.floor((points.length - 1) / 2), points.length - 1].filter((value, index, arr) => arr.indexOf(value) === index).map((index) => '<text class="chart-label" x="' + coords[index].x + '" y="' + (height-9) + '" text-anchor="middle">' + escapeHtml(new Date(points[index][0] + 'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'})) + '</text>').join('');
     $('daily-chart').innerHTML = '<svg class="chart-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Importes registrados por día"><defs><linearGradient id="daily-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#c7f36a" stop-opacity=".27"/><stop offset="1" stop-color="#c7f36a" stop-opacity="0"/></linearGradient></defs>' + grid + '<path d="' + area + '" fill="url(#daily-fill)"/><path class="chart-line" d="' + line + '"/>' + dots + labels + '</svg>';
+  }
+  function fuelModeLabel(mode) {
+    return ({
+      vehicle_odometer:"odómetro",
+      vehicle_odometer_partial:"odómetro parcial",
+      passenger_km_partial:"mínimo pasajero",
+      unavailable:"sin base"
+    })[mode] || mode;
+  }
+  function summaryTable(rows, monthMode = false) {
+    if (!rows.length) return '<div class="empty">Sin actividad para este período.</div>';
+    const headings = ["Período","Viajes","Bruto","Km reales pasajero","Km ruta est.","Km auto","Nafta estimada*","Saldo tras nafta*"];
+    const body = rows.map((row) => {
+      const period = monthMode
+        ? new Date(row.month + "-01T12:00:00").toLocaleDateString("es-AR",{month:"short",year:"numeric"})
+        : dateLabel(row.date);
+      const kmReal = number.format(row.actualPassengerKm) + " (" + row.actualTripCount + "/" + row.tripCount + ")";
+      const kmRoute = row.estimatedTripCount ? number.format(row.estimatedRouteKm) : "—";
+      const kmAuto = row.vehicleKm > 0 ? number.format(row.vehicleKm) : "—";
+      const fuel = row.fuelCost == null ? "—" : money.format(row.fuelCost);
+      const net = row.netAfterFuelPartial == null ? "—" : money.format(row.netAfterFuelPartial);
+      const mode = row.fuelMode || (row.vehicleKm > 0
+        ? (row.sessionsWithoutOdometer > 0 ? "vehicle_odometer_partial" : "vehicle_odometer")
+        : row.actualPassengerKm > 0 ? "passenger_km_partial" : "unavailable");
+      return '<tr><td>' + escapeHtml(period) + '</td><td class="right">' + row.tripCount +
+        '</td><td class="right">' + money.format(row.gross) +
+        '</td><td class="right">' + kmReal +
+        '</td><td class="right">' + kmRoute +
+        '</td><td class="right">' + kmAuto +
+        '</td><td class="right"><strong>' + fuel + '</strong><div class="table-hint">' + escapeHtml(fuelModeLabel(mode)) + '</div></td><td class="right">' + net + '</td></tr>';
+    }).join("");
+    return '<table class="summary-table"><thead><tr>' + headings.map((x) => '<th>' + x + '</th>').join("") +
+      '</tr></thead><tbody>' + body + '</tbody></table>';
+  }
+  function renderDailySummary(rows) {
+    $("daily-summary").innerHTML = summaryTable(rows, false);
+    const trips = rows.reduce((sum,row)=>sum+row.tripCount,0);
+    const actual = rows.reduce((sum,row)=>sum+row.actualTripCount,0);
+    $("daily-coverage").textContent = actual + "/" + trips + " viajes con km reales";
+  }
+  function renderMonthlySummary(rows) {
+    $("monthly-summary").innerHTML = summaryTable(rows, true);
   }
   function renderHours(trips) {
     const hours = Array(24).fill(0);
