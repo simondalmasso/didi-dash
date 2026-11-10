@@ -30,7 +30,8 @@ function priceForDate(history, date) {
 function measuredConsumption(fuelLogs) {
   const rows = (Array.isArray(fuelLogs) ? fuelLogs : [])
     .filter((row) => (row.full_tank === true || row.full_tank === 1) &&
-      amount(row.odometer_km) >= 0 && amount(row.liters) > 0)
+      row.odometer_km != null && Number.isFinite(Number(row.odometer_km)) &&
+      Number(row.odometer_km) >= 0 && amount(row.liters) > 0)
     .slice()
     .sort((a, b) => Number(a.odometer_km) - Number(b.odometer_km));
   if (rows.length < 2) {
@@ -101,8 +102,10 @@ export function calculateProfitability({
     (row) => row.odometer_km
   );
   const vehicleKm = [...vehicleDistanceByDate.values()].reduce((sum, km) => sum + km, 0);
+  const odometerComplete = sessions.length > 0 &&
+    sessions.every((row) => row.odometer_km != null && amount(row.odometer_km) > 0);
   const fuelMode = vehicleKm > 0
-    ? "vehicle_odometer"
+    ? (odometerComplete ? "vehicle_odometer" : "vehicle_odometer_partial")
     : actualPassengerKm > 0
       ? "passenger_km_partial"
       : "unavailable";
@@ -115,7 +118,7 @@ export function calculateProfitability({
     }),
     (row) => row.km
   );
-  const fuelDistanceByDate = fuelMode === "vehicle_odometer"
+  const fuelDistanceByDate = fuelMode.startsWith("vehicle_odometer")
     ? vehicleDistanceByDate
     : fuelMode === "passenger_km_partial"
       ? passengerDistanceByDate
@@ -160,7 +163,7 @@ export function calculateProfitability({
   const totalKnownCosts = (fuelCost ?? 0) + otherCosts;
   const netPartial = fuelCost == null ? null : Math.round((gross - totalKnownCosts + Number.EPSILON) * 100) / 100;
   const netComplete = netPartial != null &&
-    fuelMode === "vehicle_odometer" &&
+    odometerComplete &&
     missingCosts.length === 0 &&
     missingPriceDates === 0;
   const netOperating = netComplete ? netPartial : null;
@@ -172,6 +175,7 @@ export function calculateProfitability({
     actualPassengerKm,
     estimatedPassengerKm,
     vehicleKm,
+    odometerComplete,
     fuelMode,
     fuelKm,
     fuelLiters,
