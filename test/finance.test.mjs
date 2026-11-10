@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings } from "../public/finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry } from "../public/finance.mjs";
 
 const PRICE_HISTORY = [
   { effective_from: "2026-11-02", price_ars_per_liter: 2167, station: "YPF San Carlos Centro" }
@@ -197,4 +197,51 @@ test("daily and monthly summaries split gross, passenger and vehicle kilometres,
   assert.equal(summary.monthly[0].vehicleKm, 30);
   assert.equal(summary.monthly[0].fuelCost, 9152);
   assert.equal(summary.monthly[0].netAfterFuelPartial, 15848);
+});
+
+
+test("work session entry computes odometer kilometres and handles overnight shifts", () => {
+  const row = createWorkSession({
+    id: "session-test-1",
+    date: "2026-11-09",
+    platform: "didi",
+    connected_start: "22:00",
+    connected_end: "01:30",
+    odometer_start: 12000,
+    odometer_end: 12065
+  });
+  assert.equal(row.connected_minutes, 210);
+  assert.equal(row.odometer_km, 65);
+  assert.equal(row.odometer_start, 12000);
+  assert.equal(row.odometer_end, 12065);
+});
+
+test("work session entry rejects reversed odometer and sessions over 16 hours", () => {
+  assert.throws(() => createWorkSession({
+    date: "2026-11-09", connected_start: "08:00", connected_end: "10:00",
+    odometer_start: 12065, odometer_end: 12000
+  }), /odometer_end/);
+  assert.throws(() => createWorkSession({
+    date: "2026-11-09", connected_start: "05:00", connected_end: "22:00",
+    odometer_start: 12000, odometer_end: 12100
+  }), /16 hours/);
+});
+
+test("fuel ticket entry stores litres, amount, odometer and full tank flag", () => {
+  const row = createFuelEntry({
+    id: "fuel-test-1", date: "2026-11-09", odometer_km: 12065,
+    liters: 35.5, total_ars: 77000, station: "YPF", full_tank: true
+  });
+  assert.ok(Math.abs(row.price_per_liter - 2169.014084507042) < 1e-9);
+  assert.equal(row.full_tank, 1);
+  assert.equal(row.odometer_km, 12065);
+});
+
+test("fuel ticket entry rejects invalid amounts, litres and odometer", () => {
+  assert.throws(() => createFuelEntry({
+    date: "2026-11-09", odometer_km: -1, liters: 35, total_ars: 70000
+  }), /odometer/);
+  assert.throws(() => createFuelEntry({
+    date: "2026-11-09", odometer_km: 12000, liters: 0, total_ars: 70000
+  }), /liters/);
 });

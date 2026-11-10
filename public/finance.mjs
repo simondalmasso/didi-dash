@@ -310,3 +310,52 @@ export function calculateProfitability({
     priceFallback
   };
 }
+
+export function createWorkSession(input = {}) {
+  const date = input.date;
+  if (!validDate(date)) throw new Error("date must be YYYY-MM-DD");
+  const connected_start = input.connected_start;
+  const connected_end = input.connected_end;
+  const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+  if (!timePattern.test(String(connected_start || ""))) throw new Error("connected_start must be HH:mm");
+  if (!timePattern.test(String(connected_end || ""))) throw new Error("connected_end must be HH:mm");
+  const toMinutes = (value) => {
+    const [hour, minute] = value.split(":").map(Number);
+    return hour * 60 + minute;
+  };
+  const start = toMinutes(connected_start);
+  let end = toMinutes(connected_end);
+  if (end <= start) end += 24 * 60;
+  const connected_minutes = end - start;
+  if (connected_minutes > 16 * 60) throw new Error("connected session cannot exceed 16 hours");
+
+  const odometer_start = Number(input.odometer_start);
+  const odometer_end = Number(input.odometer_end);
+  if (!Number.isFinite(odometer_start) || odometer_start < 0) throw new Error("odometer_start must be non-negative");
+  if (!Number.isFinite(odometer_end) || odometer_end <= odometer_start) throw new Error("odometer_end must be greater than odometer_start");
+  const platform = String(input.platform || "didi").trim().toLowerCase();
+  if (!["didi","uber"].includes(platform)) throw new Error("platform must be didi or uber");
+  const id = input.id || (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : "local-session-" + Date.now());
+  return {
+    id, date, platform, connected_start, connected_end, connected_minutes,
+    odometer_start, odometer_end, odometer_km: odometer_end - odometer_start
+  };
+}
+
+export function createFuelEntry(input = {}) {
+  const date = input.date;
+  if (!validDate(date)) throw new Error("date must be YYYY-MM-DD");
+  const odometer_km = Number(input.odometer_km);
+  const liters = Number(input.liters);
+  const total_ars = Number(input.total_ars);
+  if (!Number.isFinite(odometer_km) || odometer_km < 0) throw new Error("odometer must be non-negative");
+  if (!Number.isFinite(liters) || liters <= 0 || liters > 200) throw new Error("liters must be between 0 and 200");
+  if (!Number.isFinite(total_ars) || total_ars <= 0) throw new Error("total amount must be positive");
+  const station = String(input.station || "").trim().slice(0,60);
+  const full_tank = input.full_tank === true || input.full_tank === 1 ? 1 : 0;
+  const id = input.id || (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : "local-fuel-" + Date.now());
+  return {
+    id, date, odometer_km, liters, total_ars,
+    price_per_liter: total_ars / liters, station, full_tank
+  };
+}
