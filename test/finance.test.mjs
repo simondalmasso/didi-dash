@@ -245,3 +245,24 @@ test("fuel ticket entry rejects invalid amounts, litres and odometer", () => {
     date: "2026-11-09", odometer_km: 12000, liters: 0, total_ars: 70000
   }), /liters/);
 });
+
+
+test("odometer on only one of several active trip dates cannot produce complete operating net", () => {
+  const result = calculateProfitability({
+    trips: [
+      { date: "2026-11-08", amount: 12000, km: 10, km_source: "actual" },
+      { date: "2026-11-09", amount: 9000, km: 12, km_source: "actual" }
+    ],
+    rewards: [],
+    sessions: [{ date: "2026-11-08", odometer_km: 50 }],
+    fuelLogs: [],
+    priceHistory: [{ effective_from: "2026-11-02", price_ars_per_liter: 2167 }],
+    monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
+    oneOffExpenses: [],
+    periodDays: 2
+  });
+  assert.equal(result.odometerComplete, false);
+  assert.equal(result.fuelMode, "vehicle_odometer_partial");
+  assert.equal(result.netComplete, false);
+  assert.equal(result.netOperating, null);
+});
