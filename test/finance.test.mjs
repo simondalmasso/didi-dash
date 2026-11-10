@@ -266,3 +266,26 @@ test("odometer on only one of several active trip dates cannot produce complete 
   assert.equal(result.netComplete, false);
   assert.equal(result.netOperating, null);
 });
+
+
+test("daily and monthly summaries use measured tank-to-tank consumption like the main profitability KPI", () => {
+  const summary = summarizeEarnings({
+    trips: [{ date: "2026-11-05", amount: 20000, km: 15, km_source: "actual" }],
+    rewards: [],
+    sessions: [{ date: "2026-11-05", odometer_km: 100 }],
+    fuelLogs: [
+      { date: "2026-11-01", odometer_km: 1000, liters: 30, full_tank: 1 },
+      { date: "2026-11-05", odometer_km: 1100, liters: 10, full_tank: 1 }
+    ],
+    priceHistory: [{ effective_from: "2026-11-02", price_ars_per_liter: 2000 }]
+  });
+
+  assert.equal(summary.daily[0].fuelLiters, 10);
+  assert.equal(summary.daily[0].fuelCost, 2000);
+  assert.equal(summary.daily[0].consumptionLPer100Km, 10);
+  assert.equal(summary.daily[0].consumptionSource, "tank_to_tank");
+  assert.equal(summary.monthly[0].fuelLiters, 10);
+  assert.equal(summary.monthly[0].fuelCost, 2000);
+  assert.equal(summary.monthly[0].consumptionLPer100Km, 10);
+  assert.equal(summary.monthly[0].consumptionSource, "tank_to_tank");
+});
