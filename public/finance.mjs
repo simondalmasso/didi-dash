@@ -218,8 +218,15 @@ export function calculateProfitability({
     (row) => row.odometer_km
   );
   const vehicleKm = [...vehicleDistanceByDate.values()].reduce((sum, km) => sum + km, 0);
+  const activeTripDates = new Set(trips.map((row) => row.date).filter(validDate));
+  const odometerDates = new Set(sessions
+    .filter((row) => row.odometer_km != null && amount(row.odometer_km) > 0)
+    .map((row) => row.date)
+    .filter(validDate));
   const odometerComplete = sessions.length > 0 &&
-    sessions.every((row) => row.odometer_km != null && amount(row.odometer_km) > 0);
+    activeTripDates.size > 0 &&
+    sessions.every((row) => row.odometer_km != null && amount(row.odometer_km) > 0) &&
+    [...activeTripDates].every((date) => odometerDates.has(date));
   const fuelMode = vehicleKm > 0
     ? (odometerComplete ? "vehicle_odometer" : "vehicle_odometer_partial")
     : actualPassengerKm > 0
