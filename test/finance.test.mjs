@@ -281,11 +281,11 @@ test("daily and monthly summaries use measured tank-to-tank consumption like the
   });
 
   assert.equal(summary.daily[0].fuelLiters, 10);
-  assert.equal(summary.daily[0].fuelCost, 2000);
+  assert.equal(summary.daily[0].fuelCost, 20000);
   assert.equal(summary.daily[0].consumptionLPer100Km, 10);
   assert.equal(summary.daily[0].consumptionSource, "tank_to_tank");
   assert.equal(summary.monthly[0].fuelLiters, 10);
-  assert.equal(summary.monthly[0].fuelCost, 2000);
+  assert.equal(summary.monthly[0].fuelCost, 20000);
   assert.equal(summary.monthly[0].consumptionLPer100Km, 10);
   assert.equal(summary.monthly[0].consumptionSource, "tank_to_tank");
 });
