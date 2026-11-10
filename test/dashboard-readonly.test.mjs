@@ -9,6 +9,7 @@ test("dashboard exposes no manual-entry controls", () => {
   assert.doesNotMatch(dashboard, /addEventListener\(\s*["']submit["']/i);
   assert.doesNotMatch(dashboard, /\$\(["'][^"']+["']\)\.value\b/);
   assert.doesNotMatch(dashboard, /data-remove-(?:expense|local-session|local-fuel)/);
+  assert.doesNotMatch(dashboard, /localStorage\.setItem/);
   assert.match(dashboard, /Solo lectura/i);
 });
 
