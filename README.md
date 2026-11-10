@@ -25,23 +25,25 @@ For backwards compatibility, a positive `km` without `km_source` defaults to `ac
 
 Trip-level kilometres measure only the passenger ride. They are not the vehicle's total kilometres and must not be used to calculate total fuel consumption.
 
-## Fuel and vehicle operating costs
+## Gross earnings, net operating result and fuel
 
-- Fuel cost estimation uses vehicle kilometres derived from work-session odometer readings (`odometer_end - odometer_start`), not passenger kilometres.
-- The working baseline is **8.8 L/100 km**, taken from an Argentine road test of the Etios Hatchback 1.5 manual six-speed. A later Etios manual test reported 8.5 L/100 km in city use. These are observed test figures, not guarantees for this specific vehicle.
-- Toyota Argentina's controlled urban-cycle homologation for the Etios 1.5 M/T 6 is **7.4 L/100 km** ([official energy-efficiency label](https://media.toyota.com.ar/db0d73f4-69fe-4d99-af5d-d47c7204e400.pdf)). This is a laboratory reference, not a real DiDi-use estimate.
-- Actual consumption depends on traffic, idle time, air conditioning, loading, driving style and maintenance. Calibrate with consecutive full-tank fuel entries and odometer readings before treating it as measured consumption.
-- Fuel price is the weighted price per litre from real fuel tickets (`sum(total_ars) / sum(liters)`). No daily YPF pump-price feed is used as a substitute for the price actually paid.
-- The dashboard's "Ingreso tras combustible" is gross earnings less estimated fuel cost only. It is not final profit and excludes platform commissions, insurance, maintenance, tyres, depreciation and other operating costs.
-
-Rewards contribute to total gross income but not ride count, ride kilometres, passenger minutes or trip-only activity charts. The top sparkline also shows ride income only, not rewards.
-
+- **Gross earnings** = driver earnings from trips + recorded rewards/bonuses. Rewards are shown separately but included in gross.
+- **Net operating estimate** = gross earnings - estimated fuel cost - prorated monthly fixed costs - one-off operating expenses. It is an estimate, not accounting profit.
+- Monthly fixed-cost fields include insurance, maintenance reserve, tyres, vehicle tax/registration and other fixed costs. One-off entries include repairs, service, washing, tolls, parking and other expenses.
+- Cost settings and one-off expenses are stored in browser local storage, not in the public KV ledger. They are included in the JSON backup downloaded from the dashboard. Blank monthly costs are treated as unknown; a user must enter a value or explicitly enter zero before the dashboard can report a complete net operating estimate.
+- Fuel consumption uses **8.8 L/100 km** as the working urban reference from an Argentine test of the Etios Hatchback 1.5 manual six-speed. Toyota's controlled urban-cycle homologation is **7.4 L/100 km** ([Toyota Argentina energy-efficiency label](https://media.toyota.com.ar/db0d73f4-69fe-4d99-af5d-d47c7204e400.pdf)). The 8.8 figure is a measured test reference, not the guaranteed consumption of this particular car.
+- The initial YPF Súper price snapshot is **ARS 2,167/L**, effective **2026-11-02**, from YPF San Carlos Centro, Santa Fe ([station record based on Secretary of Energy pump-price data](https://energyia.ar/energydata/estaciones/ypf-san-carlos-centro)). This is a nearby regional reference, not a guarantee of the exact price at a station in Santa Fe capital. Update the price and effective date in the dashboard when the pump price changes. The calculator applies the most recent saved price snapshot effective on each trip/session date.
+- Fuel formula: `litres = vehicle_km × consumption_L_per_100km / 100`; `fuel_cost = litres × YPF_Super_price_for_that_date`.
+- Fuel distance is taken from work-session odometer differences, never estimated route kilometres. If odometer readings are missing, the dashboard shows only a **partial minimum** based on real passenger-ride kilometres; it does not treat that as the car's total fuel cost or complete net profit. Estimated pickup-to-dropoff route kilometres are excluded from fuel calculations.
+- When two or more consecutive full-tank fuel records contain odometer readings, the calculator derives a tank-to-tank consumption figure from litres added and odometer distance, replacing the 8.8 reference for the estimate. Until then, it uses the test reference.
+- Complete net operating status requires odometer readings for every selected work session, a dated YPF price for the dates being evaluated, and a confirmed value (including zero) for every fixed-cost category. Otherwise the dashboard labels the result **partial/incomplete**.
+- Rewards count toward gross earnings but not ride count, passenger kilometres, passenger minutes or trip-only activity charts.
 ## Dashboard contents
 
 - Ride KPIs and history: date, time, platform, amount, actual passenger kilometres, estimated route kilometres and duration.
-- Vehicle kilometres and estimated fuel cost based on odometer sessions and real fuel tickets.
+- Vehicle kilometres, YPF Super price history, fuel estimate and net operating result with completeness indicators.
 - Daily/monthly totals for earnings and recorded kilometres, with actual and estimated passenger distance kept separate.
-- Rewards, fuel tickets and work sessions remain separate collections.
+- Rewards, fuel tickets and work sessions remain separate collections. Browser-only cost settings and one-off expenses are included in the local JSON backup.
 - JSON backup and CSV trip export are public.
 
 ## Runtime
