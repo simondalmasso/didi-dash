@@ -141,21 +141,24 @@ export function calculateProfitability({
   }
   if (fuelDistanceByDate.size === 0 || missingPriceDates === fuelDistanceByDate.size) {
     fuelCost = null;
+  } else {
+    fuelCost = Math.round((fuelCost + Number.EPSILON) * 100) / 100;
   }
 
-  const missingCosts = MONTHLY_COST_FIELDS.filter((key) =>
-    monthlyCosts[key] == null || monthlyCosts[key] === "" ||
-    !Number.isFinite(Number(monthlyCosts[key])) || Number(monthlyCosts[key]) < 0
-  );
+  const missingCosts = MONTHLY_COST_FIELDS.filter((key) => {
+    const value = monthlyCosts[key];
+    return value == null || String(value).trim() === "" ||
+      !Number.isFinite(Number(value)) || Number(value) < 0;
+  });
   const fixedMonthly = MONTHLY_COST_FIELDS.reduce((sum, key) =>
     sum + (missingCosts.includes(key) ? 0 : Number(monthlyCosts[key])), 0
   );
   const days = Math.max(0, Number(periodDays) || 0);
-  const fixedCosts = fixedMonthly * days / 30;
-  const oneOffCosts = oneOffExpenses.reduce((sum, row) => sum + amount(row.amount_ars), 0);
+  const fixedCosts = Math.round((fixedMonthly * days / 30 + Number.EPSILON) * 100) / 100;
+  const oneOffCosts = Math.round((oneOffExpenses.reduce((sum, row) => sum + amount(row.amount_ars), 0) + Number.EPSILON) * 100) / 100;
   const otherCosts = fixedCosts + oneOffCosts;
   const totalKnownCosts = (fuelCost ?? 0) + otherCosts;
-  const netPartial = fuelCost == null ? null : gross - totalKnownCosts;
+  const netPartial = fuelCost == null ? null : Math.round((gross - totalKnownCosts + Number.EPSILON) * 100) / 100;
   const netComplete = netPartial != null &&
     fuelMode === "vehicle_odometer" &&
     missingCosts.length === 0 &&
