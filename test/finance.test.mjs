@@ -36,7 +36,7 @@ test("odometer distance replaces passenger kilometres for total vehicle fuel", (
     fuelLogs: [],
     priceHistory: PRICE_HISTORY,
     monthlyCosts: {
-      insurance: 20000, maintenance: 10000, tyres: 5000,
+      insurance: 20000, maintenance: 10000, tires: 5000,
       tax: 3000, other: 2000
     },
     oneOffExpenses: [{ date: "2026-11-08", category: "repair", amount_ars: 6000 }],
@@ -77,7 +77,7 @@ test("two consecutive full-tank readings replace the Etios reference with measur
       { date: "2026-11-08", odometer_km: 100500, liters: 40, total_ars: 86680, full_tank: 1 }
     ],
     priceHistory: PRICE_HISTORY,
-    monthlyCosts: { insurance: 0, maintenance: 0, tyres: 0, tax: 0, other: 0 },
+    monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
     oneOffExpenses: [],
     periodDays: 7
   });
@@ -92,7 +92,7 @@ test("estimated route kilometres are not treated as vehicle fuel distance", () =
     sessions: [],
     fuelLogs: [],
     priceHistory: PRICE_HISTORY,
-    monthlyCosts: { insurance: 0, maintenance: 0, tyres: 0, tax: 0, other: 0 },
+    monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
     oneOffExpenses: [],
     periodDays: 1
   });
