@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <title>Etios</title>
+  <style>
+:root{
+  color-scheme:dark;
+  --bg:#000;--surface:#0c0c0e;--surface2:#1c1c1e;--line:rgba(255,255,255,.085);
+  --text:#f5f5f7;--muted:#8e8e93;--green:#30d158;--amber:#ff9f0a;--blue:#0a84ff;--red:#ff453a;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;
+  font-synthesis:none;background:var(--bg);color:var(--text);font-variant-numeric:tabular-nums
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#000;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:999px;background:var(--text);color:#000;padding:11px 17px;font-weight:650;cursor:pointer;transition:transform .18s ease,opacity .18s ease}
+button:active{transform:scale(.97)}button:disabled{opacity:.45;cursor:not-allowed}
+button.secondary{background:var(--surface2);color:var(--text)}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+input,select,textarea{width:100%;min-width:0;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:var(--surface2);color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(10,132,255,.15)}
+input:disabled{opacity:.72}
+.shell{max-width:980px;margin:0 auto;padding:0 14px 54px}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 -14px 18px;padding:13px 16px;background:rgba(0,0,0,.76);backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);border-bottom:1px solid var(--line)}
+h1{font-size:18px;letter-spacing:-.02em;margin:0;font-weight:650}
+h2{font-size:14px;font-weight:650;letter-spacing:-.01em;margin:0 0 13px;color:var(--muted)}
+h3{font-size:13px;margin:0 0 10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:36px;height:36px;border-radius:12px;background:#f5f5f7;color:#000;display:grid;place-items:center;font-size:12px;font-weight:850;flex:0 0 auto}
+.muted,.subtitle{color:var(--muted)}.subtitle{font-size:11px;margin:3px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:23px;padding:17px;margin-bottom:12px;box-shadow:0 10px 30px rgba(0,0,0,.22);animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+label{display:block;font-size:11px;color:var(--muted);margin:0 0 5px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:12px;min-height:17px;color:var(--muted);margin-top:9px}.status.error{color:var(--red)}.status.good{color:var(--green)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.toolbar strong{font-size:14px;font-weight:650}
+.period{position:relative;display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
+.period button{background:transparent;color:var(--muted);padding:8px 13px;font-size:12px;transition:background .2s,color .2s}
+.period button.active{background:#3a3a3c;color:var(--text);border-radius:9px}
+.grid{display:grid;gap:10px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpi{border:1px solid var(--line);background:linear-gradient(145deg,#151518,#0c0c0e);border-radius:17px;padding:14px;min-height:92px}
+.kpi .label{font-size:11px;color:var(--muted)}.kpi .value{font-size:clamp(19px,3vw,26px);font-weight:720;letter-spacing:-.045em;margin-top:7px;white-space:nowrap}
+.kpi .hint{font-size:10px;color:var(--muted);margin-top:4px}
+.two{grid-template-columns:1fr 1fr}.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hero-panel{position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:19px;border-radius:24px;background:radial-gradient(ellipse at 92% 8%,rgba(48,209,88,.13),transparent 45%),linear-gradient(135deg,#15191a,#09090a 68%);border:1px solid var(--line);margin-bottom:12px;min-height:146px}
+.hero-panel .eyebrow{font-size:12px;color:var(--muted);font-weight:550}
+.hero-value{font-size:clamp(38px,8vw,58px);letter-spacing:-.06em;line-height:1.08;font-weight:760;margin:7px 0}
+.hero-caption{font-size:11px;color:var(--muted);max-width:52ch}
+.hero-spark{width:31%;min-width:92px;max-width:180px;height:63px;align-self:center}
+.hero-spark svg{width:100%;height:100%;overflow:visible}
+.table-wrap{overflow:auto;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+th{text-align:left;color:var(--muted);font-size:10px;font-weight:600;padding:9px 8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.06);color:#e9e9eb}
+tbody tr:last-child td{border-bottom:0}
+.right{text-align:right}
+.bar-row{display:grid;grid-template-columns:66px 1fr 82px;gap:8px;align-items:center;margin:11px 0;font-size:11px}
+.bar{height:7px;border-radius:99px;background:#29292c;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#1d8f47,var(--green));border-radius:99px}
+.note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:9px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;background:rgba(48,209,88,.13);color:var(--green);font-size:10px;font-weight:650}
+.empty{padding:21px;text-align:center;color:var(--muted);font-size:12px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+footer{text-align:center;font-size:10px;color:#626269;padding-top:12px}
+#connection{background:rgba(48,209,88,.13);color:var(--green)}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}.shell{padding:0 10px 38px}.card{padding:13px}.toolbar{align-items:flex-start}.period{width:100%;justify-content:space-between}.period button{flex:1}.hero-panel{display:block}.hero-spark{width:100%;height:48px;max-width:none;margin-top:10px}.bar-row{grid-template-columns:54px 1fr 76px;gap:6px}table{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+:root{--bg:#050506;--surface:#101013;--surface2:#19191d;--line:rgba(255,255,255,.075);--text:#f5f5f7;--muted:#92929a;--green:#c7f36a;--amber:#f4c76a;--blue:#78a9ff}
+body{background:radial-gradient(ellipse at 50% -20%,rgba(255,255,255,.055),transparent 40%),var(--bg);letter-spacing:-.012em}
+.shell{max-width:1120px;padding:0 22px 64px}
+header{margin:0 -22px 28px;padding:16px 22px;background:rgba(5,5,6,.78);border-bottom:1px solid rgba(255,255,255,.07)}
+.mark{border-radius:13px;background:var(--green);color:#111;font-size:17px;font-weight:800;box-shadow:0 0 28px rgba(199,243,106,.12)}
+h1{font-size:19px;letter-spacing:-.04em;font-weight:700}
+.subtitle{font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.pill,#connection{background:rgba(255,255,255,.06)!important;color:#c9c9cf!important;border:1px solid rgba(255,255,255,.07)}
+.toolbar{margin-bottom:18px;align-items:center}.toolbar strong{font-size:18px;letter-spacing:-.035em}.subhead{font-size:12px;color:#85858d}
+.period{background:#111114;border-color:rgba(255,255,255,.08);padding:4px;border-radius:14px}.period button{padding:9px 16px;font-size:12px}.period button.active{background:#ededf0;color:#111;border-radius:10px}
+.hero-panel{min-height:214px;padding:28px 30px;border-radius:28px;background:radial-gradient(ellipse at 88% 12%,rgba(199,243,106,.17),transparent 38%),linear-gradient(130deg,#17191a,#0c0c0e 62%,#09090a);border:1px solid rgba(255,255,255,.09);box-shadow:0 22px 65px rgba(0,0,0,.25);margin-bottom:14px}
+.hero-panel .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.13em;color:#a7a7ae}.hero-value{font-size:clamp(42px,8vw,68px);letter-spacing:-.075em;font-weight:740;margin:12px 0 8px;color:#f6f7f0}.hero-caption{font-size:12px;color:#a0a0a6}
+.hero-spark{width:34%;max-width:250px;height:90px}.hero-spark svg{filter:drop-shadow(0 0 12px rgba(199,243,106,.15))}
+.kpis{gap:11px;margin-bottom:14px}.kpi{background:linear-gradient(145deg,#141417,#0c0c0e);border:1px solid rgba(255,255,255,.07);border-radius:21px;padding:17px 18px;min-height:108px;transition:transform .2s ease,border-color .2s ease}.kpi:hover{transform:translateY(-2px);border-color:rgba(199,243,106,.22)}
+.kpi .label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#909098}.kpi .value{font-size:clamp(21px,3.2vw,29px);font-weight:700;letter-spacing:-.055em;margin-top:10px}.kpi .hint{font-size:10px;color:#85858d;margin-top:5px}
+.card{background:linear-gradient(150deg,rgba(20,20,23,.98),rgba(11,11,13,.98));border:1px solid rgba(255,255,255,.075);border-radius:25px;padding:21px;margin-bottom:13px;box-shadow:0 18px 45px rgba(0,0,0,.18);animation:rise .35s ease both}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;margin:0 0 16px}.section-head{margin-bottom:8px}.section-head h2{margin-bottom:8px}
+.bar{height:8px;background:#252529}.bar>i{background:linear-gradient(90deg,#8baa49,var(--green))}
+.bar-row{font-size:12px;grid-template-columns:74px 1fr 92px;margin:13px 0}.bar-row strong{font-size:11px}
+.warning{display:none}.note{font-size:11px;color:#85858d;line-height:1.6}.empty{padding:26px 14px;color:#85858d}
+.table-wrap{overflow:visible}table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}th{padding:12px 10px;text-transform:uppercase;letter-spacing:.09em;font-size:9px;color:#85858d}td{padding:13px 10px;border-bottom:1px solid rgba(255,255,255,.055)}
+.grid.two{gap:13px}.section-link{color:#c7f36a;text-decoration:none;font-size:11px}
+.chart-svg{display:block;width:100%;height:auto;overflow:visible}.chart-grid{stroke:rgba(255,255,255,.075);stroke-width:1}.chart-line{fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.chart-dot{fill:var(--green);stroke:#151518;stroke-width:3}.chart-label{fill:#85858d;font-size:10px;font-family:inherit}.chart-value{fill:#bdbdc3;font-size:10px;font-family:inherit}
+.trip-list,.reward-list{display:grid;gap:8px}.trip-row,.reward-row{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:17px;padding:13px 14px}.trip-head,.reward-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.trip-date,.reward-date{font-size:11px;color:#92929a}.trip-platform{font-size:11px;color:#c7f36a;text-transform:uppercase;letter-spacing:.08em}.trip-amount,.reward-amount{font-size:17px;font-weight:700;letter-spacing:-.04em;white-space:nowrap}.trip-details{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.trip-details span{font-size:10px;color:#a5a5ac;background:rgba(255,255,255,.055);padding:5px 8px;border-radius:8px}.reward-head{align-items:flex-start}.reward-label{font-size:12px;font-weight:600;margin-top:3px}
+.data-count{font-size:11px;color:#888891}footer{font-size:10px;color:#66666e;padding-top:18px}
+@media(max-width:760px){.shell{padding:0 12px 40px}header{margin:0 -12px 20px;padding:13px 13px}.hero-panel{padding:22px 20px;min-height:180px;border-radius:23px}.hero-spark{width:100%;max-width:none;height:52px;margin-top:12px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.kpi{padding:13px;min-height:96px;border-radius:17px}.kpi .value{font-size:22px}.card{padding:16px;border-radius:21px}.grid.two{grid-template-columns:1fr}.toolbar{align-items:flex-start}.period{width:100%;justify-content:space-between}.period button{flex:1;padding:9px 8px}.bar-row{grid-template-columns:60px 1fr 80px;gap:7px}.trip-row,.reward-row{padding:12px}.trip-amount,.reward-amount{font-size:16px}}
+@media(max-width:390px){.brand{gap:8px}.mark{width:32px;height:32px}.subtitle{font-size:9px}.hero-value{font-size:43px}.kpi .value{font-size:19px}.kpi .label{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.cost-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.checkbox-field{display:flex;align-items:end}.checkbox-field label{display:flex;align-items:center;gap:8px}.checkbox-field input{width:auto;margin:0}.cost-actions{margin-top:12px;align-items:flex-start}.cost-history{display:grid;gap:6px;margin-top:10px}.cost-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}.cost-history-row strong{color:var(--text);white-space:nowrap}.cost-history-row .mini{padding:6px 10px;font-size:10px}.divider{height:1px;background:var(--line);margin:18px 0}@media(max-width:600px){.cost-fields{grid-template-columns:1fr}.cost-history-row{flex-wrap:wrap}}
+.summary-grid{align-items:start}.summary-scroll{max-width:100%;overflow-x:auto}.summary-table{min-width:820px;font-size:11px}.summary-table th{white-space:normal;min-width:76px}.summary-table td{padding:11px 8px;vertical-align:top}.summary-table td:first-child{font-weight:650}.table-hint{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:760px){.summary-grid{grid-template-columns:1fr}.summary-table{min-width:780px}}
+body[data-page="trips"] #profitability-settings,body[data-page="trips"] #history-only{display:none}body[data-page="inputs"] .hero-panel,body[data-page="inputs"] .kpis,body[data-page="inputs"] #history-only{display:none}body[data-page="trips"] .hero-panel,body[data-page="trips"] .kpis,body[data-page="trips"] #profitability-settings{display:none}.app-nav{display:flex;gap:8px;margin:0 0 12px}.app-nav a{padding:9px 13px;border:1px solid var(--line);border-radius:999px;color:var(--muted);text-decoration:none;font-size:11px}</style>
+</head>
+<body data-page="trips">
+  <div class="shell">
+    <main id="app"><nav class="app-nav"><a href="/">Panel</a><a href="/inputs.html">Inputs</a><a href="/trips.html">Historial</a></nav>
+      <header>
+        <div class="brand"><div class="mark">E</div><div><h1>Etios</h1><p class="subtitle">DiDi · Historial de viajes</p></div></div>
+        <div class="row"><span id="connection" class="pill">Conectando…</span></div>
+      </header>
+      <div class="toolbar">
+        <div><strong>Resumen</strong><div class="subhead" style="margin:4px 0 0">Viajes y recompensas registrados.</div></div>
+        <div class="period" aria-label="Período">
+          <button type="button" data-range="7">7 días</button>
+          <button type="button" data-range="30" class="active">30 días</button>
+          <button type="button" data-range="0">Todo</button>
+        </div>
+      </div>
+      <section class="hero-panel">
+        <div><div class="eyebrow">Ganancia neta provisional</div><div id="hero-margin" class="hero-value">—</div><div id="hero-caption" class="hero-caption">Cargando registros…</div></div>
+        <div id="hero-spark" class="hero-spark" aria-hidden="true"></div>
+      </section>
+      <section class="grid kpis">
+        <div class="kpi"><div class="label">Ingresos por viajes</div><div id="gross" class="value">—</div><div id="trip-count" class="hint">— viajes</div></div>
+        <div class="kpi"><div class="label">Recompensas</div><div id="reward-total" class="value">—</div><div id="reward-count" class="hint">— registros</div></div>
+        <div class="kpi"><div class="label">Promedio por viaje</div><div id="per-trip" class="value">—</div><div id="per-trip-hint" class="hint">Según importes registrados</div></div>
+        <div class="kpi"><div class="label">Km reales con pasajero</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">Solo datos de Detalles</div></div>
+        <div class="kpi"><div class="label">Km estimados por ruta</div><div id="estimated-km" class="value">—</div><div id="estimated-km-hint" class="hint">Estimaciones separadas</div></div>
+        <div class="kpi"><div class="label">Km del auto</div><div id="vehicle-km" class="value">—</div><div id="vehicle-km-hint" class="hint">Odómetro de turnos</div></div>
+        <div class="kpi"><div class="label">Consumo nafta</div><div id="fuel-consumption" class="value">—</div><div id="fuel-consumption-hint" class="hint">Referencia Etios · no medido por tanque</div></div>
+        <div class="kpi"><div class="label">Nafta estimada · YPF Súper</div><div id="fuel-estimate" class="value">—</div><div id="fuel-estimate-hint" class="hint">Etios 1.5 manual · 8,8 L/100 km</div></div>
+        <div class="kpi"><div class="label">Otros costos</div><div id="other-cost-estimate" class="value">—</div><div id="other-cost-hint" class="hint">Seguro, mantenimiento, cubiertas, patente</div></div>
+        <div class="kpi"><div class="label" id="net-estimate-label">Ganancia neta operativa</div><div id="net-estimate" class="value">—</div><div id="net-estimate-hint" class="hint">Requiere odómetro y gastos registrados</div></div>
+        <div class="kpi"><div class="label">Caja neta tras cargas</div><div id="cash-net-estimate" class="value">—</div><div id="cash-net-estimate-hint" class="hint">Bruto − combustible comprado − otros costos conocidos</div></div>
+      </section>
+      <section class="card" id="profitability-settings">
+        <div class="section-head"><h2>Rentabilidad: bruto vs. neto</h2><span id="finance-status" class="pill">Costos configurables</span></div>
+        <p class="note">Bruto = ingresos de viajes + recompensas. Neto operativo estimado = bruto − nafta − seguro − mantenimiento − cubiertas − patente/impuestos − gastos puntuales.</p>
+        <div class="grid two">
+          <div>
+            <h3>Costos fijos mensuales</h3>
+            <form id="monthly-cost-form">
+              <div class="cost-fields">
+                <div><label for="cost-insurance">Seguro mensual ($)</label><input id="cost-insurance" type="number" min="0" step="1" placeholder="Importe mensual"></div>
+                <div><label for="cost-maintenance">Reserva de mantenimiento ($/mes)</label><input id="cost-maintenance" type="number" min="0" step="1" placeholder="Service y mantenimiento"></div>
+                <div><label for="cost-tires">Reserva de cubiertas ($/mes)</label><input id="cost-tires" type="number" min="0" step="1" placeholder="Prorrateo mensual"></div>
+                <div><label for="cost-tax">Patente e impuestos ($/mes)</label><input id="cost-tax" type="number" min="0" step="1" placeholder="Prorrateo mensual"></div>
+                <div><label for="cost-other">Otros fijos ($/mes)</label><input id="cost-other" type="number" min="0" step="1" placeholder="Otros gastos fijos"></div>
+              </div>
+              <div class="row cost-actions"><button type="submit">Guardar costos mensuales</button><span id="monthly-cost-status" class="note">Los campos vacíos quedan pendientes; 0 significa que confirmás que no tenés ese costo.</span></div>
+            </form>
+          </div>
+          <div>
+            <h3>Precio de YPF Súper</h3>
+            <div class="cost-fields">
+              <div><label for="ypf-price">Precio por litro ($/L)</label><input id="ypf-price" type="number" min="1" step="1"></div>
+              <div><label for="ypf-price-date">Vigente desde</label><input id="ypf-price-date" type="date"></div>
+            </div>
+            <div class="row cost-actions"><button id="save-ypf-price" type="button">Registrar precio</button></div>
+            <div id="ypf-price-context" class="note">Referencia inicial: YPF Súper San Carlos Centro, vigente desde 02/11/2026. Confirmá el precio de tu surtidor.</div>
+            <div id="ypf-price-history" class="cost-history"></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <h3>Gastos puntuales</h3>
+        <form id="one-off-cost-form">
+          <div class="cost-fields">
+            <div><label for="expense-date">Fecha</label><input id="expense-date" type="date"></div>
+            <div><label for="expense-category">Categoría</label><select id="expense-category"><option value="repair">Reparación</option><option value="service">Service</option><option value="tires">Cubiertas</option><option value="wash">Lavado</option><option value="toll">Peajes</option><option value="parking">Estacionamiento</option><option value="other">Otro</option></select></div>
+            <div><label for="expense-amount">Importe ($)</label><input id="expense-amount" type="number" min="1" step="1" required placeholder="Importe pagado"></div>
+            <div><label for="expense-note">Detalle (opcional)</label><input id="expense-note" type="text" maxlength="80" placeholder="Ej. cambio de aceite"></div>
+          </div>
+          <div class="row cost-actions"><button type="submit">Agregar gasto</button><span id="expense-status" class="note"></span></div>
+        </form>
+        <div id="one-off-expenses" class="cost-history"></div>
+        <div class="divider"></div>
+        <h3>Turno trabajado · odómetro del Etios</h3>
+        <form id="local-session-form">
+          <div class="cost-fields">
+            <div><label for="session-date">Fecha del turno</label><input id="session-date" type="date" required></div>
+            <div><label for="session-platform">Plataforma</label><select id="session-platform"><option value="didi">DiDi</option><option value="uber">Uber</option></select></div>
+            <div><label for="session-start">Hora de inicio</label><input id="session-start" type="time" required></div>
+            <div><label for="session-end">Hora de fin</label><input id="session-end" type="time" required></div>
+            <div><label for="session-odo-start">Odómetro al iniciar (km)</label><input id="session-odo-start" type="number" min="0" step="0.1" required placeholder="Ej. 84520,0"></div>
+            <div><label for="session-odo-end">Odómetro al terminar (km)</label><input id="session-odo-end" type="number" min="0.1" step="0.1" required placeholder="Ej. 84642,5"></div>
+          </div>
+          <div class="row cost-actions"><button type="submit">Guardar turno</button><span id="session-entry-status" class="note">Se calcula la diferencia de odómetro; admite turnos que cruzan medianoche.</span></div>
+        </form>
+        <div id="local-sessions" class="cost-history"></div>
+        <div class="divider"></div>
+        <h3>Compras de combustible · YPF Súper</h3>
+        <p class="note">Podés registrar primero el importe pagado. Fecha, litros y odómetro pueden quedar pendientes hasta tener el ticket o la foto. Una carga incompleta descuenta caja, pero no se usa para medir consumo ni se asigna a un día/mes.</p>
+        <form id="local-fuel-form">
+          <div class="cost-fields">
+            <div><label for="fuel-date">Fecha de carga (opcional)</label><input id="fuel-date" type="date"></div>
+            <div><label for="fuel-odometer">Odómetro al cargar (km, opcional)</label><input id="fuel-odometer" type="number" min="0" step="0.1" placeholder="Pendiente"></div>
+            <div><label for="fuel-liters">Litros cargados (opcional)</label><input id="fuel-liters" type="number" min="0.01" max="200" step="0.01" placeholder="Pendiente"></div>
+            <div><label for="fuel-total">Total pagado ($)</label><input id="fuel-total" type="number" min="1" step="0.01" required placeholder="Ej. 30000"></div>
+            <div><label for="fuel-station">Estación (opcional)</label><input id="fuel-station" type="text" maxlength="60" placeholder="YPF · zona"></div>
+            <div class="checkbox-field"><label for="fuel-full-tank"><input id="fuel-full-tank" type="checkbox"> Carga hasta llenar el tanque</label></div>
+          </div>
+          <div class="row cost-actions"><button type="submit">Guardar compra</button><span id="fuel-entry-status" class="note">Si faltan datos, podés completarlos después quitando y volviendo a cargar el registro.</span></div>
+        </form>
+        <div id="local-fuel-entries" class="cost-history"></div>
+        <div id="fuel-unassigned-note" class="note"></div>
+        <div id="finance-coverage" class="note"></div>
+        <div class="note">Los costos fijos, gastos puntuales, turnos con odómetro y tickets de nafta se guardan en este navegador, no en el ledger público. El backup JSON incluye estos registros locales. No se sincronizan automáticamente entre PC y celular. Sin odómetro, la nafta se calcula solo sobre km reales con pasajero y se marca parcial.</div>
+      </section>
+      <div class="grid two">
+        <section class="card"><h2>Actividad por día</h2><div id="period-label" class="note">Últimos 30 días</div><div id="daily-chart"><div class="empty">Cargando actividad…</div></div></section>
+        <section class="card"><h2>Ingresos por hora de inicio</h2><div class="note" style="margin:0 0 12px">Importes agrupados por la hora que figura en el historial.</div><div id="hour-chart"><div class="empty">Cargando…</div></div></section>
+      </div>
+      <div class="grid two summary-grid">
+        <section class="card">
+          <div class="section-head"><h2>Detalle diario</h2><span id="daily-coverage" class="note">Importes y kilómetros</span></div>
+          <div id="daily-summary" class="table-wrap"><div class="empty">Cargando resumen diario…</div></div>
+          <div class="note">Nafta y saldo diario son parciales cuando se calculan con km de pasajero; no incluyen los trayectos sin pasajero.</div>
+        </section>
+        <section class="card">
+          <div class="section-head"><h2>Resumen mensual</h2><span class="note">Por mes calendario</span></div>
+          <div id="monthly-summary" class="table-wrap"><div class="empty">Cargando resumen mensual…</div></div>
+          <div class="note">Los meses en curso muestran solo los días disponibles en el historial. Los km de ruta estimados se mantienen separados y nunca calculan nafta.</div>
+        </section>
+      </div>
+      <div class="grid two">
+        <section class="card"><h2>Horas conectadas</h2><div id="per-hour" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="hours-hint" class="note">Sin turnos registrados.</div><div id="sessions-list" class="note"></div></section>
+        <section class="card"><h2>Combustible comprado</h2><div id="fuel-margin" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="fuel-hint" class="note">Sin tickets registrados.</div><div id="fuel-list" class="note"></div></section>
+      </div>
+      <section class="card">
+        <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
+        <div id="trips-table" class="trip-list"><div class="empty">Cargando viajes…</div></div>
+      </section>
+      <section class="card" id="history-only"><h2>Recompensas</h2><div id="rewards-table" class="reward-list"><div class="empty">Cargando recompensas…</div></div></section>
+      <footer>Etios · Historial de viajes</footer>
+    </main>
+  </div>
+<script type="module">
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "./finance.mjs";
+
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = { trips: [], rewards: [], fuel: [], sessions: [], range: 30 };
+  const LOCAL_SETTINGS_KEY = "etios-dash-operating-costs-v1";
+  const DEFAULT_SETTINGS = {
+    monthlyCosts: { insurance: null, maintenance: null, tires: null, tax: null, other: null },
+    oneOffExpenses: [],
+    vehicleSessions: [],
+    fuelLogs: [],
+    priceHistory: [{
+      effective_from: "2026-11-02",
+      price_ars_per_liter: 2167,
+      station: "YPF San Carlos Centro (referencia regional)",
+      source_url: "https://energyia.ar/energydata/estaciones/ypf-san-carlos-centro"
+    }, {
+      effective_from: "2026-11-10",
+      price_ars_per_liter: 2178.65,
+      station: "YPF Súper — ticket propio (ubicación no informada)",
+      source_url: ""
+    }]
+  };
+  function loadLocalSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY) || "null");
+      if (!saved || typeof saved !== "object") return structuredClone(DEFAULT_SETTINGS);
+      return {
+        monthlyCosts: { ...DEFAULT_SETTINGS.monthlyCosts, ...(saved.monthlyCosts || {}) },
+        oneOffExpenses: Array.isArray(saved.oneOffExpenses) ? saved.oneOffExpenses : [],
+        vehicleSessions: Array.isArray(saved.vehicleSessions) ? saved.vehicleSessions : [],
+        fuelLogs: Array.isArray(saved.fuelLogs) ? saved.fuelLogs : [],
+        priceHistory: mergePriceHistory(saved.priceHistory, DEFAULT_SETTINGS.priceHistory)
+      };
+    } catch {
+      return structuredClone(DEFAULT_SETTINGS);
+    }
+  }
+  let localSettings = loadLocalSettings();
+  function saveLocalSettings() {
+    try { localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(localSettings)); return true; }
+    catch { return false; }
+  }
+  const today = new Date();
+  const isoToday = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
+  const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+  const number = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
+  const priceNumber = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const ETIOS_L_PER_100KM = ETIOS_BASELINE_L_PER_100KM;
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    })[char]);
+  }
+  function asNumber(value) { const n = Number(value); return Number.isFinite(n) ? n : 0; }
+  function dateLabel(date) { return new Date(date + "T12:00:00").toLocaleDateString("es-AR"); }
+  function localDateDaysAgo(days) {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
+  }
+  function selected(items) {
+    if (state.range === 0) return items;
+    const from = localDateDaysAgo(state.range - 1);
+    return items.filter((item) => item.date >= from && item.date <= isoToday);
+  }
+  function historyDays(items) {
+    const dates = items.map((row) => row.date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
+    if (!dates.length) return 30;
+    const startDate = new Date(dates[0] + "T00:00:00Z");
+    const endDate = new Date(isoToday + "T00:00:00Z");
+    return Math.max(1, Math.floor((endDate - startDate) / 86400000) + 1);
+  }
+  function costLabel(key) {
+    return ({insurance:"seguro",maintenance:"mantenimiento",tires:"cubiertas",tax:"patente/impuestos",other:"otros fijos"})[key] || key;
+  }
+  function renderYpfHistory() {
+    const prices = localSettings.priceHistory.slice().sort((a,b) => b.effective_from.localeCompare(a.effective_from));
+    $("ypf-price-history").innerHTML = prices.map((row) =>
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.effective_from)) + ' · ' + escapeHtml(row.station || "YPF Súper") + '</span><strong>' + "$" + priceNumber.format(asNumber(row.price_ars_per_liter)) + '/L</strong></div>'
+    ).join("");
+  }
+  function renderOneOffExpenses() {
+    const rows = selected(localSettings.oneOffExpenses).slice().sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
+    $("one-off-expenses").innerHTML = rows.length ? rows.map((row) =>
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.category_label || row.category || "Gasto") + (row.note ? " · " + escapeHtml(row.note) : "") + '</span><strong>' + money.format(asNumber(row.amount_ars)) + '</strong><button class="ghost mini" type="button" data-remove-expense="' + escapeHtml(row.id) + '">Quitar</button></div>'
+    ).join("") : '<div class="note">Todavía no hay gastos puntuales registrados.</div>';
+  }
+  function renderLocalVehicleLogs() {
+    const sessions = selected(localSettings.vehicleSessions).slice().sort((a,b)=>(b.date+b.connected_start).localeCompare(a.date+a.connected_start));
+    $("local-sessions").innerHTML = sessions.length ? sessions.map((row) =>
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.platform.toUpperCase()) + ' · ' + escapeHtml(row.connected_start) + '–' + escapeHtml(row.connected_end) + ' · odómetro ' + number.format(row.odometer_start) + ' → ' + number.format(row.odometer_end) + '</span><strong>' + number.format(row.odometer_km) + ' km</strong><button class="ghost mini" type="button" data-remove-local-session="' + escapeHtml(row.id) + '">Quitar</button></div>'
+    ).join("") : '<div class="note">Todavía no hay turnos con odómetro guardados.</div>';
+
+    const fuels = localSettings.fuelLogs.slice().sort((a,b) =>
+      String(b.date || "").localeCompare(String(a.date || "")) ||
+      Number(b.odometer_km || 0) - Number(a.odometer_km || 0)
+    );
+    $("local-fuel-entries").innerHTML = fuels.length ? fuels.map((row) => {
+      const date = row.date ? dateLabel(row.date) : "Fecha pendiente";
+      const odometer = row.odometer_km == null ? "odómetro pendiente" : "odómetro " + number.format(row.odometer_km);
+      const litres = row.liters == null ? "litros pendientes" : number.format(row.liters) + " L";
+      return '<div class="cost-history-row"><span>' + escapeHtml(date) + ' · ' + escapeHtml(row.station || "Combustible") + ' · ' + odometer + (row.full_tank ? ' · tanque completo' : '') + '</span><strong>' + litres + ' · ' + money.format(row.total_ars) + '</strong><button class="ghost mini" type="button" data-remove-local-fuel="' + escapeHtml(row.id) + '">Quitar</button></div>';
+    }).join("") : '<div class="note">Todavía no hay compras de combustible guardadas localmente.</div>';
+  }
+
+  function initCostForms() {
+    for (const key of ["insurance","maintenance","tires","tax","other"]) {
+      $("cost-" + key).value = localSettings.monthlyCosts[key] == null ? "" : String(localSettings.monthlyCosts[key]);
+    }
+    const prices = localSettings.priceHistory.slice().sort((a,b) => a.effective_from.localeCompare(b.effective_from));
+    const latest = prices[prices.length - 1];
+    $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
+    $("ypf-price-date").value = isoToday;
+    $("ypf-price-context").textContent = latest
+      ? "Última referencia registrada: $" + priceNumber.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + ". Precio observado en una compra puntual; puede variar entre estaciones. Actualizalo cuando cambie el valor en surtidor."
+      : "No hay precio de referencia cargado.";
+    $("expense-date").value = isoToday;
+    $("session-date").value = isoToday;
+    renderYpfHistory();
+    renderLocalVehicleLogs();
+
+    $("monthly-cost-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      for (const key of ["insurance","maintenance","tires","tax","other"]) {
+        const value = $("cost-" + key).value.trim();
+        localSettings.monthlyCosts[key] = value === "" ? null : Math.max(0, Number(value));
+      }
+      const saved = saveLocalSettings();
+      $("monthly-cost-status").textContent = saved ? "Costos guardados en este navegador." : "No se pudo guardar el almacenamiento local.";
+      render();
+    });
+
+    $("save-ypf-price").addEventListener("click", () => {
+      const price = Number($("ypf-price").value);
+      const effectiveFrom = $("ypf-price-date").value;
+      if (!(price > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) {
+        $("ypf-price-context").textContent = "Ingresá un precio por litro y una fecha válida.";
+        return;
+      }
+      localSettings.priceHistory = localSettings.priceHistory.filter((row) => row.effective_from !== effectiveFrom);
+      localSettings.priceHistory.push({
+        effective_from: effectiveFrom,
+        price_ars_per_liter: price,
+        station: "YPF Súper · precio ingresado",
+        source_url: ""
+      });
+      localSettings.priceHistory.sort((a,b) => a.effective_from.localeCompare(b.effective_from));
+      saveLocalSettings();
+      initYpfFormOnly();
+      render();
+    });
+
+    $("one-off-cost-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const date = $("expense-date").value;
+      const category = $("expense-category").value;
+      const amount = Number($("expense-amount").value);
+      const note = $("expense-note").value.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !(amount > 0)) {
+        $("expense-status").textContent = "Ingresá fecha e importe válidos.";
+        return;
+      }
+      const categoryLabels = {repair:"Reparación",service:"Service",tires:"Cubiertas",wash:"Lavado",toll:"Peaje",parking:"Estacionamiento",other:"Otro"};
+      localSettings.oneOffExpenses.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        date, category, category_label: categoryLabels[category] || category,
+        amount_ars: amount, note
+      });
+      saveLocalSettings();
+      $("expense-amount").value = "";
+      $("expense-note").value = "";
+      $("expense-status").textContent = "Gasto agregado.";
+      render();
+    });
+    $("one-off-expenses").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-expense]");
+      if (!button) return;
+      localSettings.oneOffExpenses = localSettings.oneOffExpenses.filter((row) => row.id !== button.dataset.removeExpense);
+      saveLocalSettings();
+      render();
+    });
+
+    $("local-session-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      try {
+        const row = createWorkSession({
+          date: $("session-date").value,
+          platform: $("session-platform").value,
+          connected_start: $("session-start").value,
+          connected_end: $("session-end").value,
+          odometer_start: $("session-odo-start").value,
+          odometer_end: $("session-odo-end").value
+        });
+        localSettings.vehicleSessions.push(row);
+        const saved = saveLocalSettings();
+        $("session-entry-status").textContent = saved
+          ? row.odometer_km.toLocaleString("es-AR",{maximumFractionDigits:1}) + " km del auto guardados en este navegador."
+          : "No se pudo guardar en este navegador.";
+        $("session-start").value = "";
+        $("session-end").value = "";
+        $("session-odo-start").value = "";
+        $("session-odo-end").value = "";
+        render();
+      } catch (error) {
+        $("session-entry-status").textContent = error.message;
+      }
+    });
+
+    $("local-fuel-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      try {
+        const row = createFuelEntry({
+          date: $("fuel-date").value,
+          odometer_km: $("fuel-odometer").value,
+          liters: $("fuel-liters").value,
+          total_ars: $("fuel-total").value,
+          station: $("fuel-station").value,
+          full_tank: $("fuel-full-tank").checked
+        });
+        localSettings.fuelLogs.push(row);
+        const saved = saveLocalSettings();
+        $("fuel-entry-status").textContent = saved
+          ? money.format(row.total_ars) + " registrados" + (row.liters != null ? " · " + number.format(row.liters) + " L · " + money.format(row.price_per_liter) + "/L" : " · litros y odómetro pendientes")
+          : "No se pudo guardar en este navegador.";
+        $("fuel-date").value = "";
+        $("fuel-odometer").value = "";
+        $("fuel-liters").value = "";
+        $("fuel-total").value = "";
+        $("fuel-station").value = "";
+        $("fuel-full-tank").checked = false;
+        render();
+      } catch (error) {
+        $("fuel-entry-status").textContent = error.message;
+      }
+    });
+
+    $("local-sessions").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-local-session]");
+      if (!button) return;
+      localSettings.vehicleSessions = localSettings.vehicleSessions.filter((row) => row.id !== button.dataset.removeLocalSession);
+      saveLocalSettings();
+      render();
+    });
+
+    $("local-fuel-entries").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-local-fuel]");
+      if (!button) return;
+      localSettings.fuelLogs = localSettings.fuelLogs.filter((row) => row.id !== button.dataset.removeLocalFuel);
+      saveLocalSettings();
+      render();
+    });
+  }
+  function initYpfFormOnly() {
+    const prices = localSettings.priceHistory.slice().sort((a,b) => a.effective_from.localeCompare(b.effective_from));
+    const latest = prices[prices.length - 1];
+    $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
+    $("ypf-price-date").value = isoToday;
+    $("ypf-price-context").textContent = latest
+      ? "Última referencia registrada: $" + priceNumber.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + ". Precio observado en una compra puntual; puede variar entre estaciones. Actualizalo cuando cambie el valor en surtidor."
+      : "No hay precio de referencia cargado.";
+    renderYpfHistory();
+  }
+  async function api(path, options = {}) {
+    const response = await fetch(path, {
+      credentials: "same-origin",
+      cache: "no-store",
+      ...options,
+      headers: { ...(options.headers ?? {}) }
+    });
+    const text = await response.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+    if (!response.ok) {
+      const error = new Error(data.message || data.error || ("HTTP " + response.status));
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  }
+  async function loadData() {
+    const [trips, rewards, fuel, sessions] = await Promise.all([
+      api("/api/trips?limit=5000"),
+      api("/api/rewards?limit=5000"),
+      api("/api/fuel?limit=500"),
+      api("/api/sessions?limit=500")
+    ]);
+    state.trips = trips.trips || [];
+    state.rewards = rewards.rewards || [];
+    state.fuel = fuel.fuel || [];
+    state.sessions = sessions.sessions || [];
+    $("connection").textContent = "KV conectado · " + state.trips.length + " viajes · " + state.rewards.length + " recompensas";
+    $("connection").style.background = "rgba(48,209,88,.13)";
+    $("connection").style.color = "var(--green)";
+    render();
+  }
+  function render() {
+    const trips = selected(state.trips);
+    const rewards = selected(state.rewards);
+    const allFuelLogs = [...state.fuel, ...localSettings.fuelLogs];
+    const allSessions = [...state.sessions, ...localSettings.vehicleSessions];
+    const fuel = selected(allFuelLogs);
+    const sessions = selected(allSessions);
+    const tripGross = trips.reduce((sum, row) => sum + asNumber(row.amount), 0);
+    const rewardGross = rewards.reduce((sum, row) => sum + asNumber(row.amount), 0);
+    const gross = tripGross + rewardGross;
+    const kmRows = trips.filter((row) => asNumber(row.km) > 0);
+    const actualKmRows = kmRows.filter((row) => (row.km_source ?? "actual") === "actual");
+    const estimatedKmRows = kmRows.filter((row) => row.km_source === "estimated");
+    const passengerKm = actualKmRows.reduce((sum, row) => sum + asNumber(row.km), 0);
+    const estimatedPassengerKm = estimatedKmRows.reduce((sum, row) => sum + asNumber(row.km), 0);
+    const vehicleKmRows = sessions.filter((row) => row.odometer_km != null && asNumber(row.odometer_km) > 0);
+    const vehicleKm = vehicleKmRows.reduce((sum, row) => sum + asNumber(row.odometer_km), 0);
+    const vehicleDays = new Set(vehicleKmRows.map((row) => row.date)).size;
+    const vehicleKmPerDay = vehicleDays ? vehicleKm / vehicleDays : null;
+    const connectedMinutes = sessions.reduce((sum, row) => sum + asNumber(row.connected_minutes), 0);
+    const fuelSpend = fuel.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
+    const fuelLiters = fuel.reduce((sum, row) => sum + asNumber(row.liters), 0);
+    const average = trips.length ? tripGross / trips.length : null;
+    const periodDays = state.range > 0 ? state.range : historyDays([...trips, ...rewards, ...sessions]);
+    const oneOffExpenses = selected(localSettings.oneOffExpenses);
+    const fuelPurchases = selectFuelPurchasesForPeriod(allFuelLogs, {
+      range: state.range,
+      from: state.range === 0 ? null : localDateDaysAgo(state.range - 1),
+      to: isoToday
+    });
+    const undatedFuelPayments = allFuelLogs.filter((row) => !row.date && asNumber(row.total_ars) > 0);
+    const undatedFuelSpend = undatedFuelPayments.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
+    const financial = calculateProfitability({
+      trips, rewards, sessions,
+      fuelLogs: allFuelLogs,
+      fuelPurchases,
+      priceHistory: localSettings.priceHistory,
+      monthlyCosts: localSettings.monthlyCosts,
+      oneOffExpenses,
+      periodDays
+    });
+
+    $("hero-margin").textContent = money.format(gross);
+    $("hero-caption").textContent = trips.length + " viajes · " + rewards.length + " recompensas · bruto de viajes menos nafta comprada";
+    $("gross").textContent = money.format(tripGross);
+    $("trip-count").textContent = trips.length + " viajes";
+    $("reward-total").textContent = money.format(rewardGross);
+    $("reward-count").textContent = rewards.length + " registros";
+    $("per-trip").textContent = average === null ? "—" : money.format(average);
+    $("per-trip-hint").textContent = average === null ? "Sin viajes en el período" : "Promedio sobre " + trips.length + " viajes";
+    $("car-km").textContent = actualKmRows.length ? number.format(passengerKm) + " km" : "—";
+    $("km-hint").textContent = actualKmRows.length ? actualKmRows.length + " de " + trips.length + " viajes · Detalles" : "Sin km reales importados";
+    $("estimated-km").textContent = estimatedKmRows.length ? number.format(estimatedPassengerKm) + " km" : "—";
+    $("estimated-km-hint").textContent = estimatedKmRows.length ? estimatedKmRows.length + " viajes · separados de los reales" : "Todavía no hay estimaciones de ruta";
+    $("vehicle-km").textContent = vehicleKmRows.length ? number.format(vehicleKm) + " km" : "—";
+    $("vehicle-km-hint").textContent = vehicleKmRows.length ? vehicleDays + " días · " + (vehicleKmPerDay === null ? "—" : number.format(vehicleKmPerDay) + " km/día") : "Cargá odómetro inicio/fin del turno";
+    const consumption = asNumber(financial.consumptionLPer100Km);
+    $("fuel-consumption").textContent = consumption > 0 ? number.format(consumption) + " L/100 km" : "—";
+    $("fuel-consumption-hint").textContent = financial.consumptionSource === "tank_to_tank"
+      ? "Medido entre cargas a tanque lleno"
+      : "Referencia de prueba Etios · no medido en este auto";
+    $("fuel-estimate").textContent = financial.fuelCost === null ? "—" : money.format(financial.fuelCost);
+    $("fuel-estimate-hint").textContent = financial.fuelCost === null
+      ? "Falta km real y precio YPF registrado"
+      : number.format(financial.fuelLiters) + " L · " + number.format(financial.consumptionLPer100Km) + " L/100 km · " + (financial.fuelMode === "vehicle_odometer" ? "odómetro completo" : financial.fuelMode === "vehicle_odometer_partial" ? "odómetro parcial · faltan turnos" : "solo km con pasajero · parcial");
+    $("other-cost-estimate").textContent = financial.otherCosts > 0 ? money.format(financial.otherCosts) : "—";
+    $("other-cost-hint").textContent = financial.missingCosts.length
+      ? "Faltan: " + financial.missingCosts.map(costLabel).join(", ")
+      : "Gastos fijos prorrateados + gastos puntuales";
+    $("net-estimate-label").textContent = financial.netComplete ? "Ganancia neta operativa" : "Neto parcial · incompleto";
+    $("net-estimate").textContent = financial.netComplete
+      ? money.format(financial.netOperating)
+      : financial.netPartial === null ? "—" : money.format(financial.netPartial);
+    const gaps = [];
+    if (!financial.odometerComplete) gaps.push("odómetro completo de todos los turnos");
+    if (financial.missingCosts.length) gaps.push(...financial.missingCosts.map(costLabel));
+    if (financial.missingPriceDates) gaps.push("precio YPF para algunas fechas");
+    $("net-estimate-hint").textContent = financial.netComplete
+      ? "Bruto − nafta consumida − otros costos. Estimación con odómetro y costos completos."
+      : financial.netPartial === null
+        ? "No hay kilómetros suficientes para calcular combustible."
+        : "No es neto final. Faltan: " + [...new Set(gaps)].join(", ") + ".";
+    $("cash-net-estimate").textContent = money.format(financial.netCashAfterFuelPurchases);
+    $("cash-net-estimate-hint").textContent =
+      money.format(financial.fuelPurchaseSpend) + " en cargas pagadas · " +
+      (undatedFuelPayments.length
+        ? undatedFuelPayments.length + " cargas sin fecha incluidas en cualquier período"
+        : state.range === 0 ? "todo el historial" : "compras del período") +
+      " · caja, no consumo estimado.";
+    $("fuel-unassigned-note").textContent = undatedFuelPayments.length
+      ? "Cargas sin fecha: " + money.format(undatedFuelSpend) + " (" + undatedFuelPayments.length +
+        "). Se incluyen en la caja neta de cualquier período, pero no se asignan a un día o mes."
+      : "";
+    $("finance-status").textContent = financial.netComplete ? "Costos completos" : "Faltan datos";
+    $("per-hour").textContent = connectedMinutes > 0 ? number.format(connectedMinutes / 60) + " h" : "—";
+    $("hours-hint").textContent = connectedMinutes > 0 ? sessions.length + " turnos registrados" : "Sin turnos registrados";
+    $("fuel-margin").textContent = fuel.length ? money.format(fuelSpend) : "—";
+    $("fuel-hint").textContent = fuel.length + " tickets · " + number.format(fuelLiters) + " L comprados";
+    $("period-label").textContent = state.range === 0 ? "Todo el historial" : "Últimos " + state.range + " días";
+    $("connection").textContent = "Actualizado " + new Date().toLocaleTimeString("es-AR", {hour:"2-digit",minute:"2-digit"}) + " · " + trips.length + " viajes";
+    $("finance-coverage").textContent = "Bruto: " + money.format(financial.gross) +
+      " · Nafta: " + (financial.fuelCost === null ? "sin base" : money.format(financial.fuelCost)) +
+      " · Otros gastos: " + money.format(financial.otherCosts) +
+      (financial.fuelMode === "passenger_km_partial" ? " · Nafta calculada solo sobre km con pasajero; falta odómetro." : financial.fuelMode === "vehicle_odometer_partial" ? " · Hay turnos sin odómetro." : "");
+    const periodSummary = summarizeEarnings({
+      trips, rewards, sessions,
+      fuelLogs: allFuelLogs,
+      priceHistory: localSettings.priceHistory
+    });
+    renderHeroSpark(trips);
+    renderDaily(trips);
+    renderDailySummary(periodSummary.daily);
+    renderMonthlySummary(periodSummary.monthly);
+    renderHours(trips);
+    renderTrips(trips);
+    renderRewards(rewards);
+    renderSessions(sessions);
+    renderFuel(fuel);
+    renderOneOffExpenses();
+    renderLocalVehicleLogs();
+  }
+
+  function renderHeroSpark(trips) {
+    const grouped = {};
+    for (const trip of trips) grouped[trip.date] = (grouped[trip.date] || 0) + asNumber(trip.amount);
+    const points = Object.entries(grouped).sort((a,b) => a[0].localeCompare(b[0])).slice(-12).map((x) => x[1]);
+    if (points.length < 2) { $("hero-spark").innerHTML = ""; return; }
+    const min = Math.min(...points), max = Math.max(...points);
+    const coords = points.map((value, index) => {
+      const x = index * 100 / (points.length - 1);
+      const y = 54 - ((value - min) / Math.max(max - min, 1)) * 42;
+      return [x, y];
+    });
+    const line = coords.map(([x,y], index) => (index ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2)).join(" ");
+    const area = line + " L100 64 L0 64 Z";
+    $("hero-spark").innerHTML = '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de ingresos de viajes">' +
+      '<defs><linearGradient id="spark-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>' +
+      '<path d="' + area + '" fill="url(#spark-fill)"/><path d="' + line + '" fill="none" stroke="#30d158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+  }
+  function renderDaily(rows) {
+    const totals = {};
+    for (const row of rows) totals[row.date] = (totals[row.date] || 0) + asNumber(row.amount);
+    const points = Object.entries(totals).sort((a,b) => a[0].localeCompare(b[0])).slice(-14);
+    if (!points.length) { $('daily-chart').innerHTML = '<div class="empty">Todavía no hay importes para este período.</div>'; return; }
+    const width = 680, height = 230, left = 40, right = 18, top = 18, bottom = 34;
+    const values = points.map((point) => point[1]);
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values, 0);
+    const span = Math.max(max - min, 1);
+    const plotW = width - left - right, plotH = height - top - bottom;
+    const coords = points.map((point, index) => {
+      const x = left + (points.length === 1 ? plotW / 2 : index * plotW / (points.length - 1));
+      const y = top + (max - point[1]) / span * plotH;
+      return { x, y, date: point[0], value: point[1] };
+    });
+    const line = coords.map((point, index) => (index ? 'L' : 'M') + point.x.toFixed(1) + ' ' + point.y.toFixed(1)).join(' ');
+    const area = line + ' L' + coords[coords.length - 1].x.toFixed(1) + ' ' + (height - bottom) + ' L' + coords[0].x.toFixed(1) + ' ' + (height - bottom) + ' Z';
+    const grid = [0, .5, 1].map((part) => { const y = top + part * plotH; return '<line class="chart-grid" x1="' + left + '" y1="' + y + '" x2="' + (width-right) + '" y2="' + y + '"/>'; }).join('');
+    const dots = coords.map((point) => '<circle class="chart-dot" cx="' + point.x + '" cy="' + point.y + '" r="3.6"><title>' + escapeHtml(dateLabel(point.date)) + ': ' + escapeHtml(money.format(point.value)) + '</title></circle>').join('');
+    const labels = [0, Math.floor((points.length - 1) / 2), points.length - 1].filter((value, index, arr) => arr.indexOf(value) === index).map((index) => '<text class="chart-label" x="' + coords[index].x + '" y="' + (height-9) + '" text-anchor="middle">' + escapeHtml(new Date(points[index][0] + 'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'})) + '</text>').join('');
+    $('daily-chart').innerHTML = '<svg class="chart-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Importes registrados por día"><defs><linearGradient id="daily-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#c7f36a" stop-opacity=".27"/><stop offset="1" stop-color="#c7f36a" stop-opacity="0"/></linearGradient></defs>' + grid + '<path d="' + area + '" fill="url(#daily-fill)"/><path class="chart-line" d="' + line + '"/>' + dots + labels + '</svg>';
+  }
+  function fuelModeLabel(mode) {
+    return ({
+      vehicle_odometer:"odómetro",
+      vehicle_odometer_partial:"odómetro parcial",
+      passenger_km_partial:"mínimo pasajero",
+      unavailable:"sin base"
+    })[mode] || mode;
+  }
+  function summaryTable(rows, monthMode = false) {
+    if (!rows.length) return '<div class="empty">Sin actividad para este período.</div>';
+    const headings = ["Período","Viajes","Bruto","Km reales pasajero","Km ruta est.","Km auto","Nafta estimada*","Saldo tras nafta*"];
+    const body = rows.map((row) => {
+      const period = monthMode
+        ? new Date(row.month + "-01T12:00:00").toLocaleDateString("es-AR",{month:"short",year:"numeric"})
+        : dateLabel(row.date);
+      const kmReal = number.format(row.actualPassengerKm) + " (" + row.actualTripCount + "/" + row.tripCount + ")";
+      const kmRoute = row.estimatedTripCount ? number.format(row.estimatedRouteKm) : "—";
+      const kmAuto = row.vehicleKm > 0 ? number.format(row.vehicleKm) : "—";
+      const fuel = row.fuelCost == null ? "—" : money.format(row.fuelCost);
+      const net = row.netAfterFuelPartial == null ? "—" : money.format(row.netAfterFuelPartial);
+      const mode = row.fuelMode || (row.vehicleKm > 0
+        ? (row.sessionsWithoutOdometer > 0 ? "vehicle_odometer_partial" : "vehicle_odometer")
+        : row.actualPassengerKm > 0 ? "passenger_km_partial" : "unavailable");
+      const consumptionHint = number.format(row.consumptionLPer100Km) + " L/100 km · " +
+        (row.consumptionSource === "tank_to_tank" ? "medido" : "referencia urbana");
+      return '<tr><td>' + escapeHtml(period) + '</td><td class="right">' + row.tripCount +
+        '</td><td class="right">' + money.format(row.gross) +
+        '</td><td class="right">' + kmReal +
+        '</td><td class="right">' + kmRoute +
+        '</td><td class="right">' + kmAuto +
+        '</td><td class="right"><strong>' + fuel + '</strong><div class="table-hint">' + escapeHtml(fuelModeLabel(mode)) + ' · ' + escapeHtml(consumptionHint) + '</div></td><td class="right">' + net + '</td></tr>';
+    }).join("");
+    return '<div class="summary-scroll"><table class="summary-table"><thead><tr>' + headings.map((x) => '<th>' + x + '</th>').join("") +
+      '</tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+  function renderDailySummary(rows) {
+    $("daily-summary").innerHTML = summaryTable(rows, false);
+    const trips = rows.reduce((sum,row)=>sum+row.tripCount,0);
+    const actual = rows.reduce((sum,row)=>sum+row.actualTripCount,0);
+    $("daily-coverage").textContent = actual + "/" + trips + " viajes con km reales";
+  }
+  function renderMonthlySummary(rows) {
+    $("monthly-summary").innerHTML = summaryTable(rows, true);
+  }
+  function renderHours(trips) {
+    const hours = Array(24).fill(0);
+    for (const t of trips) {
+      const hour = Number(String(t.start).slice(0,2));
+      if (Number.isInteger(hour) && hour >= 0 && hour < 24) hours[hour] += asNumber(t.amount);
+    }
+    const active = hours.map((value, hour) => ({hour, value})).filter((x) => x.value > 0).sort((a,b) => a.hour - b.hour);
+    if (!active.length) { $("hour-chart").innerHTML = '<div class="empty">Sin viajes en este período.</div>'; return; }
+    const max = Math.max(...active.map((x) => x.value), 1);
+    $("hour-chart").innerHTML = active.map((x) =>
+      '<div class="bar-row"><span>' + String(x.hour).padStart(2,"0") + ':00</span><div class="bar"><i style="width:' + (x.value/max*100).toFixed(1) + '%"></i></div><strong class="right">' + money.format(x.value) + '</strong></div>'
+    ).join("");
+  }
+  function renderTrips(trips) {
+    if (!trips.length) { $('trips-table').innerHTML = '<div class="empty">No hay viajes importados en este período.</div>'; return; }
+    const rows = trips.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
+    $('trips-table').innerHTML = rows.map((row) => {
+      const km = row.km != null && asNumber(row.km) > 0 ? number.format(row.km) + ' km · ' + ((row.km_source ?? 'actual') === 'estimated' ? 'estimado' : 'real') : 'Km —';
+      const duration = row.min != null && asNumber(row.min) > 0 ? number.format(row.min) + ' min' : 'Duración —';
+      return '<article class="trip-row"><div class="trip-head"><div><div class="trip-platform">' + escapeHtml(String(row.platform || 'didi').toUpperCase()) + '</div><div class="trip-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="trip-amount">' + money.format(asNumber(row.amount)) + '</div></div><div class="trip-details"><span>' + km + '</span><span>' + duration + '</span></div></article>';
+    }).join('');
+  }
+
+  function renderSessions(sessions) {
+    if (!sessions.length) { $("sessions-list").textContent = "Todavía no hay turnos importados."; return; }
+    const minutes = sessions.reduce((sum, row) => sum + asNumber(row.connected_minutes), 0);
+    $("sessions-list").textContent = sessions.length + " turnos · " + number.format(minutes / 60) + " horas conectadas registradas.";
+  }
+  function renderFuel(fuel) {
+    if (!fuel.length) { $('fuel-list').textContent = 'No hay tickets de combustible cargados.'; return; }
+    const litres = fuel.reduce((sum, row) => sum + asNumber(row.liters), 0);
+    $('fuel-list').textContent = fuel.length + ' tickets · ' + number.format(litres) + ' L · ' + money.format(fuel.reduce((sum,row) => sum + asNumber(row.total_ars),0)) + ' en compras registradas.';
+  }
+  function renderRewards(rewards) {
+    if (!rewards.length) { $('rewards-table').innerHTML = '<div class="empty">No hay recompensas importadas en este período.</div>'; return; }
+    const rows = rewards.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
+    $('rewards-table').innerHTML = rows.map((row) => '<article class="reward-row"><div class="reward-head"><div><div class="reward-label">' + escapeHtml(row.label || 'Recompensa') + '</div><div class="reward-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="reward-amount">' + money.format(asNumber(row.amount)) + '</div></div></article>').join('');
+  }
+  document.querySelectorAll('[data-range]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.range = Number(button.dataset.range);
+      document.querySelectorAll('[data-range]').forEach((item) => item.classList.toggle('active', item === button));
+      render();
+    });
+  });
+
+  $("backup-json").addEventListener("click", async () => {
+    try {
+      const response = await fetch("/api/export", { credentials:"same-origin", cache:"no-store" });
+      if (!response.ok) throw new Error("No se pudo generar el backup.");
+      const exportData = await response.json();
+      exportData.local_operating_settings = localSettings;
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "didi-dash-backup.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      $("connection").textContent = "Error de backup: " + error.message;
+    }
+  });
+  $("export-csv").addEventListener("click", () => {
+    const cols = ["id","date","start","platform","amount","km","km_source","min","source"];
+    const csv = [cols.join(","), ...selected(state.trips).map((t) => cols.map((key) => '"' + String(t[key] ?? "").replace(/"/g,'""') + '"').join(","))].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"}));
+    const a = document.createElement("a"); a.href = url; a.download = "didi-dash-trips.csv"; a.click(); URL.revokeObjectURL(url);
+  });
+
+  initCostForms();
+  loadData().catch((error) => {
+    $("connection").textContent = "Sin conexión: " + error.message;
+    $("connection").style.background = "rgba(255,69,58,.13)";
+    $("connection").style.color = "var(--red)";
+  });
+})();
+</script>
+</body>
+</html>

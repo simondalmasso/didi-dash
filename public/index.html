@@ -104,11 +104,11 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 .cost-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.checkbox-field{display:flex;align-items:end}.checkbox-field label{display:flex;align-items:center;gap:8px}.checkbox-field input{width:auto;margin:0}.cost-actions{margin-top:12px;align-items:flex-start}.cost-history{display:grid;gap:6px;margin-top:10px}.cost-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}.cost-history-row strong{color:var(--text);white-space:nowrap}.cost-history-row .mini{padding:6px 10px;font-size:10px}.divider{height:1px;background:var(--line);margin:18px 0}@media(max-width:600px){.cost-fields{grid-template-columns:1fr}.cost-history-row{flex-wrap:wrap}}
 .summary-grid{align-items:start}.summary-scroll{max-width:100%;overflow-x:auto}.summary-table{min-width:820px;font-size:11px}.summary-table th{white-space:normal;min-width:76px}.summary-table td{padding:11px 8px;vertical-align:top}.summary-table td:first-child{font-weight:650}.table-hint{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:760px){.summary-grid{grid-template-columns:1fr}.summary-table{min-width:780px}}
-</style>
+body[data-page="home"] #profitability-settings,body[data-page="home"] #history-only{display:none}body[data-page="inputs"] .hero-panel,body[data-page="inputs"] .kpis,body[data-page="inputs"] #history-only{display:none}body[data-page="trips"] .hero-panel,body[data-page="trips"] .kpis,body[data-page="trips"] #profitability-settings{display:none}.app-nav{display:flex;gap:8px;margin:0 0 12px}.app-nav a{padding:9px 13px;border:1px solid var(--line);border-radius:999px;color:var(--muted);text-decoration:none;font-size:11px}</style>
 </head>
-<body>
+<body data-page="home">
   <div class="shell">
-    <main id="app">
+    <main id="app"><nav class="app-nav"><a href="/">Panel</a><a href="/inputs.html">Inputs</a><a href="/trips.html">Historial</a></nav>
       <header>
         <div class="brand"><div class="mark">E</div><div><h1>Etios</h1><p class="subtitle">DiDi · Historial de viajes</p></div></div>
         <div class="row"><span id="connection" class="pill">Conectando…</span></div>
@@ -122,7 +122,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         </div>
       </div>
       <section class="hero-panel">
-        <div><div class="eyebrow">Ganancia bruta · viajes + recompensas</div><div id="hero-margin" class="hero-value">—</div><div id="hero-caption" class="hero-caption">Cargando registros…</div></div>
+        <div><div class="eyebrow">Ganancia neta provisional</div><div id="hero-margin" class="hero-value">—</div><div id="hero-caption" class="hero-caption">Cargando registros…</div></div>
         <div id="hero-spark" class="hero-spark" aria-hidden="true"></div>
       </section>
       <section class="grid kpis">
@@ -235,7 +235,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
         <div id="trips-table" class="trip-list"><div class="empty">Cargando viajes…</div></div>
       </section>
-      <section class="card"><h2>Recompensas</h2><div id="rewards-table" class="reward-list"><div class="empty">Cargando recompensas…</div></div></section>
+      <section class="card" id="history-only"><h2>Recompensas</h2><div id="rewards-table" class="reward-list"><div class="empty">Cargando recompensas…</div></div></section>
       <footer>Etios · Historial de viajes</footer>
     </main>
   </div>
@@ -580,7 +580,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     });
 
     $("hero-margin").textContent = money.format(gross);
-    $("hero-caption").textContent = trips.length + " viajes · " + rewards.length + " recompensas · bruto";
+    $("hero-caption").textContent = trips.length + " viajes · " + rewards.length + " recompensas · bruto de viajes menos nafta comprada";
     $("gross").textContent = money.format(tripGross);
     $("trip-count").textContent = trips.length + " viajes";
     $("reward-total").textContent = money.format(rewardGross);
