@@ -17,6 +17,18 @@ function validDate(value) {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+export function mergePriceHistory(savedHistory, defaultHistory = []) {
+  const snapshots = new Map();
+  for (const rows of [defaultHistory, savedHistory]) {
+    if (!Array.isArray(rows)) continue;
+    for (const row of rows) {
+      if (!row || typeof row !== "object" || !validDate(row.effective_from)) continue;
+      snapshots.set(row.effective_from, row);
+    }
+  }
+  return [...snapshots.values()].sort((a, b) => a.effective_from.localeCompare(b.effective_from));
+}
+
 export function priceForDate(history, date) {
   const snapshots = (Array.isArray(history) ? history : [])
     .filter((row) => validDate(row.effective_from) && amount(row.price_ars_per_liter) > 0)
