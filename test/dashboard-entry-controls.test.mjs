@@ -42,3 +42,27 @@ test("dashboard keeps undated fuel purchases in cash calculations across date fi
 test("dashboard KPI markup does not contain a literal escaped newline between cards", () => {
   assert.doesNotMatch(dashboard, /\\n\s*<div class="kpi">/);
 });
+
+
+test("dashboard exposes three distinct views and a provisional trip-net primary KPI", () => {
+  assert.match(dashboard, /document\.documentElement\.dataset\.page\s*=\s*location\.pathname\.startsWith/);
+  assert.match(dashboard, /href="\/"[^>]*>Panel/);
+  assert.match(dashboard, /href="\/inputs\/"[^>]*>Inputs/);
+  assert.match(dashboard, /href="\/trips\/"[^>]*>Historial/);
+  assert.match(dashboard, /data-area="dashboard"/);
+  assert.match(dashboard, /data-area="inputs"/);
+  assert.match(dashboard, /data-area="history"/);
+  assert.match(dashboard, /Neto provisional tras nafta/);
+  assert.match(dashboard, /calculateTripNetAfterFuel\(/);
+  assert.match(dashboard, /\$\(?"hero-margin"\)?\.textContent/);
+});
+
+
+test("page-specific toolbars and period filters stay in their own views", () => {
+  assert.match(dashboard, /<div class="toolbar" data-area="dashboard">/);
+  assert.match(dashboard, /<div class="toolbar" data-area="inputs">/);
+  assert.match(dashboard, /<div class="toolbar" data-area="history">/);
+  assert.equal((dashboard.match(/data-range="7"/g) || []).length, 2);
+  assert.equal((dashboard.match(/data-range="30"/g) || []).length, 2);
+  assert.ok(dashboard.includes("item.classList.toggle('active', Number(item.dataset.range) === state.range)"));
+});

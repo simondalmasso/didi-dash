@@ -8,6 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Etios</title>
+  <script>document.documentElement.dataset.page = location.pathname.startsWith("/inputs") ? "inputs" : location.pathname.startsWith("/trips") ? "trips" : "home";</script>
   <style>
 :root{
   color-scheme:dark;
@@ -104,6 +105,13 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 .cost-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.checkbox-field{display:flex;align-items:end}.checkbox-field label{display:flex;align-items:center;gap:8px}.checkbox-field input{width:auto;margin:0}.cost-actions{margin-top:12px;align-items:flex-start}.cost-history{display:grid;gap:6px;margin-top:10px}.cost-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;color:var(--muted)}.cost-history-row strong{color:var(--text);white-space:nowrap}.cost-history-row .mini{padding:6px 10px;font-size:10px}.divider{height:1px;background:var(--line);margin:18px 0}@media(max-width:600px){.cost-fields{grid-template-columns:1fr}.cost-history-row{flex-wrap:wrap}}
 .summary-grid{align-items:start}.summary-scroll{max-width:100%;overflow-x:auto}.summary-table{min-width:820px;font-size:11px}.summary-table th{white-space:normal;min-width:76px}.summary-table td{padding:11px 8px;vertical-align:top}.summary-table td:first-child{font-weight:650}.table-hint{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:760px){.summary-grid{grid-template-columns:1fr}.summary-table{min-width:780px}}
+
+.app-nav{display:flex;gap:8px;margin:0 0 16px}
+.app-nav a{padding:9px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);text-decoration:none;font-size:11px;font-weight:650;transition:background .2s,border-color .2s,color .2s}
+.app-nav a[aria-current="page"]{background:rgba(199,243,106,.11);border-color:rgba(199,243,106,.28);color:var(--green)}
+html[data-page="home"] [data-area="inputs"],html[data-page="home"] [data-area="history"],
+html[data-page="inputs"] [data-area="dashboard"],html[data-page="inputs"] [data-area="history"],
+html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-area="inputs"]{display:none!important}
 </style>
 </head>
 <body>
@@ -113,19 +121,35 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         <div class="brand"><div class="mark">E</div><div><h1>Etios</h1><p class="subtitle">DiDi · Historial de viajes</p></div></div>
         <div class="row"><span id="connection" class="pill">Conectando…</span></div>
       </header>
-      <div class="toolbar">
-        <div><strong>Resumen</strong><div class="subhead" style="margin:4px 0 0">Viajes y recompensas registrados.</div></div>
-        <div class="period" aria-label="Período">
+      <nav class="app-nav" aria-label="Navegación principal">
+        <a href="/" data-nav="home">Panel</a>
+        <a href="/inputs/" data-nav="inputs">Inputs</a>
+        <a href="/trips/" data-nav="trips">Historial</a>
+      </nav>
+      <div class="toolbar" data-area="dashboard">
+        <div><strong>Panel general</strong><div class="subhead" style="margin:4px 0 0">Ingresos, nafta y rendimiento del Etios.</div></div>
+        <div class="period" aria-label="Período del panel">
           <button type="button" data-range="7">7 días</button>
           <button type="button" data-range="30" class="active">30 días</button>
           <button type="button" data-range="0">Todo</button>
         </div>
       </div>
-      <section class="hero-panel">
-        <div><div class="eyebrow">Ganancia bruta · viajes + recompensas</div><div id="hero-margin" class="hero-value">—</div><div id="hero-caption" class="hero-caption">Cargando registros…</div></div>
+      <div class="toolbar" data-area="inputs">
+        <div><strong>Inputs</strong><div class="subhead" style="margin:4px 0 0">Cargas, costos y turnos del vehículo.</div></div>
+      </div>
+      <div class="toolbar" data-area="history">
+        <div><strong>Historial de viajes</strong><div class="subhead" style="margin:4px 0 0">Viajes y recompensas registrados.</div></div>
+        <div class="period" aria-label="Período del historial">
+          <button type="button" data-range="7">7 días</button>
+          <button type="button" data-range="30" class="active">30 días</button>
+          <button type="button" data-range="0">Todo</button>
+        </div>
+      </div>
+      <section class="hero-panel" data-area="dashboard">
+        <div><div class="eyebrow">Neto provisional tras nafta</div><div id="hero-margin" class="hero-value">—</div><div id="hero-caption" class="hero-caption">Viajes cobrados menos compras de nafta. Recompensas y otros gastos quedan aparte.</div></div>
         <div id="hero-spark" class="hero-spark" aria-hidden="true"></div>
       </section>
-      <section class="grid kpis">
+      <section class="grid kpis" data-area="dashboard">
         <div class="kpi"><div class="label">Ingresos por viajes</div><div id="gross" class="value">—</div><div id="trip-count" class="hint">— viajes</div></div>
         <div class="kpi"><div class="label">Recompensas</div><div id="reward-total" class="value">—</div><div id="reward-count" class="hint">— registros</div></div>
         <div class="kpi"><div class="label">Promedio por viaje</div><div id="per-trip" class="value">—</div><div id="per-trip-hint" class="hint">Según importes registrados</div></div>
@@ -138,7 +162,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         <div class="kpi"><div class="label" id="net-estimate-label">Ganancia neta operativa</div><div id="net-estimate" class="value">—</div><div id="net-estimate-hint" class="hint">Requiere odómetro y gastos registrados</div></div>
         <div class="kpi"><div class="label">Caja neta tras cargas</div><div id="cash-net-estimate" class="value">—</div><div id="cash-net-estimate-hint" class="hint">Bruto − combustible comprado − otros costos conocidos</div></div>
       </section>
-      <section class="card" id="profitability-settings">
+      <section class="card" id="profitability-settings" data-area="inputs">
         <div class="section-head"><h2>Rentabilidad: bruto vs. neto</h2><span id="finance-status" class="pill">Costos configurables</span></div>
         <p class="note">Bruto = ingresos de viajes + recompensas. Neto operativo estimado = bruto − nafta − seguro − mantenimiento − cubiertas − patente/impuestos − gastos puntuales.</p>
         <div class="grid two">
@@ -211,11 +235,11 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         <div id="finance-coverage" class="note"></div>
         <div class="note">Los costos fijos, gastos puntuales, turnos con odómetro y tickets de nafta se guardan en este navegador, no en el ledger público. El backup JSON incluye estos registros locales. No se sincronizan automáticamente entre PC y celular. Sin odómetro, la nafta se calcula solo sobre km reales con pasajero y se marca parcial.</div>
       </section>
-      <div class="grid two">
+      <div class="grid two" data-area="dashboard">
         <section class="card"><h2>Actividad por día</h2><div id="period-label" class="note">Últimos 30 días</div><div id="daily-chart"><div class="empty">Cargando actividad…</div></div></section>
         <section class="card"><h2>Ingresos por hora de inicio</h2><div class="note" style="margin:0 0 12px">Importes agrupados por la hora que figura en el historial.</div><div id="hour-chart"><div class="empty">Cargando…</div></div></section>
       </div>
-      <div class="grid two summary-grid">
+      <div class="grid two summary-grid" data-area="dashboard">
         <section class="card">
           <div class="section-head"><h2>Detalle diario</h2><span id="daily-coverage" class="note">Importes y kilómetros</span></div>
           <div id="daily-summary" class="table-wrap"><div class="empty">Cargando resumen diario…</div></div>
@@ -227,23 +251,26 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
           <div class="note">Los meses en curso muestran solo los días disponibles en el historial. Los km de ruta estimados se mantienen separados y nunca calculan nafta.</div>
         </section>
       </div>
-      <div class="grid two">
+      <div class="grid two" data-area="dashboard">
         <section class="card"><h2>Horas conectadas</h2><div id="per-hour" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="hours-hint" class="note">Sin turnos registrados.</div><div id="sessions-list" class="note"></div></section>
         <section class="card"><h2>Combustible comprado</h2><div id="fuel-margin" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="fuel-hint" class="note">Sin tickets registrados.</div><div id="fuel-list" class="note"></div></section>
       </div>
-      <section class="card">
+      <section class="card" data-area="history">
         <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
         <div id="trips-table" class="trip-list"><div class="empty">Cargando viajes…</div></div>
       </section>
-      <section class="card"><h2>Recompensas</h2><div id="rewards-table" class="reward-list"><div class="empty">Cargando recompensas…</div></div></section>
+      <section class="card" data-area="history"><h2>Recompensas</h2><div id="rewards-table" class="reward-list"><div class="empty">Cargando recompensas…</div></div></section>
       <footer>Etios · Historial de viajes</footer>
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "./finance.mjs";
+import { calculateProfitability, calculateTripNetAfterFuel, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
+  document.querySelectorAll("[data-nav]").forEach((link) => {
+    if (link.dataset.nav === document.documentElement.dataset.page) link.setAttribute("aria-current", "page");
+  });
   const state = { trips: [], rewards: [], fuel: [], sessions: [], range: 30 };
   const LOCAL_SETTINGS_KEY = "etios-dash-operating-costs-v1";
   const DEFAULT_SETTINGS = {
@@ -579,8 +606,9 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
       periodDays
     });
 
-    $("hero-margin").textContent = money.format(gross);
-    $("hero-caption").textContent = trips.length + " viajes · " + rewards.length + " recompensas · bruto";
+    const tripNetAfterFuel = calculateTripNetAfterFuel({ tripGross, fuelPurchaseSpend: financial.fuelPurchaseSpend });
+    $("hero-margin").textContent = money.format(tripNetAfterFuel);
+    $("hero-caption").textContent = money.format(tripGross) + " por viajes − " + money.format(financial.fuelPurchaseSpend) + " en nafta comprada · " + money.format(rewardGross) + " en recompensas aparte.";
     $("gross").textContent = money.format(tripGross);
     $("trip-count").textContent = trips.length + " viajes";
     $("reward-total").textContent = money.format(rewardGross);
@@ -782,9 +810,10 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     $('rewards-table').innerHTML = rows.map((row) => '<article class="reward-row"><div class="reward-head"><div><div class="reward-label">' + escapeHtml(row.label || 'Recompensa') + '</div><div class="reward-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="reward-amount">' + money.format(asNumber(row.amount)) + '</div></div></article>').join('');
   }
   document.querySelectorAll('[data-range]').forEach((button) => {
+    button.classList.toggle('active', Number(button.dataset.range) === state.range);
     button.addEventListener('click', () => {
       state.range = Number(button.dataset.range);
-      document.querySelectorAll('[data-range]').forEach((item) => item.classList.toggle('active', item === button));
+      document.querySelectorAll('[data-range]').forEach((item) => item.classList.toggle('active', Number(item.dataset.range) === state.range));
       render();
     });
   });

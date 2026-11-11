@@ -38,6 +38,13 @@ Trip-level kilometres measure only the passenger ride. They are not the vehicle'
 - When two or more consecutive full-tank fuel records contain odometer readings, the calculator derives a tank-to-tank consumption figure from litres added and odometer distance, replacing the 8.8 reference for the estimate. Until then, it uses the test reference.
 - Complete net operating status requires odometer readings for every selected work session, a dated YPF price for the dates being evaluated, and a confirmed value (including zero) for every fixed-cost category. Otherwise the dashboard labels the result **partial/incomplete**.
 - Rewards count toward gross earnings but not ride count, passenger kilometres, passenger minutes or trip-only activity charts.
+## Dashboard views
+
+- / is the metrics-only home: the primary provisional net is **trip earnings minus recorded fuel purchases**, with rewards excluded from that headline value. It is a cash-after-purchases indicator, not complete operating profit.
+- /inputs/ contains local-only fuel tickets, odometer work sessions, fixed-cost settings, one-off expenses and YPF price history.
+- /trips/ contains the ride history, rewards, JSON backup and CSV export.
+- Navigation uses one shared HTML/JavaScript source. The Worker rewrites /inputs/ and /trips/ paths to index.html, while the browser selects the requested view from the original URL. This keeps one implementation and preserves same-origin local-storage entries.
+
 ## Dashboard contents
 
 - Ride KPIs and history: date, time, platform, amount, actual passenger kilometres, estimated route kilometres and duration.
