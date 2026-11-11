@@ -12,5 +12,6 @@
   },
   "devDependencies": {
     "wrangler": "4.158.0"
-  }
+  },
+  "description": "Private-by-design local finance dashboard for DiDi/Uber driving: earnings, vehicle kilometres, fuel costs and cash flow."
 }
