@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory } from "../public/finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "../public/finance.mjs";
 
 const PRICE_HISTORY = [
   { effective_from: "2026-11-02", price_ars_per_liter: 2167, station: "YPF San Carlos Centro" }
@@ -343,4 +343,29 @@ test("an existing browser price for the same date overrides a new default", () =
     { effective_from: "2026-11-10", price_ars_per_liter: 2178.65, station: "New default" }
   ];
   assert.deepEqual(mergePriceHistory(saved, defaults), saved);
+});
+
+
+test("cash projection includes undated fuel purchases for every selected period", () => {
+  const purchases = selectFuelPurchasesForPeriod([
+    { date: null, total_ars: 30000 },
+    { date: null, total_ars: 30000 },
+    { date: null, total_ars: 30000 },
+    { date: "2026-11-10", total_ars: 20000 },
+    { date: "2026-09-20", total_ars: 15000 },
+    { date: "2026-11-10", total_ars: 0 }
+  ], { range: 30, from: "2026-10-13", to: "2026-11-11" });
+
+  assert.equal(purchases.length, 4);
+  assert.equal(purchases.reduce((sum, row) => sum + row.total_ars, 0), 110000);
+});
+
+test("consumption KPI labels road-test reference until tank-to-tank data exists", () => {
+  const result = calculateProfitability({
+    trips: [{ date: "2026-11-10", amount: 10000, km: 10, km_source: "actual" }],
+    rewards: [], sessions: [], fuelLogs: [], priceHistory: PRICE_HISTORY,
+    monthlyCosts: {}, oneOffExpenses: [], periodDays: 1
+  });
+  assert.equal(result.consumptionLPer100Km, ETIOS_BASELINE_L_PER_100KM);
+  assert.equal(result.consumptionSource, "road_test_reference");
 });

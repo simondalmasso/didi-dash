@@ -17,6 +17,15 @@ function validDate(value) {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+export function selectFuelPurchasesForPeriod(fuelLogs, { range = 30, from = null, to = null } = {}) {
+  return (Array.isArray(fuelLogs) ? fuelLogs : []).filter((row) => {
+    if (amount(row?.total_ars) <= 0) return false;
+    if (!row?.date || range === 0) return true;
+    if (!validDate(row.date)) return false;
+    return (!from || row.date >= from) && (!to || row.date <= to);
+  });
+}
+
 export function mergePriceHistory(savedHistory, defaultHistory = []) {
   const snapshots = new Map();
   for (const rows of [defaultHistory, savedHistory]) {

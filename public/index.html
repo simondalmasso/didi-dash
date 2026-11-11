@@ -132,6 +132,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
         <div class="kpi"><div class="label">Km reales con pasajero</div><div id="car-km" class="value">—</div><div id="km-hint" class="hint">Solo datos de Detalles</div></div>
         <div class="kpi"><div class="label">Km estimados por ruta</div><div id="estimated-km" class="value">—</div><div id="estimated-km-hint" class="hint">Estimaciones separadas</div></div>
         <div class="kpi"><div class="label">Km del auto</div><div id="vehicle-km" class="value">—</div><div id="vehicle-km-hint" class="hint">Odómetro de turnos</div></div>
+        <div class="kpi"><div class="label">Consumo nafta</div><div id="fuel-consumption" class="value">—</div><div id="fuel-consumption-hint" class="hint">Referencia Etios · no medido por tanque</div></div>
         <div class="kpi"><div class="label">Nafta estimada · YPF Súper</div><div id="fuel-estimate" class="value">—</div><div id="fuel-estimate-hint" class="hint">Etios 1.5 manual · 8,8 L/100 km</div></div>
         <div class="kpi"><div class="label">Otros costos</div><div id="other-cost-estimate" class="value">—</div><div id="other-cost-hint" class="hint">Seguro, mantenimiento, cubiertas, patente</div></div>
         <div class="kpi"><div class="label" id="net-estimate-label">Ganancia neta operativa</div><div id="net-estimate" class="value">—</div><div id="net-estimate-hint" class="hint">Requiere odómetro y gastos registrados</div></div>
@@ -239,7 +240,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory } from "./finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "./finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -258,7 +259,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     }, {
       effective_from: "2026-11-10",
       price_ars_per_liter: 2178.65,
-      station: "YPF Súper · observación en surtidor (Santa Fe)",
+      station: "YPF Súper — ticket propio (ubicación no informada)",
       source_url: ""
     }]
   };
@@ -561,11 +562,10 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     const average = trips.length ? tripGross / trips.length : null;
     const periodDays = state.range > 0 ? state.range : historyDays([...trips, ...rewards, ...sessions]);
     const oneOffExpenses = selected(localSettings.oneOffExpenses);
-    const fuelPurchases = allFuelLogs.filter((row) => {
-      if (!(asNumber(row.total_ars) > 0)) return false;
-      if (state.range === 0) return true;
-      const from = localDateDaysAgo(state.range - 1);
-      return Boolean(row.date && row.date >= from && row.date <= isoToday);
+    const fuelPurchases = selectFuelPurchasesForPeriod(allFuelLogs, {
+      range: state.range,
+      from: state.range === 0 ? null : localDateDaysAgo(state.range - 1),
+      to: isoToday
     });
     const undatedFuelPayments = allFuelLogs.filter((row) => !row.date && asNumber(row.total_ars) > 0);
     const undatedFuelSpend = undatedFuelPayments.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
@@ -593,6 +593,11 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     $("estimated-km-hint").textContent = estimatedKmRows.length ? estimatedKmRows.length + " viajes · separados de los reales" : "Todavía no hay estimaciones de ruta";
     $("vehicle-km").textContent = vehicleKmRows.length ? number.format(vehicleKm) + " km" : "—";
     $("vehicle-km-hint").textContent = vehicleKmRows.length ? vehicleDays + " días · " + (vehicleKmPerDay === null ? "—" : number.format(vehicleKmPerDay) + " km/día") : "Cargá odómetro inicio/fin del turno";
+    const consumption = asNumber(financial.consumptionLPer100Km);
+    $("fuel-consumption").textContent = consumption > 0 ? number.format(consumption) + " L/100 km" : "—";
+    $("fuel-consumption-hint").textContent = financial.consumptionSource === "tank_to_tank"
+      ? "Medido entre cargas a tanque lleno"
+      : "Referencia de prueba Etios · no medido en este auto";
     $("fuel-estimate").textContent = financial.fuelCost === null ? "—" : money.format(financial.fuelCost);
     $("fuel-estimate-hint").textContent = financial.fuelCost === null
       ? "Falta km real y precio YPF registrado"
@@ -617,11 +622,13 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     $("cash-net-estimate").textContent = money.format(financial.netCashAfterFuelPurchases);
     $("cash-net-estimate-hint").textContent =
       money.format(financial.fuelPurchaseSpend) + " en cargas pagadas · " +
-      (state.range === 0 ? "todo el historial" : "compras con fecha dentro del período") +
+      (undatedFuelPayments.length
+        ? undatedFuelPayments.length + " cargas sin fecha incluidas en cualquier período"
+        : state.range === 0 ? "todo el historial" : "compras del período") +
       " · caja, no consumo estimado.";
     $("fuel-unassigned-note").textContent = undatedFuelPayments.length
       ? "Cargas sin fecha: " + money.format(undatedFuelSpend) + " (" + undatedFuelPayments.length +
-        "). Elegí «Todo» para descontarlas del saldo histórico; no se imputan a un día o mes."
+        "). Se incluyen en la caja neta de cualquier período, pero no se asignan a un día o mes."
       : "";
     $("finance-status").textContent = financial.netComplete ? "Costos completos" : "Faltan datos";
     $("per-hour").textContent = connectedMinutes > 0 ? number.format(connectedMinutes / 60) + " h" : "—";

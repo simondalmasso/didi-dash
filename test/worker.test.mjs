@@ -432,3 +432,43 @@ test("static dashboard assets explicitly disable browser and CDN caching", async
   assert.match(response.headers.get("cache-control") || "", /no-store/i);
   assert.match(response.headers.get("cdn-cache-control") || "", /no-store/i);
 });
+
+
+test("trusted ingestion stores incomplete fuel receipts without inventing date, litres or odometer", async () => {
+  const DATA = memoryKV();
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST",
+    headers: jsonHeaders(bearer()),
+    body: JSON.stringify({
+      fuel: [
+        {
+          id: "fuel-ticket-without-odometer",
+          date: "2026-11-10",
+          odometer_km: null,
+          liters: 9.18,
+          total_ars: 20000,
+          station: "YPF Super",
+          full_tank: false
+        },
+        {
+          id: "fuel-cash-only",
+          date: null,
+          odometer_km: null,
+          liters: null,
+          total_ars: 30000,
+          station: null,
+          full_tank: false
+        }
+      ]
+    })
+  }), { INGEST_TOKEN, DATA });
+
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.deepEqual(body.fuel, { received: 2, inserted: 2, duplicates: 0 });
+  assert.equal(DATA.value().fuel[0].odometer_km, null);
+  assert.equal(DATA.value().fuel[0].price_per_liter, 20000 / 9.18);
+  assert.equal(DATA.value().fuel[1].date, null);
+  assert.equal(DATA.value().fuel[1].liters, null);
+  assert.equal(DATA.value().fuel[1].price_per_liter, null);
+});

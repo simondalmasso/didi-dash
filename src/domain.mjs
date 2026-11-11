@@ -104,17 +104,28 @@ export async function normaliseReward(input) {
 
 export async function normaliseFuelLog(input) {
   assertObject(input, "fuel log");
-  const date = requireDate(input.date);
-  const odometer_km = finiteNumber(input.odometer_km, "odometer_km", { min: 0, max: 10000000 });
-  const liters = finiteNumber(input.liters, "liters", { min: 0.01, max: 200 });
+  const date = input.date == null || input.date === "" ? null : requireDate(input.date);
+  const odometer_km = input.odometer_km == null || input.odometer_km === ""
+    ? null
+    : finiteNumber(input.odometer_km, "odometer_km", { min: 0, max: 10000000 });
+  const liters = input.liters == null || input.liters === ""
+    ? null
+    : finiteNumber(input.liters, "liters", { min: 0.01, max: 200 });
   const total_ars = finiteNumber(input.total_ars, "total_ars", { min: 1, max: 100000000 });
   const station = safeLabel(input.station, "station", 60);
   const full_tank = input.full_tank === true || input.full_tank === 1 ? 1 : 0;
   const providedId = safeId(input.id);
   const id = providedId ?? await stableId([
-    date, String(odometer_km), liters.toFixed(3), String(total_ars), station ?? "", String(full_tank)
+    date ?? "",
+    odometer_km == null ? "" : String(odometer_km),
+    liters == null ? "" : liters.toFixed(3),
+    String(total_ars), station ?? "", String(full_tank)
   ]);
-  return { id, date, odometer_km, liters, total_ars, price_per_liter: total_ars / liters, station, full_tank };
+  return {
+    id, date, odometer_km, liters, total_ars,
+    price_per_liter: liters == null ? null : total_ars / liters,
+    station, full_tank
+  };
 }
 
 export async function normaliseWorkSession(input) {
