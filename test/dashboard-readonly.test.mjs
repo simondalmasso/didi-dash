@@ -4,18 +4,23 @@ import test from "node:test";
 
 const dashboard = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
 
-test("dashboard exposes no manual-entry controls", () => {
-  assert.doesNotMatch(dashboard, /<\s*(?:form|input|select|textarea)\b/i);
-  assert.doesNotMatch(dashboard, /addEventListener\(\s*["']submit["']/i);
-  assert.doesNotMatch(dashboard, /\$\(["'][^"']+["']\)\.value\b/);
-  assert.doesNotMatch(dashboard, /data-remove-(?:expense|local-session|local-fuel)/);
-  assert.doesNotMatch(dashboard, /localStorage\.setItem/);
-  assert.match(dashboard, /Solo lectura/i);
+test("dashboard exposes the local financial-entry forms", () => {
+  for (const formId of [
+    "monthly-cost-form",
+    "one-off-cost-form",
+    "local-session-form",
+    "local-fuel-form"
+  ]) {
+    assert.match(dashboard, new RegExp('id="' + formId + '"'));
+  }
+  assert.match(dashboard, /localStorage\\.setItem/);
+  assert.match(dashboard, /createWorkSession/);
+  assert.match(dashboard, /createFuelEntry/);
+  assert.doesNotMatch(dashboard, /Modo solo lectura/i);
 });
 
-test("read-only dashboard keeps previously saved browser data and financial calculations", () => {
-  assert.match(dashboard, /localStorage\.getItem\(LOCAL_SETTINGS_KEY\)/);
-  assert.match(dashboard, /calculateProfitability\(/);
-  assert.match(dashboard, /api\("\/api\/fuel\?limit=/);
-  assert.match(dashboard, /api\("\/api\/sessions\?limit=/);
+test("daily and monthly profitability views remain available alongside manual entry", () => {
+  assert.match(dashboard, /id="daily-summary"/);
+  assert.match(dashboard, /id="monthly-summary"/);
+  assert.match(dashboard, /calculateProfitability\\(/);
 });
