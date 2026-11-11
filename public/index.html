@@ -129,6 +129,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
       <div class="toolbar" data-area="dashboard">
         <div><strong>Panel general</strong><div class="subhead" style="margin:4px 0 0">Ingresos, nafta y rendimiento del Etios.</div></div>
         <div class="period" aria-label="Período del panel">
+          <button type="button" data-range="1">Hoy</button>
           <button type="button" data-range="7">7 días</button>
           <button type="button" data-range="30" class="active">30 días</button>
           <button type="button" data-range="0">Todo</button>
@@ -140,6 +141,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
       <div class="toolbar" data-area="history">
         <div><strong>Historial de viajes</strong><div class="subhead" style="margin:4px 0 0">Viajes y recompensas registrados.</div></div>
         <div class="period" aria-label="Período del historial">
+          <button type="button" data-range="1">Hoy</button>
           <button type="button" data-range="7">7 días</button>
           <button type="button" data-range="30" class="active">30 días</button>
           <button type="button" data-range="0">Todo</button>
@@ -264,14 +266,20 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, calculateTripNetAfterFuel, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
+import { calculateProfitability, calculateTripNetAfterFuel, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
+  const activeRangeParam = new URLSearchParams(location.search).get("range");
   document.querySelectorAll("[data-nav]").forEach((link) => {
+    if (activeRangeParam) {
+      const target = new URL(link.getAttribute("href"), location.origin);
+      target.searchParams.set("range", activeRangeParam);
+      link.href = target.pathname + target.search + target.hash;
+    }
     if (link.dataset.nav === document.documentElement.dataset.page) link.setAttribute("aria-current", "page");
   });
-  const state = { trips: [], rewards: [], fuel: [], sessions: [], range: 30 };
+  const state = { trips: [], rewards: [], fuel: [], sessions: [], range: dashboardRangeFromSearch(location.search) };
   const LOCAL_SETTINGS_KEY = "etios-dash-operating-costs-v1";
   const DEFAULT_SETTINGS = {
     monthlyCosts: { insurance: null, maintenance: null, tires: null, tax: null, other: null },
@@ -809,11 +817,23 @@ import { calculateProfitability, calculateTripNetAfterFuel, ETIOS_BASELINE_L_PER
     const rows = rewards.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
     $('rewards-table').innerHTML = rows.map((row) => '<article class="reward-row"><div class="reward-head"><div><div class="reward-label">' + escapeHtml(row.label || 'Recompensa') + '</div><div class="reward-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="reward-amount">' + money.format(asNumber(row.amount)) + '</div></div></article>').join('');
   }
+  const syncRangeButtons = () => {
+    document.querySelectorAll('[data-range]').forEach((item) => {
+      const active = Number(item.dataset.range) === state.range;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-pressed', String(active));
+    });
+  };
+  syncRangeButtons();
   document.querySelectorAll('[data-range]').forEach((button) => {
-    button.classList.toggle('active', Number(button.dataset.range) === state.range);
     button.addEventListener('click', () => {
       state.range = Number(button.dataset.range);
-      document.querySelectorAll('[data-range]').forEach((item) => item.classList.toggle('active', Number(item.dataset.range) === state.range));
+      window.history.replaceState(
+        window.history.state,
+        "",
+        dashboardUrlWithRange(location.pathname, location.search, location.hash, state.range)
+      );
+      syncRangeButtons();
       render();
     });
   });

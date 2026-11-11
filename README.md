@@ -44,6 +44,7 @@ Trip-level kilometres measure only the passenger ride. They are not the vehicle'
 - /inputs/ contains local-only fuel tickets, odometer work sessions, fixed-cost settings, one-off expenses and YPF price history.
 - /trips/ contains the ride history, rewards, JSON backup and CSV export.
 - Navigation uses one shared HTML/JavaScript source. The Worker rewrites /inputs/ and /trips/ paths to index.html, while the browser selects the requested view from the original URL. This keeps one implementation and preserves same-origin local-storage entries.
+- Period filters are deep links: Hoy uses range=1, 7 días uses range=7, Todo uses range=all, and 30 días is the default. Refreshing or sharing a filtered URL keeps the same period, and navigation preserves it across views.
 
 ## Dashboard contents
 
