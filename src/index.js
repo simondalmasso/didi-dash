@@ -188,6 +188,10 @@ function mergeTripDetails(existing, incoming) {
     next.km = incomingKm;
     next.km_source = "actual";
     updated = true;
+  } else if (existingKm > 0 && existing.km_source == null) {
+    // Backfill the canonical source for legacy positive-distance rows.
+    next.km_source = existingSource;
+    updated = true;
   }
 
   const existingMinutes = Number(existing.min) || 0;
