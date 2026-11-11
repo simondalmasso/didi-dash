@@ -131,3 +131,37 @@ test("normaliseTrip marks zero kilometres as unknown", async () => {
   const trip = await normaliseTrip({ date: "2026-11-03", start: "18:20", amount: 1800, km: 0, min: 0, platform: "didi" });
   assert.equal(trip.km_source, "unknown");
 });
+
+
+test("normaliseFuelLog accepts a dated ticket when the odometer is not known", async () => {
+  const row = await normaliseFuelLog({
+    date: "2026-11-10",
+    odometer_km: null,
+    liters: 9.18,
+    total_ars: 20000,
+    station: "YPF Super",
+    full_tank: false
+  });
+  assert.equal(row.date, "2026-11-10");
+  assert.equal(row.odometer_km, null);
+  assert.equal(row.liters, 9.18);
+  assert.equal(row.total_ars, 20000);
+  assert.equal(row.price_per_liter, 20000 / 9.18);
+});
+
+test("normaliseFuelLog accepts a cash-only fuel purchase with no date, litres or odometer", async () => {
+  const row = await normaliseFuelLog({
+    id: "fuel-purchase-30k-test",
+    date: null,
+    odometer_km: null,
+    liters: null,
+    total_ars: 30000,
+    station: null,
+    full_tank: false
+  });
+  assert.equal(row.date, null);
+  assert.equal(row.odometer_km, null);
+  assert.equal(row.liters, null);
+  assert.equal(row.total_ars, 30000);
+  assert.equal(row.price_per_liter, null);
+});
