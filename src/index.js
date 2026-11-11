@@ -392,7 +392,7 @@ export default {
     if (!url.pathname.startsWith("/api/")) {
       const dashboardDirectoryRoutes = new Set(["/inputs", "/inputs/", "/trips", "/trips/"]);
       const assetRequest = dashboardDirectoryRoutes.has(url.pathname)
-        ? new Request(new URL("/index.html", url), request)
+        ? new Request(new URL("/", url), request)
         : request;
       const asset = await env.ASSETS.fetch(assetRequest);
       const headers = new Headers(asset.headers);

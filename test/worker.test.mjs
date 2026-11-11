@@ -532,7 +532,11 @@ test("dashboard directory routes serve the shared index asset", async () => {
   const paths = [];
   const ASSETS = {
     async fetch(request) {
-      paths.push(new URL(request.url).pathname);
+      const path = new URL(request.url).pathname;
+      paths.push(path);
+      if (path === "/index.html") {
+        return new Response(null, { status: 307, headers: { location: "/" } });
+      }
       return new Response("<!doctype html><html></html>", {
         status: 200,
         headers: { "content-type": "text/html; charset=utf-8" }
@@ -545,5 +549,5 @@ test("dashboard directory routes serve the shared index asset", async () => {
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type"), /text\/html/);
   }
-  assert.deepEqual(paths, ["/index.html", "/index.html"]);
+  assert.deepEqual(paths, ["/", "/"]);
 });
