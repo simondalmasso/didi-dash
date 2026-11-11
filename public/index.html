@@ -216,6 +216,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
             <div><label for="session-odo-end">Odómetro al terminar (km)</label><input id="session-odo-end" type="number" min="0.1" step="0.1" required placeholder="Ej. 84642,5"></div>
           </div>
           <div class="row cost-actions"><button type="submit">Guardar turno</button><span id="session-entry-status" class="note">Se calcula la diferencia de odómetro; admite turnos que cruzan medianoche.</span></div>
+          <div id="missing-odometer-days" class="note" aria-live="polite"></div>
         </form>
         <div id="local-sessions" class="cost-history"></div>
         <div class="divider"></div>
@@ -650,8 +651,13 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardPageFromPat
     $("net-estimate").textContent = financial.netComplete
       ? money.format(financial.netOperating)
       : financial.netPartial === null ? "—" : money.format(financial.netPartial);
+    const missingOdometerDates = financial.missingOdometerDates || [];
+    const missingOdometerDays = missingOdometerDates.map(dateLabel);
+    $("missing-odometer-days").textContent = missingOdometerDays.length
+      ? "D\u00edas con viajes sin od\u00f3metro: " + missingOdometerDays.join(", ") + ". Carg\u00e1 un turno con od\u00f3metro para cada d\u00eda."
+      : "Cobertura de od\u00f3metro completa para los d\u00edas con viajes del per\u00edodo.";
     const gaps = [];
-    if (!financial.odometerComplete) gaps.push("odómetro completo de todos los turnos");
+    if (!financial.odometerComplete) gaps.push(missingOdometerDays.length ? "od\u00f3metro de " + missingOdometerDays.join(", ") : "od\u00f3metro completo de todos los turnos");
     if (financial.missingCosts.length) gaps.push(...financial.missingCosts.map(costLabel));
     if (financial.missingPriceDates) gaps.push("precio YPF para algunas fechas");
     $("net-estimate-hint").textContent = financial.netComplete
@@ -680,7 +686,7 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardPageFromPat
     $("finance-coverage").textContent = "Bruto: " + money.format(financial.gross) +
       " · Nafta: " + (financial.fuelCost === null ? "sin base" : money.format(financial.fuelCost)) +
       " · Otros gastos: " + money.format(financial.otherCosts) +
-      (financial.fuelMode === "passenger_km_partial" ? " · Nafta calculada solo sobre km con pasajero; falta odómetro." : financial.fuelMode === "vehicle_odometer_partial" ? " · Hay turnos sin odómetro." : "");
+      (financial.fuelMode === "passenger_km_partial" ? " \u00b7 Nafta calculada solo sobre km con pasajero; falta od\u00f3metro." : financial.fuelMode === "vehicle_odometer_partial" ? " \u00b7 D\u00edas sin od\u00f3metro: " + (financial.missingOdometerDates || []).map(dateLabel).join(", ") + "." : "");
     const periodSummary = summarizeEarnings({
       trips, rewards, sessions,
       fuelLogs: allFuelLogs,

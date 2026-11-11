@@ -104,7 +104,10 @@ test("estimated route kilometres are not treated as vehicle fuel distance", () =
 
 test("partial odometer coverage cannot be reported as complete net profit", () => {
   const result = calculateProfitability({
-    trips: [{ date: "2026-11-08", amount: 100000, km: 100, km_source: "actual" }],
+    trips: [
+      { date: "2026-11-08", amount: 100000, km: 100, km_source: "actual" },
+      { date: "2026-11-09", amount: 5000, km: 5, km_source: "actual" }
+    ],
     rewards: [],
     sessions: [
       { date: "2026-11-08", odometer_km: 150 },
@@ -118,6 +121,7 @@ test("partial odometer coverage cannot be reported as complete net profit", () =
   });
   assert.equal(result.fuelMode, "vehicle_odometer_partial");
   assert.equal(result.odometerComplete, false);
+  assert.deepEqual(result.missingOdometerDates, ["2026-11-09"]);
   assert.equal(result.netComplete, false);
   assert.equal(result.netOperating, null);
 });
