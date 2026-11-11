@@ -64,7 +64,7 @@ test("page-specific toolbars and period filters stay in their own views", () => 
   assert.match(dashboard, /<div class="toolbar" data-area="history">/);
   assert.equal((dashboard.match(/data-range="7"/g) || []).length, 2);
   assert.equal((dashboard.match(/data-range="30"/g) || []).length, 2);
-  assert.ok(dashboard.includes("item.classList.toggle('active', Number(item.dataset.range) === state.range)"));
+  assert.ok(dashboard.includes("item.classList.toggle('active', active)"));
 });
 
 
