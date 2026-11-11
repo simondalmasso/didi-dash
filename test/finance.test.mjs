@@ -382,3 +382,28 @@ test("primary trip net subtracts fuel purchases from trip income only", async ()
     fuelPurchaseSpend: 5000
   }), -5000);
 });
+
+
+test("dashboard range parser supports today, week, month, all and safe fallback", async () => {
+  const { dashboardRangeFromSearch } = await import("../public/finance.mjs");
+  assert.equal(dashboardRangeFromSearch(""), 30);
+  assert.equal(dashboardRangeFromSearch("?range=1"), 1);
+  assert.equal(dashboardRangeFromSearch("?range=7"), 7);
+  assert.equal(dashboardRangeFromSearch("?range=30"), 30);
+  assert.equal(dashboardRangeFromSearch("?range=all"), 0);
+  assert.equal(dashboardRangeFromSearch("?range=invalid"), 30);
+});
+
+test("dashboard range URLs preserve other query values and fragments", async () => {
+  const { dashboardUrlWithRange } = await import("../public/finance.mjs");
+  assert.equal(
+    dashboardUrlWithRange("/trips/", "?source=share&range=30", "#latest", 7),
+    "/trips/?source=share&range=7#latest"
+  );
+  assert.equal(
+    dashboardUrlWithRange("/inputs/", "?source=share&range=7", "", 30),
+    "/inputs/?source=share"
+  );
+  assert.equal(dashboardUrlWithRange("/", "", "", 0), "/?range=all");
+  assert.throws(() => dashboardUrlWithRange("/", "", "", 14), /Unsupported dashboard range/);
+});
