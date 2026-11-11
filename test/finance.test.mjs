@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry } from "../public/finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory } from "../public/finance.mjs";
 
 const PRICE_HISTORY = [
   { effective_from: "2026-11-02", price_ars_per_liter: 2167, station: "YPF San Carlos Centro" }
@@ -322,4 +322,25 @@ test("cash net subtracts the three known 30000 ARS fuel purchases without mixing
   assert.equal(result.fuelPurchaseSpend, 90000);
   assert.equal(result.netCashAfterFuelPurchases, 353600);
   assert.equal(result.fuelCost, null);
+});
+
+
+test("new default YPF price snapshot is added to existing browser history", () => {
+  const saved = [
+    { effective_from: "2026-11-02", price_ars_per_liter: 2167, station: "Earlier reference" }
+  ];
+  const defaults = [
+    { effective_from: "2026-11-10", price_ars_per_liter: 2178.65, station: "YPF Súper · observado en surtidor" }
+  ];
+  assert.deepEqual(mergePriceHistory(saved, defaults), [...saved, ...defaults]);
+});
+
+test("an existing browser price for the same date overrides a new default", () => {
+  const saved = [
+    { effective_from: "2026-11-10", price_ars_per_liter: 2200, station: "User-entered price" }
+  ];
+  const defaults = [
+    { effective_from: "2026-11-10", price_ars_per_liter: 2178.65, station: "New default" }
+  ];
+  assert.deepEqual(mergePriceHistory(saved, defaults), saved);
 });
