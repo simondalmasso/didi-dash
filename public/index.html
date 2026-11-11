@@ -355,7 +355,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
     $("ypf-price-date").value = isoToday;
     $("ypf-price-context").textContent = latest
-      ? "Última referencia publicada: $" + priceNumber.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · declarada vigente desde " + dateLabel(latest.effective_from) + ". Precio observado en una compra puntual; puede variar entre estaciones. Actualizalo cuando cambie el valor en surtidor."
+      ? "Última referencia registrada: $" + priceNumber.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + ". Precio observado en una compra puntual; puede variar entre estaciones. Actualizalo cuando cambie el valor en surtidor."
       : "No hay precio de referencia cargado.";
     $("expense-date").value = isoToday;
     $("session-date").value = isoToday;
@@ -499,7 +499,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
     $("ypf-price-date").value = isoToday;
     $("ypf-price-context").textContent = latest
-      ? "Última referencia publicada: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · declarada vigente desde " + dateLabel(latest.effective_from) + "."
+      ? "Última referencia registrada: $" + priceNumber.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · vigente desde " + dateLabel(latest.effective_from) + ". Precio observado en una compra puntual; puede variar entre estaciones. Actualizalo cuando cambie el valor en surtidor."
       : "No hay precio de referencia cargado.";
     renderYpfHistory();
   }
