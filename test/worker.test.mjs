@@ -472,3 +472,57 @@ test("trusted ingestion stores incomplete fuel receipts without inventing date, 
   assert.equal(DATA.value().fuel[1].liters, null);
   assert.equal(DATA.value().fuel[1].price_per_liter, null);
 });
+
+test("ingestion normalizes a legacy positive-km trip that is missing km_source", async () => {
+  const DATA = memoryKV({
+    trips: [{
+      id: "legacy-positive-km-no-source",
+      date: "2026-11-10",
+      start: "22:35",
+      amount: 3000,
+      km: 3.4,
+      min: 9.6,
+      platform: "didi",
+      source: "didi_history_detail"
+    }],
+    rewards: [],
+    fuel: [],
+    sessions: []
+  });
+  const detail = {
+    date: "2026-11-10",
+    start: "22:35",
+    amount: 3000,
+    km: 3.4,
+    km_source: "actual",
+    min: 9.6,
+    platform: "didi",
+    source: "didi_history_detail"
+  };
+
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST",
+    headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [detail] })
+  }), { INGEST_TOKEN, DATA });
+
+  assert.equal(response.status, 201);
+  assert.deepEqual((await response.json()).trips, {
+    received: 1, inserted: 0, updated: 1, duplicates: 0, ambiguous: 0
+  });
+  assert.equal(DATA.value().trips.length, 1);
+  assert.equal(DATA.value().trips[0].km_source, "actual");
+  assert.equal(DATA.value().trips[0].amount, 3000);
+  assert.equal(DATA.value().trips[0].km, 3.4);
+  assert.equal(DATA.value().trips[0].min, 9.6);
+
+  const replay = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST",
+    headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [detail] })
+  }), { INGEST_TOKEN, DATA });
+  assert.deepEqual((await replay.json()).trips, {
+    received: 1, inserted: 0, updated: 0, duplicates: 1, ambiguous: 0
+  });
+  assert.equal(DATA.value().trips.length, 1);
+});
