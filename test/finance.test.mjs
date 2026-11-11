@@ -289,3 +289,37 @@ test("daily and monthly summaries use measured tank-to-tank consumption like the
   assert.equal(summary.monthly[0].consumptionLPer100Km, 10);
   assert.equal(summary.monthly[0].consumptionSource, "tank_to_tank");
 });
+
+
+test("incomplete fuel purchase can be recorded from its known total first", () => {
+  const row = createFuelEntry({
+    id: "fuel-pending-30000",
+    total_ars: 30000
+  });
+  assert.equal(row.date, null);
+  assert.equal(row.odometer_km, null);
+  assert.equal(row.liters, null);
+  assert.equal(row.price_per_liter, null);
+  assert.equal(row.total_ars, 30000);
+});
+
+test("cash net subtracts the three known 30000 ARS fuel purchases without mixing consumed fuel", () => {
+  const result = calculateProfitability({
+    trips: [{ date: "2026-11-10", amount: 443600, km: 0, km_source: "unknown" }],
+    rewards: [],
+    sessions: [],
+    fuelLogs: [],
+    fuelPurchases: [
+      { total_ars: 30000 },
+      { total_ars: 30000 },
+      { total_ars: 30000 }
+    ],
+    priceHistory: [],
+    monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
+    oneOffExpenses: [],
+    periodDays: 30
+  });
+  assert.equal(result.fuelPurchaseSpend, 90000);
+  assert.equal(result.netCashAfterFuelPurchases, 353600);
+  assert.equal(result.fuelCost, null);
+});
