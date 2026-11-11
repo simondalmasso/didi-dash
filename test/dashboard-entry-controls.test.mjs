@@ -66,3 +66,13 @@ test("page-specific toolbars and period filters stay in their own views", () => 
   assert.equal((dashboard.match(/data-range="30"/g) || []).length, 2);
   assert.ok(dashboard.includes("item.classList.toggle('active', Number(item.dataset.range) === state.range)"));
 });
+
+
+test("dashboard range filters include Today and preserve the selected period in the URL", () => {
+  assert.equal((dashboard.match(/data-range="1">Hoy/g) || []).length, 2);
+  assert.match(dashboard, /dashboardRangeFromSearch\(location\.search\)/);
+  assert.match(dashboard, /dashboardUrlWithRange\(location\.pathname, location\.search, location\.hash, state\.range\)/);
+  assert.match(dashboard, /window\.history\.replaceState/);
+  assert.match(dashboard, /aria-pressed/);
+  assert.match(dashboard, /activeRangeParam/);
+});
