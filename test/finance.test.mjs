@@ -407,3 +407,15 @@ test("dashboard range URLs preserve other query values and fragments", async () 
   assert.equal(dashboardUrlWithRange("/", "", "", 0), "/?range=all");
   assert.throws(() => dashboardUrlWithRange("/", "", "", 14), /Unsupported dashboard range/);
 });
+
+
+test("dashboard route resolver identifies home, inputs and history paths", async () => {
+  const { dashboardPageFromPath } = await import("../public/finance.mjs");
+  assert.equal(dashboardPageFromPath("/"), "home");
+  assert.equal(dashboardPageFromPath("/inputs"), "inputs");
+  assert.equal(dashboardPageFromPath("/inputs/"), "inputs");
+  assert.equal(dashboardPageFromPath("/inputs/costs"), "inputs");
+  assert.equal(dashboardPageFromPath("/trips"), "trips");
+  assert.equal(dashboardPageFromPath("/trips/"), "trips");
+  assert.equal(dashboardPageFromPath("/trips/2026-11"), "trips");
+});
