@@ -526,3 +526,24 @@ test("ingestion normalizes a legacy positive-km trip that is missing km_source",
   });
   assert.equal(DATA.value().trips.length, 1);
 });
+
+
+test("dashboard directory routes serve the shared index asset", async () => {
+  const paths = [];
+  const ASSETS = {
+    async fetch(request) {
+      paths.push(new URL(request.url).pathname);
+      return new Response("<!doctype html><html></html>", {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" }
+      });
+    }
+  };
+
+  for (const path of ["/inputs/", "/trips/"]) {
+    const response = await worker.fetch(apiRequest(path), { ASSETS });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type"), /text\/html/);
+  }
+  assert.deepEqual(paths, ["/index.html", "/index.html"]);
+});

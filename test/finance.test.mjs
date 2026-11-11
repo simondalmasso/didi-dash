@@ -369,3 +369,16 @@ test("consumption KPI labels road-test reference until tank-to-tank data exists"
   assert.equal(result.consumptionLPer100Km, ETIOS_BASELINE_L_PER_100KM);
   assert.equal(result.consumptionSource, "road_test_reference");
 });
+
+
+test("primary trip net subtracts fuel purchases from trip income only", async () => {
+  const { calculateTripNetAfterFuel } = await import("../public/finance.mjs");
+  assert.equal(calculateTripNetAfterFuel({
+    tripGross: 438000,
+    fuelPurchaseSpend: 110000
+  }), 328000);
+  assert.equal(calculateTripNetAfterFuel({
+    tripGross: 0,
+    fuelPurchaseSpend: 5000
+  }), -5000);
+});

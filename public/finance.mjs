@@ -13,6 +13,10 @@ function amount(value) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+export function calculateTripNetAfterFuel({ tripGross = 0, fuelPurchaseSpend = 0 } = {}) {
+  return Math.round((amount(tripGross) - amount(fuelPurchaseSpend) + Number.EPSILON) * 100) / 100;
+}
+
 function validDate(value) {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }

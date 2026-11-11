@@ -390,7 +390,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) {
-      const asset = await env.ASSETS.fetch(request);
+      const dashboardDirectoryRoutes = new Set(["/inputs", "/inputs/", "/trips", "/trips/"]);
+      const assetRequest = dashboardDirectoryRoutes.has(url.pathname)
+        ? new Request(new URL("/index.html", url), request)
+        : request;
+      const asset = await env.ASSETS.fetch(assetRequest);
       const headers = new Headers(asset.headers);
       headers.set("cache-control", "no-store, max-age=0, must-revalidate");
       headers.set("cdn-cache-control", "no-store");
