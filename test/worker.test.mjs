@@ -551,3 +551,171 @@ test("dashboard directory routes serve the shared index asset", async () => {
   }
   assert.deepEqual(paths, ["/", "/"]);
 });
+
+
+test("authenticated ingestion dry-run classifies changes by day without writing KV", async () => {
+  const date = "2026-11-06";
+  const summary = {
+    id: "summary-trip", date, start: "08:00", amount: 2000,
+    km: 0, km_source: "unknown", min: 0, platform: "didi", source: "didi_history"
+  };
+  const ambiguousA = {
+    id: "ambiguous-a", date, start: "09:00", amount: 1500,
+    km: 2, km_source: "actual", min: 5, platform: "didi", source: "didi_history_detail"
+  };
+  const ambiguousB = { ...ambiguousA, id: "ambiguous-b" };
+  const duplicate = {
+    id: "duplicate-trip", date, start: "10:00", amount: 1800,
+    km: 1.2, km_source: "actual", min: 4, platform: "didi", source: "didi_history_detail"
+  };
+  const before = { trips: [summary, ambiguousA, ambiguousB, duplicate], rewards: [], fuel: [], sessions: [] };
+  const DATA = memoryKV(before);
+  const response = await worker.fetch(apiRequest("/api/ingest?dry=1", {
+    method: "POST",
+    headers: jsonHeaders(bearer()),
+    body: JSON.stringify({
+      trips: [
+        { date, start: "11:00", amount: 1200, km: 1.5, min: 5, platform: "didi", passenger_name: "never return" },
+        { date, start: "08:00", amount: 2000, km: 3, min: 9, platform: "didi", source: "didi_history_detail" },
+        { date, start: "09:00", amount: 1500, km: 2, min: 5, platform: "didi" },
+        duplicate
+      ]
+    })
+  }), { INGEST_TOKEN, DATA });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.dry_run, true);
+  assert.deepEqual(body.trips, {
+    received: 4, inserted: 1, updated: 1, duplicates: 1, ambiguous: 1
+  });
+  assert.equal(body.by_day[date].trips.inserted, 1);
+  assert.equal(body.by_day[date].trips.updated, 1);
+  assert.equal(body.by_day[date].trips.duplicates, 1);
+  assert.equal(body.by_day[date].trips.ambiguous, 1);
+  assert.equal(JSON.stringify(body).includes("never return"), false);
+  assert.deepEqual(DATA.value(), before);
+  assert.equal(DATA.calls.filter((call) => call.method === "put").length, 0);
+});
+
+test("dry-run requires the ingestion token and never writes on rejection", async () => {
+  const DATA = memoryKV();
+  const response = await worker.fetch(apiRequest("/api/ingest?dry=1", {
+    method: "POST",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ trips: [{
+      date: "2026-11-06", start: "11:00", amount: 1200, km: 1, min: 5, platform: "didi"
+    }] })
+  }), { INGEST_TOKEN, DATA });
+
+  assert.equal(response.status, 401);
+  assert.equal(DATA.calls.filter((call) => call.method === "put").length, 0);
+  assert.equal(DATA.value(), null);
+});
+
+test("work-session ingestion deduplicates by shift identity and enriches odometer once", async () => {
+  const DATA = memoryKV();
+  const base = {
+    date: "2026-11-06", platform: "didi",
+    connected_start: "09:00", connected_end: "15:00"
+  };
+  const first = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ sessions: [{ ...base, id: "browser-session-1" }] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(first.status, 201);
+  const retainedId = DATA.value().sessions[0].id;
+
+  const enrichedInput = {
+    ...base, id: "browser-session-2", odometer_start: 82000, odometer_end: 82012.5
+  };
+  const enriched = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ sessions: [enrichedInput] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(enriched.status, 201);
+  assert.deepEqual((await enriched.json()).sessions, {
+    received: 1, inserted: 0, updated: 1, duplicates: 0, ambiguous: 0
+  });
+  assert.equal(DATA.value().sessions.length, 1);
+  assert.equal(DATA.value().sessions[0].id, retainedId);
+  assert.equal(DATA.value().sessions[0].odometer_km, 12.5);
+
+  const repeated = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ sessions: [enrichedInput] })
+  }), { INGEST_TOKEN, DATA });
+  assert.deepEqual((await repeated.json()).sessions, {
+    received: 1, inserted: 0, updated: 0, duplicates: 1, ambiguous: 0
+  });
+  assert.equal(DATA.value().sessions.length, 1);
+});
+
+test("conflicting odometer data for the same work session is ambiguous and preserved", async () => {
+  const existing = {
+    id: "session-original", date: "2026-11-06", platform: "didi",
+    connected_start: "09:00", connected_end: "15:00", connected_minutes: 360,
+    odometer_start: 82000, odometer_end: 82012, odometer_km: 12
+  };
+  const DATA = memoryKV({ trips: [], rewards: [], fuel: [], sessions: [existing] });
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ sessions: [{
+      date: existing.date, platform: existing.platform,
+      connected_start: existing.connected_start, connected_end: existing.connected_end,
+      odometer_start: 82001, odometer_end: 82013
+    }] })
+  }), { INGEST_TOKEN, DATA });
+
+  assert.equal(response.status, 201);
+  assert.deepEqual((await response.json()).sessions, {
+    received: 1, inserted: 0, updated: 0, duplicates: 0, ambiguous: 1
+  });
+  assert.deepEqual(DATA.value().sessions, [existing]);
+});
+
+
+test("dry-run and commit use the same classification for every collection", async () => {
+  const DATA = memoryKV();
+  const payload = {
+    trips: [{
+      date: "2026-11-07", start: "08:10", amount: 2500,
+      km: 3.2, min: 11, platform: "didi"
+    }],
+    rewards: [{
+      date: "2026-11-07", start: "20:00", amount: 7000, label: "Recompensa"
+    }],
+    fuel: [{
+      date: "2026-11-07", total_ars: 30000, station: "YPF"
+    }],
+    sessions: [{
+      date: "2026-11-07", platform: "didi",
+      connected_start: "08:00", connected_end: "17:00",
+      odometer_start: 82000, odometer_end: 82035
+    }]
+  };
+  const preview = await worker.fetch(apiRequest("/api/ingest?dry=1", {
+    method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify(payload)
+  }), { INGEST_TOKEN, DATA });
+  const previewBody = await preview.json();
+
+  assert.equal(preview.status, 200);
+  assert.equal(DATA.calls.filter((call) => call.method === "put").length, 0);
+
+  const commit = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()), body: JSON.stringify(payload)
+  }), { INGEST_TOKEN, DATA });
+  const commitBody = await commit.json();
+
+  assert.equal(commit.status, 201);
+  assert.equal(commitBody.dry_run, false);
+  assert.deepEqual(previewBody.trips, commitBody.trips);
+  assert.deepEqual(previewBody.rewards, commitBody.rewards);
+  assert.deepEqual(previewBody.fuel, commitBody.fuel);
+  assert.deepEqual(previewBody.sessions, commitBody.sessions);
+  assert.deepEqual(previewBody.by_day, commitBody.by_day);
+  assert.equal(DATA.value().trips.length, 1);
+  assert.equal(DATA.value().rewards.length, 1);
+  assert.equal(DATA.value().fuel.length, 1);
+  assert.equal(DATA.value().sessions.length, 1);
+});

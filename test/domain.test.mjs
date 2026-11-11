@@ -165,3 +165,22 @@ test("normaliseFuelLog accepts a cash-only fuel purchase with no date, litres or
   assert.equal(row.total_ars, 30000);
   assert.equal(row.price_per_liter, null);
 });
+
+
+test("work-session generated identity is independent of odometer enrichment", async () => {
+  const base = {
+    date: "2026-11-06",
+    platform: "didi",
+    connected_start: "09:00",
+    connected_end: "15:00"
+  };
+  const withoutOdometer = await normaliseWorkSession(base);
+  const withOdometer = await normaliseWorkSession({
+    ...base,
+    odometer_start: 82000,
+    odometer_end: 82012.5
+  });
+
+  assert.equal(withoutOdometer.id, withOdometer.id);
+  assert.equal(withOdometer.odometer_km, 12.5);
+});

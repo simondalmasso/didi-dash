@@ -161,10 +161,9 @@ export async function normaliseWorkSession(input) {
   const odometer_km = odometer_start == null ? null : odometer_end - odometer_start;
 
   const providedId = safeId(input.id);
+  // Shift identity must stay stable when odometer details are added later.
   const id = providedId ?? await stableId([
-    date, platform, connected_start, connected_end,
-    odometer_start == null ? "" : String(odometer_start),
-    odometer_end == null ? "" : String(odometer_end)
+    date, platform, connected_start, connected_end
   ]);
 
   return {

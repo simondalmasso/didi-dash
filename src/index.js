@@ -111,10 +111,37 @@ function sorted(rows, limit) {
   ).slice(0, limit);
 }
 
-async function normaliseBatch(items, normaliser, existingRows) {
+function recordDay(byDay, date, collection, outcome) {
+  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  const day = byDay[date] ??= {};
+  const counts = day[collection] ??= {
+    received: 0, inserted: 0, updated: 0, duplicates: 0, ambiguous: 0
+  };
+  counts.received += 1;
+  counts[outcome] += 1;
+}
+
+function mergeDayBreakdowns(...breakdowns) {
+  const result = {};
+  for (const breakdown of breakdowns) {
+    for (const [date, collections] of Object.entries(breakdown)) {
+      const day = result[date] ??= {};
+      for (const [collection, counts] of Object.entries(collections)) {
+        const target = day[collection] ??= {
+          received: 0, inserted: 0, updated: 0, duplicates: 0, ambiguous: 0
+        };
+        for (const key of Object.keys(target)) target[key] += counts[key] ?? 0;
+      }
+    }
+  }
+  return result;
+}
+
+async function normaliseBatch(items, normaliser, existingRows, collection) {
   if (!Array.isArray(items)) throw new HttpError(400, "Each record collection must be an array");
   const seen = new Set(existingRows.map((row) => row.id));
   const rows = [];
+  const by_day = {};
   let duplicates = 0;
   for (const item of items) {
     let row;
@@ -125,12 +152,14 @@ async function normaliseBatch(items, normaliser, existingRows) {
     }
     if (seen.has(row.id)) {
       duplicates += 1;
+      recordDay(by_day, row.date, collection, "duplicates");
       continue;
     }
     seen.add(row.id);
     rows.push(row);
+    recordDay(by_day, row.date, collection, "inserted");
   }
-  return { rows, received: items.length, inserted: rows.length, duplicates };
+  return { rows, received: items.length, inserted: rows.length, duplicates, by_day };
 }
 
 function sameTripIdentity(left, right) {
@@ -213,6 +242,7 @@ function mergeTripDetails(existing, incoming) {
 async function normaliseTripBatch(items, existingRows) {
   if (!Array.isArray(items)) throw new HttpError(400, "Each record collection must be an array");
   const rows = [];
+  const byDay = {};
   let duplicates = 0;
   let updated = 0;
   let ambiguous = 0;
@@ -236,26 +266,31 @@ async function normaliseTripBatch(items, existingRows) {
 
     if (matches.length > 1) {
       ambiguous += 1;
+      recordDay(byDay, incoming.date, "trips", "ambiguous");
       continue;
     }
     if (matches.length === 1) {
       const match = matches[0];
       if (conflictsWithDetailedRide(match.row, incoming)) {
         ambiguous += 1;
+        recordDay(byDay, incoming.date, "trips", "ambiguous");
         continue;
       }
       const enriched = mergeTripDetails(match.row, incoming);
       if (!enriched) {
         duplicates += 1;
+        recordDay(byDay, incoming.date, "trips", "duplicates");
         continue;
       }
       if (match.bucket === "existing") existingRows[match.index] = enriched;
       else rows[match.index] = enriched;
       updated += 1;
+      recordDay(byDay, incoming.date, "trips", "updated");
       continue;
     }
 
     rows.push(incoming);
+    recordDay(byDay, incoming.date, "trips", "inserted");
   }
 
   return {
@@ -264,7 +299,98 @@ async function normaliseTripBatch(items, existingRows) {
     inserted: rows.length,
     updated,
     duplicates,
-    ambiguous
+    ambiguous,
+    by_day: byDay
+  };
+}
+
+function sameWorkSessionIdentity(left, right) {
+  return left.date === right.date &&
+    String(left.platform ?? "").toLowerCase() === String(right.platform ?? "").toLowerCase() &&
+    left.connected_start === right.connected_start &&
+    left.connected_end === right.connected_end;
+}
+
+function mergeWorkSessionDetails(existing, incoming) {
+  const existingHasOdometer = existing.odometer_start != null && existing.odometer_end != null;
+  const incomingHasOdometer = incoming.odometer_start != null && incoming.odometer_end != null;
+  if (!incomingHasOdometer) return { row: null, conflict: false };
+  if (!existingHasOdometer) {
+    return {
+      row: {
+        ...existing,
+        odometer_start: incoming.odometer_start,
+        odometer_end: incoming.odometer_end,
+        odometer_km: incoming.odometer_km
+      },
+      conflict: false
+    };
+  }
+  const startChanged = Math.abs(Number(existing.odometer_start) - Number(incoming.odometer_start)) > 0.05;
+  const endChanged = Math.abs(Number(existing.odometer_end) - Number(incoming.odometer_end)) > 0.05;
+  return { row: null, conflict: startChanged || endChanged };
+}
+
+async function normaliseSessionBatch(items, existingRows) {
+  if (!Array.isArray(items)) throw new HttpError(400, "Each record collection must be an array");
+  const rows = [];
+  const by_day = {};
+  let updated = 0;
+  let duplicates = 0;
+  let ambiguous = 0;
+
+  for (const item of items) {
+    let incoming;
+    try {
+      incoming = await normaliseWorkSession(item);
+    } catch (error) {
+      throw new HttpError(400, error.message);
+    }
+
+    const candidates = [
+      ...existingRows.map((row, index) => ({ row, bucket: "existing", index })),
+      ...rows.map((row, index) => ({ row, bucket: "new", index }))
+    ];
+    const identityMatches = candidates.filter(({ row }) => sameWorkSessionIdentity(row, incoming));
+    const idMatches = candidates.filter(({ row }) => row.id === incoming.id);
+
+    if (idMatches.some(({ row }) => !sameWorkSessionIdentity(row, incoming)) || identityMatches.length > 1) {
+      ambiguous += 1;
+      recordDay(by_day, incoming.date, "sessions", "ambiguous");
+      continue;
+    }
+    if (identityMatches.length === 1) {
+      const match = identityMatches[0];
+      const merged = mergeWorkSessionDetails(match.row, incoming);
+      if (merged.conflict) {
+        ambiguous += 1;
+        recordDay(by_day, incoming.date, "sessions", "ambiguous");
+        continue;
+      }
+      if (!merged.row) {
+        duplicates += 1;
+        recordDay(by_day, incoming.date, "sessions", "duplicates");
+        continue;
+      }
+      if (match.bucket === "existing") existingRows[match.index] = merged.row;
+      else rows[match.index] = merged.row;
+      updated += 1;
+      recordDay(by_day, incoming.date, "sessions", "updated");
+      continue;
+    }
+
+    rows.push(incoming);
+    recordDay(by_day, incoming.date, "sessions", "inserted");
+  }
+
+  return {
+    rows,
+    received: items.length,
+    inserted: rows.length,
+    updated,
+    duplicates,
+    ambiguous,
+    by_day
   };
 }
 
@@ -290,30 +416,34 @@ async function handleIngest(request, env) {
   if (total < 1) throw new HttpError(400, "Body must contain at least one record");
   if (total > 500) throw new HttpError(400, "Send no more than 500 total records per request");
 
+  const dryRun = new URL(request.url).searchParams.get("dry") === "1";
   const ledger = await readLedger(env);
   const trips = await normaliseTripBatch(tripsInput, ledger.trips);
-  const rewards = await normaliseBatch(rewardsInput, normaliseReward, ledger.rewards);
-  const fuel = await normaliseBatch(fuelInput, normaliseFuelLog, ledger.fuel);
-  const sessions = await normaliseBatch(sessionsInput, normaliseWorkSession, ledger.sessions);
+  const rewards = await normaliseBatch(rewardsInput, normaliseReward, ledger.rewards, "rewards");
+  const fuel = await normaliseBatch(fuelInput, normaliseFuelLog, ledger.fuel, "fuel");
+  const sessions = await normaliseSessionBatch(sessionsInput, ledger.sessions);
+  const by_day = mergeDayBreakdowns(trips.by_day, rewards.by_day, fuel.by_day, sessions.by_day);
 
   ledger.trips.push(...trips.rows);
   ledger.rewards.push(...rewards.rows);
   ledger.fuel.push(...fuel.rows);
   ledger.sessions.push(...sessions.rows);
-  await writeLedger(env, ledger);
+  if (!dryRun) await writeLedger(env, ledger);
 
   return json({
     ok: true,
+    dry_run: dryRun,
     trips: { received: trips.received, inserted: trips.inserted, updated: trips.updated, duplicates: trips.duplicates, ambiguous: trips.ambiguous },
     rewards: { received: rewards.received, inserted: rewards.inserted, duplicates: rewards.duplicates },
     fuel: { received: fuel.received, inserted: fuel.inserted, duplicates: fuel.duplicates },
-    sessions: { received: sessions.received, inserted: sessions.inserted, duplicates: sessions.duplicates },
+    sessions: { received: sessions.received, inserted: sessions.inserted, updated: sessions.updated, duplicates: sessions.duplicates, ambiguous: sessions.ambiguous },
+    by_day,
     received: total,
     inserted: trips.inserted + rewards.inserted + fuel.inserted + sessions.inserted,
-    updated: trips.updated,
-    ambiguous: trips.ambiguous,
+    updated: trips.updated + sessions.updated,
+    ambiguous: trips.ambiguous + sessions.ambiguous,
     duplicates: trips.duplicates + rewards.duplicates + fuel.duplicates + sessions.duplicates
-  }, 201);
+  }, dryRun ? 200 : 201);
 }
 
 async function handleApi(request, env) {
