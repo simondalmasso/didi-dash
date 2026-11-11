@@ -239,7 +239,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry } from "./finance.mjs";
+import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory } from "./finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -255,6 +255,11 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
       price_ars_per_liter: 2167,
       station: "YPF San Carlos Centro (referencia regional)",
       source_url: "https://energyia.ar/energydata/estaciones/ypf-san-carlos-centro"
+    }, {
+      effective_from: "2026-11-10",
+      price_ars_per_liter: 2178.65,
+      station: "YPF Súper · observación en surtidor (Santa Fe)",
+      source_url: ""
     }]
   };
   function loadLocalSettings() {
@@ -266,8 +271,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
         oneOffExpenses: Array.isArray(saved.oneOffExpenses) ? saved.oneOffExpenses : [],
         vehicleSessions: Array.isArray(saved.vehicleSessions) ? saved.vehicleSessions : [],
         fuelLogs: Array.isArray(saved.fuelLogs) ? saved.fuelLogs : [],
-        priceHistory: Array.isArray(saved.priceHistory) && saved.priceHistory.length
-          ? saved.priceHistory : structuredClone(DEFAULT_SETTINGS.priceHistory)
+        priceHistory: mergePriceHistory(saved.priceHistory, DEFAULT_SETTINGS.priceHistory)
       };
     } catch {
       return structuredClone(DEFAULT_SETTINGS);
@@ -282,6 +286,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
   const isoToday = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
   const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
   const number = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
+  const priceNumber = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const ETIOS_L_PER_100KM = ETIOS_BASELINE_L_PER_100KM;
 
   function escapeHtml(value) {
@@ -314,7 +319,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
   function renderYpfHistory() {
     const prices = localSettings.priceHistory.slice().sort((a,b) => b.effective_from.localeCompare(a.effective_from));
     $("ypf-price-history").innerHTML = prices.map((row) =>
-      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.effective_from)) + ' · ' + escapeHtml(row.station || "YPF Súper") + '</span><strong>' + money.format(asNumber(row.price_ars_per_liter)) + '/L</strong></div>'
+      '<div class="cost-history-row"><span>' + escapeHtml(dateLabel(row.effective_from)) + ' · ' + escapeHtml(row.station || "YPF Súper") + '</span><strong>' + "$" + priceNumber.format(asNumber(row.price_ars_per_liter)) + '/L</strong></div>'
     ).join("");
   }
   function renderOneOffExpenses() {
@@ -350,7 +355,7 @@ import { calculateProfitability, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, 
     $("ypf-price").value = latest ? String(latest.price_ars_per_liter) : "";
     $("ypf-price-date").value = isoToday;
     $("ypf-price-context").textContent = latest
-      ? "Última referencia publicada: $" + number.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · declarada vigente desde " + dateLabel(latest.effective_from) + ". Los reportes oficiales de surtidor pueden quedar desactualizados; confirmá en tu estación y actualizá cuando cambie el precio."
+      ? "Última referencia publicada: $" + priceNumber.format(latest.price_ars_per_liter) + "/L · " + latest.station + " · declarada vigente desde " + dateLabel(latest.effective_from) + ". Precio observado en una compra puntual; puede variar entre estaciones. Actualizalo cuando cambie el valor en surtidor."
       : "No hay precio de referencia cargado.";
     $("expense-date").value = isoToday;
     $("session-date").value = isoToday;
