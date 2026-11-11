@@ -18,7 +18,7 @@ export function calculateTripNetAfterFuel({ tripGross = 0, fuelPurchaseSpend = 0
 }
 
 export function dashboardRangeFromSearch(search = "") {
-  const params = new URLSearchParams(String(search || "").replace(/^\\?/, ""));
+  const params = new URLSearchParams(String(search || ""));
   const value = params.get("range");
   if (value === "all") return 0;
   const range = Number(value);
@@ -28,7 +28,7 @@ export function dashboardRangeFromSearch(search = "") {
 export function dashboardUrlWithRange(pathname, search, hash, range) {
   const days = Number(range);
   if (![0, 1, 7, 30].includes(days)) throw new Error("Unsupported dashboard range");
-  const params = new URLSearchParams(String(search || "").replace(/^\\?/, ""));
+  const params = new URLSearchParams(String(search || ""));
   if (days === 30) params.delete("range");
   else params.set("range", days === 0 ? "all" : String(days));
   const query = params.toString();
