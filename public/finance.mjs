@@ -17,6 +17,24 @@ export function calculateTripNetAfterFuel({ tripGross = 0, fuelPurchaseSpend = 0
   return Math.round((amount(tripGross) - amount(fuelPurchaseSpend) + Number.EPSILON) * 100) / 100;
 }
 
+export function dashboardRangeFromSearch(search = "") {
+  const params = new URLSearchParams(String(search || "").replace(/^\\?/, ""));
+  const value = params.get("range");
+  if (value === "all") return 0;
+  const range = Number(value);
+  return [1, 7, 30].includes(range) ? range : 30;
+}
+
+export function dashboardUrlWithRange(pathname, search, hash, range) {
+  const days = Number(range);
+  if (![0, 1, 7, 30].includes(days)) throw new Error("Unsupported dashboard range");
+  const params = new URLSearchParams(String(search || "").replace(/^\\?/, ""));
+  if (days === 30) params.delete("range");
+  else params.set("range", days === 0 ? "all" : String(days));
+  const query = params.toString();
+  return String(pathname || "/") + (query ? "?" + query : "") + String(hash || "");
+}
+
 function validDate(value) {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
