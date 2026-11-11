@@ -93,3 +93,11 @@ test("inputs guide the driver to active trip days missing odometer coverage", ()
   assert.match(dashboard, /missingOdometerDates/);
   assert.match(dashboard, /Carg\\u00e1 un turno con od\\u00f3metro para cada d\\u00eda/);
 });
+
+
+test("dashboard API requests bypass browser caches and use unique URLs", () => {
+  assert.match(dashboard, /dashboardApiUrl\(path, Date\.now\(\) \+ "-" \+ \(\+\+apiRequestSequence\)\)/);
+  assert.match(dashboard, /cache: "no-store"/);
+  assert.match(dashboard, /"Cache-Control": "no-store, max-age=0"/);
+  assert.match(dashboard, /"Pragma": "no-cache"/);
+});

@@ -23,6 +23,12 @@ export function dashboardPageFromPath(pathname = "/") {
   if (path === "/trips" || path.startsWith("/trips/")) return "trips";
   return "home";
 }
+export function dashboardApiUrl(path, nonce) {
+  const url = new URL(String(path || "/"), "https://didi-dash.invalid");
+  url.searchParams.set("_fresh", String(nonce));
+  return url.pathname + url.search;
+}
+
 
 export function dashboardRangeFromSearch(search = "") {
   const params = new URLSearchParams(String(search || ""));
