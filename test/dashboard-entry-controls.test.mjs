@@ -87,3 +87,9 @@ test("navigation sets aria-current from the actual path and labels cash with rew
   assert.match(dashboard, /Caja disponible \(recompensas incluidas\)/);
   assert.match(dashboard, /Viajes \+ recompensas − nafta comprada − otros costos/);
 });
+
+test("inputs guide the driver to active trip days missing odometer coverage", () => {
+  assert.match(dashboard, /id="missing-odometer-days"/);
+  assert.match(dashboard, /missingOdometerDates/);
+  assert.match(dashboard, /Carg\\u00e1 un turno con od\\u00f3metro para cada d\\u00eda/);
+});
