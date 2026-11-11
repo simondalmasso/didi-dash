@@ -423,3 +423,11 @@ test("dashboard route resolver identifies home, inputs and history paths", async
   assert.equal(dashboardPageFromPath("/trips/"), "trips");
   assert.equal(dashboardPageFromPath("/trips/2026-11"), "trips");
 });
+
+test("dashboard API URLs keep existing filters and add a per-request freshness key", async () => {
+  const { dashboardApiUrl } = await import("../public/finance.mjs");
+  assert.equal(
+    dashboardApiUrl("/api/trips?limit=5000", "request-123"),
+    "/api/trips?limit=5000&_fresh=request-123"
+  );
+});

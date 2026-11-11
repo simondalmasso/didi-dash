@@ -267,7 +267,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, calculateTripNetAfterFuel, dashboardPageFromPath, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
+import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, dashboardPageFromPath, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -544,12 +544,18 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardPageFromPat
       : "No hay precio de referencia cargado.";
     renderYpfHistory();
   }
+  let apiRequestSequence = 0;
   async function api(path, options = {}) {
-    const response = await fetch(path, {
+    const requestUrl = dashboardApiUrl(path, Date.now() + "-" + (++apiRequestSequence));
+    const response = await fetch(requestUrl, {
       credentials: "same-origin",
       cache: "no-store",
       ...options,
-      headers: { ...(options.headers ?? {}) }
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "Pragma": "no-cache",
+        ...(options.headers ?? {})
+      }
     });
     const text = await response.text();
     let data = {};
