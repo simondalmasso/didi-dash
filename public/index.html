@@ -162,7 +162,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <div class="kpi"><div class="label">Nafta estimada · YPF Súper</div><div id="fuel-estimate" class="value">—</div><div id="fuel-estimate-hint" class="hint">Etios 1.5 manual · 8,8 L/100 km</div></div>
         <div class="kpi"><div class="label">Otros costos</div><div id="other-cost-estimate" class="value">—</div><div id="other-cost-hint" class="hint">Seguro, mantenimiento, cubiertas, patente</div></div>
         <div class="kpi"><div class="label" id="net-estimate-label">Ganancia neta operativa</div><div id="net-estimate" class="value">—</div><div id="net-estimate-hint" class="hint">Requiere odómetro y gastos registrados</div></div>
-        <div class="kpi"><div class="label">Caja neta tras cargas</div><div id="cash-net-estimate" class="value">—</div><div id="cash-net-estimate-hint" class="hint">Bruto − combustible comprado − otros costos conocidos</div></div>
+        <div class="kpi"><div class="label">Caja disponible (recompensas incluidas)</div><div id="cash-net-estimate" class="value">—</div><div id="cash-net-estimate-hint" class="hint">Viajes + recompensas − nafta comprada − otros costos</div></div>
       </section>
       <section class="card" id="profitability-settings" data-area="inputs">
         <div class="section-head"><h2>Rentabilidad: bruto vs. neto</h2><span id="finance-status" class="pill">Costos configurables</span></div>
@@ -266,18 +266,22 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
     </main>
   </div>
 <script type="module">
-import { calculateProfitability, calculateTripNetAfterFuel, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
+import { calculateProfitability, calculateTripNetAfterFuel, dashboardPageFromPath, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
+  const currentPage = dashboardPageFromPath(location.pathname);
+  document.documentElement.dataset.page = currentPage;
   const activeRangeParam = new URLSearchParams(location.search).get("range");
-  document.querySelectorAll("[data-nav]").forEach((link) => {
-    if (activeRangeParam) {
-      const target = new URL(link.getAttribute("href"), location.origin);
-      target.searchParams.set("range", activeRangeParam);
-      link.href = target.pathname + target.search + target.hash;
+  document.querySelectorAll(".app-nav a").forEach((link) => {
+    const target = new URL(link.getAttribute("href"), location.origin);
+    if (activeRangeParam) target.searchParams.set("range", activeRangeParam);
+    link.href = target.pathname + target.search + target.hash;
+    if (dashboardPageFromPath(target.pathname) === currentPage) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
     }
-    if (link.dataset.nav === document.documentElement.dataset.page) link.setAttribute("aria-current", "page");
   });
   const state = { trips: [], rewards: [], fuel: [], sessions: [], range: dashboardRangeFromSearch(location.search) };
   const LOCAL_SETTINGS_KEY = "etios-dash-operating-costs-v1";

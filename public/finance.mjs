@@ -17,6 +17,13 @@ export function calculateTripNetAfterFuel({ tripGross = 0, fuelPurchaseSpend = 0
   return Math.round((amount(tripGross) - amount(fuelPurchaseSpend) + Number.EPSILON) * 100) / 100;
 }
 
+export function dashboardPageFromPath(pathname = "/") {
+  const path = String(pathname || "/");
+  if (path === "/inputs" || path.startsWith("/inputs/")) return "inputs";
+  if (path === "/trips" || path.startsWith("/trips/")) return "trips";
+  return "home";
+}
+
 export function dashboardRangeFromSearch(search = "") {
   const params = new URLSearchParams(String(search || ""));
   const value = params.get("range");

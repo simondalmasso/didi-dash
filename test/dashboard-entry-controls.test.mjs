@@ -76,3 +76,14 @@ test("dashboard range filters include Today and preserve the selected period in 
   assert.match(dashboard, /aria-pressed/);
   assert.match(dashboard, /activeRangeParam/);
 });
+
+
+test("navigation sets aria-current from the actual path and labels cash with rewards explicitly", () => {
+  assert.match(dashboard, /dashboardPageFromPath\(location\.pathname\)/);
+  assert.match(dashboard, /document\.documentElement\.dataset\.page = currentPage/);
+  assert.match(dashboard, /document\.querySelectorAll\("\.app-nav a"\)/);
+  assert.match(dashboard, /link\.setAttribute\("aria-current", "page"\)/);
+  assert.match(dashboard, /link\.removeAttribute\("aria-current"\)/);
+  assert.match(dashboard, /Caja disponible \(recompensas incluidas\)/);
+  assert.match(dashboard, /Viajes \+ recompensas − nafta comprada − otros costos/);
+});
