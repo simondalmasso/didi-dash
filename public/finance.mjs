@@ -201,6 +201,7 @@ export function calculateProfitability({
   priceHistory = [],
   monthlyCosts = {},
   oneOffExpenses = [],
+  fuelPurchases = null,
   periodDays = 30
 } = {}) {
   const tripGross = trips.reduce((sum, row) => sum + amount(row.amount), 0);
@@ -284,6 +285,9 @@ export function calculateProfitability({
   const fixedCosts = Math.round((fixedMonthly * days / 30 + Number.EPSILON) * 100) / 100;
   const oneOffCosts = Math.round((oneOffExpenses.reduce((sum, row) => sum + amount(row.amount_ars), 0) + Number.EPSILON) * 100) / 100;
   const otherCosts = fixedCosts + oneOffCosts;
+  const purchases = Array.isArray(fuelPurchases) ? fuelPurchases : fuelLogs;
+  const fuelPurchaseSpend = Math.round((purchases.reduce((sum, row) => sum + amount(row.total_ars), 0) + Number.EPSILON) * 100) / 100;
+  const netCashAfterFuelPurchases = Math.round((gross - fuelPurchaseSpend - otherCosts + Number.EPSILON) * 100) / 100;
   const totalKnownCosts = (fuelCost ?? 0) + otherCosts;
   const netPartial = fuelCost == null ? null : Math.round((gross - totalKnownCosts + Number.EPSILON) * 100) / 100;
   const netComplete = netPartial != null &&
@@ -311,6 +315,8 @@ export function calculateProfitability({
     oneOffCosts,
     otherCosts,
     totalKnownCosts,
+    fuelPurchaseSpend,
+    netCashAfterFuelPurchases,
     netPartial,
     netOperating,
     netComplete,
@@ -351,19 +357,33 @@ export function createWorkSession(input = {}) {
 }
 
 export function createFuelEntry(input = {}) {
-  const date = input.date;
-  if (!validDate(date)) throw new Error("date must be YYYY-MM-DD");
-  const odometer_km = Number(input.odometer_km);
-  const liters = Number(input.liters);
+  const date = input.date == null || String(input.date).trim() === "" ? null : input.date;
+  if (date !== null && !validDate(date)) throw new Error("date must be YYYY-MM-DD");
+
+  const rawOdometer = input.odometer_km;
+  const odometer_km = rawOdometer == null || String(rawOdometer).trim() === ""
+    ? null
+    : Number(rawOdometer);
+  if (odometer_km !== null && (!Number.isFinite(odometer_km) || odometer_km < 0)) {
+    throw new Error("odometer must be non-negative");
+  }
+
+  const rawLiters = input.liters;
+  const liters = rawLiters == null || String(rawLiters).trim() === ""
+    ? null
+    : Number(rawLiters);
+  if (liters !== null && (!Number.isFinite(liters) || liters <= 0 || liters > 200)) {
+    throw new Error("liters must be between 0 and 200");
+  }
+
   const total_ars = Number(input.total_ars);
-  if (!Number.isFinite(odometer_km) || odometer_km < 0) throw new Error("odometer must be non-negative");
-  if (!Number.isFinite(liters) || liters <= 0 || liters > 200) throw new Error("liters must be between 0 and 200");
   if (!Number.isFinite(total_ars) || total_ars <= 0) throw new Error("total amount must be positive");
   const station = String(input.station || "").trim().slice(0,60);
   const full_tank = input.full_tank === true || input.full_tank === 1 ? 1 : 0;
   const id = input.id || (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : "local-fuel-" + Date.now());
   return {
     id, date, odometer_km, liters, total_ars,
-    price_per_liter: total_ars / liters, station, full_tank
+    price_per_liter: liters == null ? null : total_ars / liters,
+    station, full_tank
   };
 }
