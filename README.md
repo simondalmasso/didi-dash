@@ -114,11 +114,12 @@ A request accepts up to 500 total records:
     }
   ],
   "fuel": [],
-  "sessions": []
+  "sessions": [],
+  "withdrawals": []
 }
 ```
 
-The API accepts the legacy bare trips array too. The response includes `inserted`, `updated`, `duplicates` and `ambiguous` counts for trips. Ambiguous trip identities are left untouched to avoid corrupting or silently duplicating the ledger. Passenger and location fields are excluded before storage.
+The API accepts the legacy bare trips array too. `withdrawals` store transfer principal separately from fees: an unknown fee is `fee_ars: null`, and only a numeric fee with `reconciled: true` contributes to observed cash fees. Explicit reconciled zero is distinct from missing evidence. The response includes `inserted`, `updated`, `duplicates` and `ambiguous` counts for trips. Ambiguous trip identities are left untouched to avoid corrupting or silently duplicating the ledger. Passenger and location fields are excluded before storage.
 
 ## Public read APIs
 
@@ -127,6 +128,7 @@ The API accepts the legacy bare trips array too. The response includes `inserted
 - `GET /api/rewards?limit=5000&from=YYYY-MM-DD&to=YYYY-MM-DD`
 - `GET /api/fuel?limit=5000`
 - `GET /api/sessions?limit=5000`
+- `GET /api/withdrawals?limit=5000`
 - `GET /api/export` — JSON backup of all ledger collections.
 
 KV holds the complete ledger in one value (maximum 25 MiB). This project is intended for one rider's low-volume personal ledger, not high-concurrency multi-user writes.
@@ -139,3 +141,30 @@ Requires Node.js 22 or newer:
 npm ci
 npm test
 ```
+
+
+## Detailed DiDi trip analytics
+
+A DiDi detail import may include `service_type`, exact `duration_seconds`, `fare_breakdown`, `fare_total_ars`, `adjusted_from_ars`, `earnings_adjusted` and `detail_verified`. The fare object is independently whitelisted to distance, time, waiting, dynamic base, differential price and tariff reimbursement. Unknown nested fields are discarded. Conflicting non-null fare details are classified ambiguous rather than overwriting existing values.
+
+The ride history includes a daily journey timeline with start time, amount, exact duration, estimated end, actual passenger kilometres and fare-component chips. Inter-trip gaps are shown as unclassified unless a synchronized work session provides evidence; they are not inferred to be waiting or online time. A trip with `detail_verified=false` remains visible with a partial-detail indicator.
+
+See [the current data status](docs/DATA-STATUS.md) for the 2026-11-14 A22 reconciliation and production snapshot.
+
+## Browser-native private import
+
+The import dialog lives on `/trips/`. Select a structured JSON backup and enter the private `INGEST_TOKEN` into the password field. The field value exists only in the open dialog's memory; it is cleared when the dialog closes or the import completes. It is never stored in `localStorage`, included in the payload, or written to logs.
+
+The browser first sends the sanitized, field-whitelisted payload as an authenticated dry-run preview to the same-origin `POST /api/ingest?dry=1` using the bearer header. The Worker normalizes and classifies the exact records without writing KV. The UI enables commit only after a successful preview; a separate confirmation is required before `POST /api/ingest`. If a commit response is lost or uncertain, refresh `/api/export` before retrying.
+
+Undated fuel purchases are retained only when the source supplies a stable record ID. Their total affects cash arithmetic but they are not assigned to a day/month and do not enter tank-to-tank consumption. A missing date is never inferred.
+
+Production deployment is automated by GitHub Actions after tests pass on `main`. The workflow obtains `INGEST_TOKEN` from the repository secret for deployment. Local `npm run deploy` requires `INGEST_TOKEN` to be supplied explicitly in the process environment; the script does not read credentials from browser storage or plaintext profile files.
+
+## Data Fina — real fare breakdown and operating picture
+
+The Trips view includes a live data-fina section: registered cash net, a locally editable daily gross target, verified-detail coverage, trip-data coverage, actual component allocation, active-day gross bars, start-hour distribution and Etios reference efficiency. All figures are calculated from the current ledger with public/data-fina.mjs; the reference HTML received from GLM is not bundled and its illustrative component allocations are not used.
+
+Canonical trip detail uses modality and breakdown with source actual and a components list. Six component codes are supported because DiDi's actual detail screen includes a separate waiting-fare line: distancia, tiempo, espera, base_dinamica, diferencial, and reembolso_tarifario. See docs/DATA-FINA-SCHEMA.md.
+
+The component bar includes only actual breakdowns that reconcile to trip amount within ARS 2. Missing or null lines are absent, not zero. A partial trip remains unallocated until reconciled. The current snapshot is documented in docs/DATA-STATUS.md: 209 trips / ARS 800,900 gross, ARS 109,300 rewards, ARS 200,000 recorded fuel purchases and 17 reconciled detail breakdowns from the 14 November source. No synchronized sessions exist, so the hourly KPI is per reported trip-time hour, never connected-hour productivity. Undated fuel purchases affect cash but are never assigned to a day or month.

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normaliseTrip, normaliseReward, normaliseFuelLog, normaliseWorkSession } from "../src/domain.mjs";
+import { normaliseTrip, normaliseReward, normaliseFuelLog, normaliseWithdrawal, normaliseWorkSession } from "../src/domain.mjs";
 
 test("normaliseTrip preserves the agreed ingestion contract and generates a deterministic id", async () => {
   const input = {
@@ -149,7 +149,7 @@ test("normaliseFuelLog accepts a dated ticket when the odometer is not known", a
   assert.equal(row.price_per_liter, 20000 / 9.18);
 });
 
-test("normaliseFuelLog accepts a cash-only fuel purchase with no date, litres or odometer", async () => {
+test("normaliseFuelLog preserves an undated cash purchase only with a stable ID", async () => {
   const row = await normaliseFuelLog({
     id: "fuel-purchase-30k-test",
     date: null,
@@ -160,8 +160,171 @@ test("normaliseFuelLog accepts a cash-only fuel purchase with no date, litres or
     full_tank: false
   });
   assert.equal(row.date, null);
-  assert.equal(row.odometer_km, null);
-  assert.equal(row.liters, null);
+  assert.equal(row.id, "fuel-purchase-30k-test");
   assert.equal(row.total_ars, 30000);
-  assert.equal(row.price_per_liter, null);
+  await assert.rejects(() => normaliseFuelLog({ date: null, total_ars: 30000 }), /stable id/i);
+});
+
+
+test("work-session generated identity is independent of odometer enrichment", async () => {
+  const base = {
+    date: "2026-11-06",
+    platform: "didi",
+    connected_start: "09:00",
+    connected_end: "15:00"
+  };
+  const withoutOdometer = await normaliseWorkSession(base);
+  const withOdometer = await normaliseWorkSession({
+    ...base,
+    odometer_start: 82000,
+    odometer_end: 82012.5
+  });
+
+  assert.equal(withoutOdometer.id, withOdometer.id);
+  assert.equal(withOdometer.odometer_km, 12.5);
+});
+
+test("normaliseTrip keeps DiDi fare breakdown, service type and adjustment evidence", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-14", start: "18:02", amount: 6400, km: 7, min: 18 + 37 / 60,
+    platform: "didi", source: "didi_history_detail", service_type: "Express",
+    fare_breakdown: {
+      distance_ars: 3000, time_ars: 1900, wait_ars: null,
+      dynamic_base_ars: 900, differential_price_ars: 600,
+      fare_reimbursement_ars: null, passenger_name: "must not persist"
+    },
+    fare_total_ars: 6400, adjusted_from_ars: 6600, earnings_adjusted: true,
+    detail_verified: true, passenger_address: "must not persist"
+  });
+  assert.equal(trip.service_type, "Express");
+  assert.deepEqual(trip.fare_breakdown, {
+    distance_ars: 3000, time_ars: 1900, wait_ars: null,
+    dynamic_base_ars: 900, differential_price_ars: 600,
+    fare_reimbursement_ars: null
+  });
+  assert.equal(trip.fare_total_ars, 6400);
+  assert.equal(trip.adjusted_from_ars, 6600);
+  assert.equal(trip.earnings_adjusted, true);
+  assert.equal(trip.detail_verified, true);
+  assert.equal("passenger_name" in trip, false);
+  assert.equal("passenger_address" in trip, false);
+  assert.equal("passenger_name" in trip.fare_breakdown, false);
+});
+
+test("normaliseTrip rejects invalid fare components and non-boolean verification flags", async () => {
+  const base = {
+    date: "2026-11-14", start: "18:02", amount: 6400,
+    km: 7, min: 18, platform: "didi", source: "didi_history_detail"
+  };
+  await assert.rejects(() => normaliseTrip({
+    ...base, fare_breakdown: { distance_ars: -1 }
+  }), /fare_breakdown/i);
+  await assert.rejects(() => normaliseTrip({
+    ...base, detail_verified: "true"
+  }), /detail_verified/i);
+});
+test("normaliseTrip preserves exact DiDi duration seconds independently from rounded minutes", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-14", start: "20:37", amount: 3500, km: 2.5,
+    min: 8.4167, duration_seconds: 505, platform: "didi",
+    source: "didi_history_detail"
+  });
+  assert.equal(trip.duration_seconds, 505);
+  await assert.rejects(() => normaliseTrip({
+    date: "2026-11-14", start: "20:37", amount: 3500, km: 2.5,
+    min: 8.4167, duration_seconds: 505.5, platform: "didi"
+  }), /duration_seconds/i);
+});
+test("normaliseTrip accepts the canonical actual breakdown and modality", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-14", start: "20:54", amount: 3900, km: 1.2,
+    min: 6.95, duration_seconds: 417, platform: "didi",
+    source: "didi_history_detail", modality: "DiDi Express",
+    breakdown: {
+      source: "actual",
+      components: [
+        { code: "distancia", label: "Tarifa por distancia", amount: 500 },
+        { code: "tiempo", label: "Tarifa por tiempo", amount: 900 },
+        { code: "espera", label: "Tarifa por espera", amount: 100 },
+        { code: "base_dinamica", label: "Tarifa base dinámica", amount: 1000 },
+        { code: "diferencial", label: "Precio diferencial", amount: 1400 }
+      ]
+    },
+    passenger_name: "must not persist"
+  });
+  assert.equal(trip.modality, "DiDi Express");
+  assert.deepEqual(trip.breakdown, {
+    source: "actual",
+    components: [
+      { code: "distancia", label: "Tarifa por distancia", amount: 500 },
+      { code: "tiempo", label: "Tarifa por tiempo", amount: 900 },
+      { code: "espera", label: "Tarifa por espera", amount: 100 },
+      { code: "base_dinamica", label: "Tarifa base dinámica", amount: 1000 },
+      { code: "diferencial", label: "Precio diferencial", amount: 1400 }
+    ]
+  });
+  assert.equal("passenger_name" in trip, false);
+});
+
+test("normaliseTrip discards a non-reconciling breakdown but retains the trip for review", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-14", start: "22:25", amount: 6400, km: 4.8,
+    min: 11.9167, duration_seconds: 715, platform: "didi",
+    source: "didi_history_detail",
+    breakdown: {
+      source: "actual",
+      components: [
+        { code: "distancia", label: "Tarifa por distancia", amount: 1900 },
+        { code: "tiempo", label: "Tarifa por tiempo", amount: 2600 },
+        { code: "base_dinamica", label: "Tarifa base dinámica", amount: 1000 }
+      ]
+    }
+  });
+  assert.equal(trip.amount, 6400);
+  assert.equal("breakdown" in trip, false);
+  assert.equal(trip.breakdown_status, "review");
+  assert.equal(trip.detail_verified, false);
+});
+
+test("normaliseTrip groups unknown component codes as otro and rejects estimated breakdown sources", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-14", start: "18:00", amount: 1000, km: 1,
+    min: 2, platform: "didi",
+    breakdown: {
+      source: "actual",
+      components: [{ code: "unknown_screen_line", label: "Ajuste de tarifa", amount: 1000 }]
+    }
+  });
+  assert.equal(trip.breakdown.components[0].code, "otro");
+  assert.equal(trip.breakdown.components[0].label, "Ajuste de tarifa");
+  await assert.rejects(() => normaliseTrip({
+    date: "2026-11-14", start: "18:00", amount: 1000, km: 1,
+    min: 2, platform: "didi",
+    breakdown: { source: "estimated", components: [{ code: "distancia", amount: 1000 }] }
+  }), /breakdown\.source/i);
+});
+
+
+test("normaliseWithdrawal stores only financial evidence and never treats principal as a fee", async () => {
+  const row = await normaliseWithdrawal({
+    date: "2026-11-15", amount_ars: 50000, fee_ars: 0, reconciled: true,
+    source: "didi_wallet", bank_account: "must not persist"
+  });
+  assert.equal(row.amount_ars, 50000);
+  assert.equal(row.fee_ars, 0);
+  assert.equal(row.reconciled, true);
+  assert.equal("bank_account" in row, false);
+  await assert.rejects(() => normaliseWithdrawal({
+    date: "2026-02-30", amount_ars: 1, fee_ars: 0
+  }), /date/i);
+});
+
+test("normaliseWithdrawal preserves an unknown fee as null until reconciled evidence exists", async () => {
+  const row = await normaliseWithdrawal({ date: "2026-11-15", amount_ars: 50000, source: "didi_wallet" });
+  assert.equal(row.amount_ars, 50000);
+  assert.equal(row.fee_ars, null);
+  assert.equal(row.reconciled, false);
+  await assert.rejects(() => normaliseWithdrawal({
+    date: "2026-11-15", amount_ars: 50000, reconciled: true
+  }), /fee_ars/i);
 });

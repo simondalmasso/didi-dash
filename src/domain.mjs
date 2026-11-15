@@ -67,6 +67,46 @@ export async function stableId(parts) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+const BREAKDOWN_COMPONENTS = {
+  distancia: "Tarifa por distancia",
+  tiempo: "Tarifa por tiempo",
+  espera: "Tarifa por espera",
+  base_dinamica: "Tarifa base din?mica",
+  diferencial: "Precio diferencial",
+  reembolso_tarifario: "Reembolso tarifario"
+};
+
+function normaliseBreakdown(value, tripAmount) {
+  if (value == null) return {};
+  assertObject(value, "breakdown");
+  const source = String(value.source ?? "").trim().toLowerCase();
+  if (source === "unknown") return {};
+  if (source !== "actual") {
+    throw new Error("breakdown.source must be actual or unknown");
+  }
+  if (!Array.isArray(value.components) || value.components.length < 1 || value.components.length > 12) {
+    throw new Error("breakdown.components must contain between 1 and 12 rows");
+  }
+  const components = value.components.map((item) => {
+    assertObject(item, "breakdown component");
+    const rawCode = typeof item.code === "string" ? item.code.trim().toLowerCase() : "";
+    const known = Object.hasOwn(BREAKDOWN_COMPONENTS, rawCode);
+    const code = known ? rawCode : "otro";
+    const fallbackLabel = known ? BREAKDOWN_COMPONENTS[code] : null;
+    const label = safeLabel(item.label ?? fallbackLabel, "breakdown component label", 48);
+    if (!label) throw new Error("breakdown component label is required");
+    const amount = finiteNumber(item.amount, "breakdown component amount", {
+      min: 0, max: 100000000, integer: true
+    });
+    return { code, label, amount };
+  });
+  const componentTotal = components.reduce((sum, item) => sum + item.amount, 0);
+  if (Math.abs(componentTotal - tripAmount) > 2) {
+    return { breakdown_status: "review" };
+  }
+  return { breakdown: { source: "actual", components } };
+}
+
 export async function normaliseTrip(input) {
   assertObject(input, "trip");
   const date = requireDate(input.date);
@@ -76,6 +116,9 @@ export async function normaliseTrip(input) {
   const km_source = km > 0 ? String(input.km_source ?? "actual").trim().toLowerCase() : "unknown";
   if (!["actual", "estimated", "unknown"].includes(km_source)) throw new Error("km_source must be actual, estimated or unknown");
   const min = finiteNumber(input.min, "min", { min: 0, max: 1440 });
+  const duration_seconds = input.duration_seconds == null || input.duration_seconds === ""
+    ? undefined
+    : finiteNumber(input.duration_seconds, "duration_seconds", { min: 1, max: 86400, integer: true });
   const platform = platformName(input.platform);
   const source = String(input.source ?? "sentinelx_ocr").trim().toLowerCase();
   if (!SOURCE_RE.test(source)) throw new Error("source must be a short identifier");
@@ -84,8 +127,52 @@ export async function normaliseTrip(input) {
     date, start, String(amount), km.toFixed(3), min.toFixed(2), platform
   ]);
 
-  // Whitelist the trip contract; passenger or location fields are never persisted.
-  return { id, date, start, amount, km, km_source, min, platform, source };
+  const service_type = safeLabel(input.service_type, "service_type", 32);
+  const modality = safeLabel(input.modality, "modality", 32);
+  const normalizedBreakdown = normaliseBreakdown(input.breakdown, amount);
+  const fareKeys = [
+    "distance_ars", "time_ars", "wait_ars", "dynamic_base_ars",
+    "differential_price_ars", "fare_reimbursement_ars"
+  ];
+  let fare_breakdown;
+  if (input.fare_breakdown != null) {
+    assertObject(input.fare_breakdown, "fare_breakdown");
+    fare_breakdown = Object.fromEntries(fareKeys.map((key) => [
+      key,
+      input.fare_breakdown[key] == null || input.fare_breakdown[key] === ""
+        ? null
+        : finiteNumber(input.fare_breakdown[key], "fare_breakdown." + key, {
+          min: 0, max: 100000000, integer: true
+        })
+    ]));
+  }
+  const optionalFareAmount = (key) => input[key] == null || input[key] === ""
+    ? undefined
+    : finiteNumber(input[key], key, { min: 0, max: 100000000, integer: true });
+  const fare_total_ars = optionalFareAmount("fare_total_ars");
+  const adjusted_from_ars = optionalFareAmount("adjusted_from_ars");
+  for (const key of ["earnings_adjusted", "detail_verified"]) {
+    if (input[key] != null && typeof input[key] !== "boolean") {
+      throw new Error(key + " must be a boolean");
+    }
+  }
+
+  // Whitelist trip analytics fields; passenger and location data are never persisted.
+  return {
+    id, date, start, amount, km, km_source, min, platform, source,
+    ...(duration_seconds !== undefined ? { duration_seconds } : {}),
+    ...(service_type ? { service_type } : {}),
+    ...(modality ? { modality } : {}),
+    ...(normalizedBreakdown.breakdown ? { breakdown: normalizedBreakdown.breakdown } : {}),
+    ...(normalizedBreakdown.breakdown_status ? { breakdown_status: normalizedBreakdown.breakdown_status } : {}),
+    ...(fare_breakdown ? { fare_breakdown } : {}),
+    ...(fare_total_ars !== undefined ? { fare_total_ars } : {}),
+    ...(adjusted_from_ars !== undefined ? { adjusted_from_ars } : {}),
+    ...(input.earnings_adjusted != null ? { earnings_adjusted: input.earnings_adjusted } : {}),
+    ...(normalizedBreakdown.breakdown_status === "review"
+      ? { detail_verified: false }
+      : input.detail_verified != null ? { detail_verified: input.detail_verified } : {})
+  };
 }
 
 export async function normaliseReward(input) {
@@ -104,7 +191,9 @@ export async function normaliseReward(input) {
 
 export async function normaliseFuelLog(input) {
   assertObject(input, "fuel log");
+  const providedId = safeId(input.id);
   const date = input.date == null || input.date === "" ? null : requireDate(input.date);
+  if (date == null && !providedId) throw new Error("undated fuel log requires an explicit stable id");
   const odometer_km = input.odometer_km == null || input.odometer_km === ""
     ? null
     : finiteNumber(input.odometer_km, "odometer_km", { min: 0, max: 10000000 });
@@ -114,7 +203,6 @@ export async function normaliseFuelLog(input) {
   const total_ars = finiteNumber(input.total_ars, "total_ars", { min: 1, max: 100000000 });
   const station = safeLabel(input.station, "station", 60);
   const full_tank = input.full_tank === true || input.full_tank === 1 ? 1 : 0;
-  const providedId = safeId(input.id);
   const id = providedId ?? await stableId([
     date ?? "",
     odometer_km == null ? "" : String(odometer_km),
@@ -126,6 +214,24 @@ export async function normaliseFuelLog(input) {
     price_per_liter: liters == null ? null : total_ars / liters,
     station, full_tank
   };
+}
+
+export async function normaliseWithdrawal(input) {
+  assertObject(input, "withdrawal");
+  const date = requireDate(input.date);
+  const amount_ars = finiteNumber(input.amount_ars, "amount_ars", { min: 1, max: 100000000 });
+  const fee_ars = input.fee_ars == null || input.fee_ars === ""
+    ? null
+    : finiteNumber(input.fee_ars, "fee_ars", { min: 0, max: 100000000 });
+  if (input.reconciled != null && typeof input.reconciled !== "boolean") throw new Error("reconciled must be a boolean");
+  const reconciled = input.reconciled === true;
+  if (reconciled && fee_ars == null) throw new Error("reconciled withdrawal requires an observed fee_ars (zero is explicit)");
+  const source = String(input.source ?? "didi_wallet").trim().toLowerCase();
+  if (!SOURCE_RE.test(source)) throw new Error("source must be a short identifier");
+  const providedId = safeId(input.id);
+  const id = providedId ?? await stableId([date, String(amount_ars), fee_ars == null ? "unknown" : String(fee_ars), source]);
+  // Withdrawal principal is a transfer of cash, not an expense. A fee affects cash only when the evidence is reconciled.
+  return { id, date, amount_ars, fee_ars, reconciled, source };
 }
 
 export async function normaliseWorkSession(input) {
@@ -161,10 +267,9 @@ export async function normaliseWorkSession(input) {
   const odometer_km = odometer_start == null ? null : odometer_end - odometer_start;
 
   const providedId = safeId(input.id);
+  // Shift identity must stay stable when odometer details are added later.
   const id = providedId ?? await stableId([
-    date, platform, connected_start, connected_end,
-    odometer_start == null ? "" : String(odometer_start),
-    odometer_end == null ? "" : String(odometer_end)
+    date, platform, connected_start, connected_end
   ]);
 
   return {
