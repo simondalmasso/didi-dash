@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normaliseTrip, normaliseReward, normaliseFuelLog, normaliseWorkSession } from "../src/domain.mjs";
+import { normaliseTrip, normaliseReward, normaliseFuelLog, normaliseWithdrawal, normaliseWorkSession } from "../src/domain.mjs";
 
 test("normaliseTrip preserves the agreed ingestion contract and generates a deterministic id", async () => {
   const input = {
@@ -298,4 +298,19 @@ test("normaliseTrip groups unknown component codes as otro and rejects estimated
     min: 2, platform: "didi",
     breakdown: { source: "estimated", components: [{ code: "distancia", amount: 1000 }] }
   }), /breakdown\.source/i);
+});
+
+
+test("normaliseWithdrawal stores only financial evidence and never treats principal as a fee", async () => {
+  const row = await normaliseWithdrawal({
+    date: "2026-11-15", amount_ars: 50000, fee_ars: 0, reconciled: true,
+    source: "didi_wallet", bank_account: "must not persist"
+  });
+  assert.equal(row.amount_ars, 50000);
+  assert.equal(row.fee_ars, 0);
+  assert.equal(row.reconciled, true);
+  assert.equal("bank_account" in row, false);
+  await assert.rejects(() => normaliseWithdrawal({
+    date: "2026-02-30", amount_ars: 1, fee_ars: 0
+  }), /date/i);
 });

@@ -215,6 +215,20 @@ export async function normaliseFuelLog(input) {
   };
 }
 
+export async function normaliseWithdrawal(input) {
+  assertObject(input, "withdrawal");
+  const date = requireDate(input.date);
+  const amount_ars = finiteNumber(input.amount_ars, "amount_ars", { min: 1, max: 100000000 });
+  const fee_ars = finiteNumber(input.fee_ars ?? 0, "fee_ars", { min: 0, max: 100000000 });
+  if (input.reconciled != null && typeof input.reconciled !== "boolean") throw new Error("reconciled must be a boolean");
+  const source = String(input.source ?? "didi_wallet").trim().toLowerCase();
+  if (!SOURCE_RE.test(source)) throw new Error("source must be a short identifier");
+  const providedId = safeId(input.id);
+  const id = providedId ?? await stableId([date, String(amount_ars), String(fee_ars), source]);
+  // Withdrawal principal is a transfer of cash, not an expense. Only the observed fee affects cash-after-purchases.
+  return { id, date, amount_ars, fee_ars, reconciled: input.reconciled === true, source };
+}
+
 export async function normaliseWorkSession(input) {
   assertObject(input, "work session");
   const date = requireDate(input.date);

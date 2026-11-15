@@ -258,6 +258,7 @@ export function calculateProfitability({
   monthlyCosts = {},
   oneOffExpenses = [],
   fuelPurchases = null,
+  withdrawalFees = [],
   periodDays = 30
 } = {}) {
   const tripGross = trips.reduce((sum, row) => sum + amount(row.amount), 0);
@@ -343,8 +344,10 @@ export function calculateProfitability({
   const oneOffCosts = Math.round((oneOffExpenses.reduce((sum, row) => sum + amount(row.amount_ars), 0) + Number.EPSILON) * 100) / 100;
   const otherCosts = fixedCosts + oneOffCosts;
   const purchases = Array.isArray(fuelPurchases) ? fuelPurchases : fuelLogs;
+  const withdrawalFeeSpend = Math.round(((Array.isArray(withdrawalFees) ? withdrawalFees : []).reduce((sum, row) => sum + amount(row.fee_ars ?? row.amount_ars), 0) + Number.EPSILON) * 100) / 100;
+  const withdrawalFeeCount = (Array.isArray(withdrawalFees) ? withdrawalFees : []).filter((row) => amount(row.fee_ars ?? row.amount_ars) > 0).length;
   const fuelPurchaseSpend = Math.round((purchases.reduce((sum, row) => sum + amount(row.total_ars), 0) + Number.EPSILON) * 100) / 100;
-  const netCashAfterFuelPurchases = Math.round((gross - fuelPurchaseSpend - otherCosts + Number.EPSILON) * 100) / 100;
+  const netCashAfterFuelPurchases = Math.round((gross - fuelPurchaseSpend - withdrawalFeeSpend - otherCosts + Number.EPSILON) * 100) / 100;
   const totalKnownCosts = (fuelCost ?? 0) + otherCosts;
   const netPartial = fuelCost == null ? null : Math.round((gross - totalKnownCosts + Number.EPSILON) * 100) / 100;
   const netComplete = netPartial != null &&
@@ -374,6 +377,8 @@ export function calculateProfitability({
     otherCosts,
     totalKnownCosts,
     fuelPurchaseSpend,
+    withdrawalFeeSpend,
+    withdrawalFeeCount,
     netCashAfterFuelPurchases,
     netPartial,
     netOperating,

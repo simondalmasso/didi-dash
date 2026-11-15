@@ -7,7 +7,8 @@ const COLLECTION_FIELDS = {
   ],
   rewards: ["id", "date", "start", "amount", "label", "source"],
   fuel: ["id", "date", "odometer_km", "liters", "total_ars", "station", "full_tank"],
-  sessions: ["id", "date", "platform", "connected_start", "connected_end", "odometer_start", "odometer_end"]
+  sessions: ["id", "date", "platform", "connected_start", "connected_end", "odometer_start", "odometer_end"],
+  withdrawals: ["id", "date", "amount_ars", "fee_ars", "reconciled", "source"]
 };
 
 function isRecord(value) {

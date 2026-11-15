@@ -98,12 +98,15 @@ export function buildDataFina({
   trips = [],
   rewards = [],
   fuel = [],
+  withdrawalFees = [],
   from = null,
   to = null,
   dailyGoal = 80000
 } = {}) {
   const selectedTrips = (Array.isArray(trips) ? trips : []).filter((row) => inRange(row?.date, from, to));
   const selectedRewards = (Array.isArray(rewards) ? rewards : []).filter((row) => inRange(row?.date, from, to));
+  const selectedWithdrawalFees = (Array.isArray(withdrawalFees) ? withdrawalFees : [])
+    .filter((row) => inRange(row?.date, from, to));
   // Undated fuel remains in cash outflow for every range but never joins a dated chart.
   const selectedFuel = (Array.isArray(fuel) ? fuel : []).filter((row) =>
     !row?.date || inRange(row.date, from, to)
@@ -112,6 +115,8 @@ export function buildDataFina({
   const tripGross = selectedTrips.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
   const rewardGross = selectedRewards.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
   const fuelSpend = selectedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
+  const withdrawalFeeSpend = selectedWithdrawalFees.reduce((sum, row) =>
+    sum + (validAmount(row.amount_ars ?? row.fee_ars) ?? 0), 0);
   const undatedFuel = selectedFuel.filter((row) => !row?.date);
   const undatedFuelSpend = undatedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
   const actualKmTrips = selectedTrips.filter((row) =>
@@ -119,7 +124,27 @@ export function buildDataFina({
   );
   const durationTrips = selectedTrips.filter((row) => tripDurationSeconds(row) > 0);
   const actualKm = actualKmTrips.reduce((sum, row) => sum + Number(row.km), 0);
-  const reportedSeconds = selectedTrips.reduce((sum, row) => sum + tripDurationSeconds(row), 0);
+  const actualKmGross = actualKmTrips.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+  const durationCoveredGross = durationTrips.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+  const reportedSeconds = durationTrips.reduce((sum, row) => sum + tripDurationSeconds(row), 0);
+
+  const categoryTotals = new Map();
+  let unclassifiedTrips = 0;
+  for (const trip of selectedTrips) {
+    const serviceType = typeof trip.service_type === "string" && trip.service_type.trim()
+      ? trip.service_type.trim()
+      : typeof trip.modality === "string" && trip.modality.trim()
+        ? trip.modality.trim()
+        : null;
+    if (!serviceType) {
+      unclassifiedTrips += 1;
+      continue;
+    }
+    const current = categoryTotals.get(serviceType) ?? { serviceType, trips: 0, gross: 0 };
+    current.trips += 1;
+    current.gross += validAmount(trip.amount) ?? 0;
+    categoryTotals.set(serviceType, current);
+  }
 
   const componentTotals = new Map(COMPONENTS.map((item) => [
     item.code, { ...item, amount: 0, trips: 0 }
@@ -181,7 +206,7 @@ export function buildDataFina({
   const daysAtGoal = days.filter((day) => day.metGoal).length;
   const bestHour = hours.reduce((best, item) =>
     item.gross > (best?.gross ?? -1) ? item : best, null);
-  const cashNet = tripGross + rewardGross - fuelSpend;
+  const cashNet = tripGross + rewardGross - fuelSpend - withdrawalFeeSpend;
   const passengerHours = reportedSeconds / 3600;
 
   return {
@@ -189,18 +214,32 @@ export function buildDataFina({
     gross: tripGross,
     rewardGross,
     fuelSpend,
+    withdrawalFeeSpend,
+    withdrawalFeeCount: selectedWithdrawalFees.filter((row) =>
+      (validAmount(row.amount_ars ?? row.fee_ars) ?? 0) > 0
+    ).length,
     cashNet,
     undatedFuelCount: undatedFuel.length,
     undatedFuelSpend,
     actualKm,
+    actualKmGross,
     actualKmTrips: actualKmTrips.length,
     durationTrips: durationTrips.length,
+    durationCoveredGross,
     reportedSeconds,
     passengerHours,
     connectedHours: null,
-    grossPerPassengerHour: passengerHours > 0 ? tripGross / passengerHours : null,
-    grossPerKm: actualKm > 0 ? tripGross / actualKm : null,
-    cashMarginPerKm: actualKm > 0 ? (tripGross - fuelSpend) / actualKm : null,
+    grossPerPassengerHour: passengerHours > 0 ? durationCoveredGross / passengerHours : null,
+    grossPerKm: actualKm > 0 ? actualKmGross / actualKm : null,
+    cashMarginPerKm: null,
+    categoryCoverage: {
+      classifiedTrips: selectedTrips.length - unclassifiedTrips,
+      unclassifiedTrips,
+      coveragePercent: selectedTrips.length
+        ? (selectedTrips.length - unclassifiedTrips) / selectedTrips.length * 100
+        : 0,
+      byType: [...categoryTotals.values()].sort((a, b) => a.serviceType.localeCompare(b.serviceType, "es"))
+    },
     dailyAverage: activeDays > 0
       ? days.reduce((sum, day) => sum + day.gross, 0) / activeDays
       : null,

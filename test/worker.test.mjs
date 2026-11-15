@@ -106,18 +106,19 @@ test("fuel and work-session reads are public", async () => {
 test("public JSON backup includes every ledger category without authentication", async () => {
   const DATA = memoryKV({
     trips: [{ id: "t" }], rewards: [{ id: "r" }],
-    fuel: [{ id: "f" }], sessions: [{ id: "s" }]
+    fuel: [{ id: "f" }], sessions: [{ id: "s" }], withdrawals: [{ id: "w" }]
   });
   const response = await worker.fetch(apiRequest("/api/export"), { DATA });
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.equal(body.schema_version, 2);
+  assert.equal(body.schema_version, 3);
   assert.deepEqual(body.trips, [{ id: "t" }]);
   assert.deepEqual(body.rewards, [{ id: "r" }]);
   assert.deepEqual(body.fuel, [{ id: "f" }]);
   assert.deepEqual(body.sessions, [{ id: "s" }]);
+  assert.deepEqual(body.withdrawals, [{ id: "w" }]);
   assert.deepEqual(body.truncated, {
-    trips: false, rewards: false, fuel: false, sessions: false
+    trips: false, rewards: false, fuel: false, sessions: false, withdrawals: false
   });
   assert.match(response.headers.get("content-disposition"), /didi-dash-backup\.json/);
 });

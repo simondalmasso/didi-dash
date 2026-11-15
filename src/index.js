@@ -2,6 +2,7 @@ import {
   normaliseFuelLog,
   normaliseReward,
   normaliseTrip,
+  normaliseWithdrawal,
   normaliseWorkSession
 } from "./domain.mjs";
 
@@ -70,7 +71,8 @@ async function readLedger(env) {
     trips: Array.isArray(ledger.trips) ? ledger.trips : [],
     rewards: Array.isArray(ledger.rewards) ? ledger.rewards : [],
     fuel: Array.isArray(ledger.fuel) ? ledger.fuel : [],
-    sessions: Array.isArray(ledger.sessions) ? ledger.sessions : []
+    sessions: Array.isArray(ledger.sessions) ? ledger.sessions : [],
+    withdrawals: Array.isArray(ledger.withdrawals) ? ledger.withdrawals : []
   };
 }
 
@@ -535,9 +537,10 @@ async function handleIngest(request, env) {
   const rewardsInput = legacyTripArray ? [] : (body?.rewards ?? []);
   const fuelInput = legacyTripArray ? [] : (body?.fuel ?? []);
   const sessionsInput = legacyTripArray ? [] : (body?.sessions ?? []);
-  const collections = [tripsInput, rewardsInput, fuelInput, sessionsInput];
+  const withdrawalsInput = legacyTripArray ? [] : (body?.withdrawals ?? []);
+  const collections = [tripsInput, rewardsInput, fuelInput, sessionsInput, withdrawalsInput];
   if (!collections.every(Array.isArray)) {
-    throw new HttpError(400, "trips, rewards, fuel and sessions must be arrays");
+    throw new HttpError(400, "trips, rewards, fuel, sessions and withdrawals must be arrays");
   }
   const total = collections.reduce((sum, value) => sum + value.length, 0);
   if (total < 1) throw new HttpError(400, "Body must contain at least one record");
@@ -549,12 +552,14 @@ async function handleIngest(request, env) {
   const rewards = await normaliseBatch(rewardsInput, normaliseReward, ledger.rewards, "rewards");
   const fuel = await normaliseFuelBatch(fuelInput, ledger.fuel);
   const sessions = await normaliseSessionBatch(sessionsInput, ledger.sessions);
-  const by_day = mergeDayBreakdowns(trips.by_day, rewards.by_day, fuel.by_day, sessions.by_day);
+  const withdrawals = await normaliseBatch(withdrawalsInput, normaliseWithdrawal, ledger.withdrawals, "withdrawals");
+  const by_day = mergeDayBreakdowns(trips.by_day, rewards.by_day, fuel.by_day, sessions.by_day, withdrawals.by_day);
 
   ledger.trips.push(...trips.rows);
   ledger.rewards.push(...rewards.rows);
   ledger.fuel.push(...fuel.rows);
   ledger.sessions.push(...sessions.rows);
+  ledger.withdrawals.push(...withdrawals.rows);
   if (!dryRun) await writeLedger(env, ledger);
 
   return json({
@@ -564,12 +569,13 @@ async function handleIngest(request, env) {
     rewards: { received: rewards.received, inserted: rewards.inserted, duplicates: rewards.duplicates },
     fuel: { received: fuel.received, inserted: fuel.inserted, duplicates: fuel.duplicates, ambiguous: fuel.ambiguous },
     sessions: { received: sessions.received, inserted: sessions.inserted, updated: sessions.updated, duplicates: sessions.duplicates, ambiguous: sessions.ambiguous },
+    withdrawals: { received: withdrawals.received, inserted: withdrawals.inserted, duplicates: withdrawals.duplicates },
     by_day,
     received: total,
-    inserted: trips.inserted + rewards.inserted + fuel.inserted + sessions.inserted,
+    inserted: trips.inserted + rewards.inserted + fuel.inserted + sessions.inserted + withdrawals.inserted,
     updated: trips.updated + sessions.updated,
     ambiguous: trips.ambiguous + fuel.ambiguous + sessions.ambiguous,
-    duplicates: trips.duplicates + rewards.duplicates + fuel.duplicates + sessions.duplicates
+    duplicates: trips.duplicates + rewards.duplicates + fuel.duplicates + sessions.duplicates + withdrawals.duplicates
   }, dryRun ? 200 : 201);
 }
 
@@ -617,23 +623,33 @@ async function handleApi(request, env) {
     return json({ sessions: sorted(ledger.sessions, safeLimit(url.searchParams.get("limit"), 500)) });
   }
 
+  if (path === "/api/withdrawals") {
+    const limit = safeLimit(url.searchParams.get("limit"), 500);
+    const filtered = filterDateRange(ledger.withdrawals, url);
+    const withdrawals = sorted(filtered, limit);
+    return json({ withdrawals, count: withdrawals.length, total: filtered.length, limit, truncated: withdrawals.length < filtered.length });
+  }
+
   if (path === "/api/export") {
     const trips = sorted(ledger.trips, 5000);
     const rewards = sorted(ledger.rewards, 5000);
     const fuel = sorted(ledger.fuel, 5000);
     const sessions = sorted(ledger.sessions, 5000);
+    const withdrawals = sorted(ledger.withdrawals, 5000);
     return json({
-      schema_version: 2,
+      schema_version: 3,
       exported_at: new Date().toISOString(),
       trips,
       rewards,
       fuel,
       sessions,
+      withdrawals,
       truncated: {
         trips: trips.length < ledger.trips.length,
         rewards: rewards.length < ledger.rewards.length,
         fuel: fuel.length < ledger.fuel.length,
-        sessions: sessions.length < ledger.sessions.length
+        sessions: sessions.length < ledger.sessions.length,
+        withdrawals: withdrawals.length < ledger.withdrawals.length
       }
     }, 200, {
       "content-disposition": 'attachment; filename="didi-dash-backup.json"'

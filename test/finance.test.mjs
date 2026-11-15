@@ -431,3 +431,17 @@ test("dashboard API URLs keep existing filters and add a per-request freshness k
     "/api/trips?limit=5000&_fresh=request-123"
   );
 });
+
+
+test("cash net subtracts observed withdrawal fees but not withdrawal principal", () => {
+  const result = calculateProfitability({
+    trips: [{ date: "2026-11-15", amount: 10000, km: 0, km_source: "unknown" }],
+    rewards: [], sessions: [], fuelLogs: [], fuelPurchases: [{ total_ars: 1000 }],
+    withdrawalFees: [{ amount_ars: 50000, fee_ars: 80 }, { amount_ars: 10000, fee_ars: 0 }],
+    priceHistory: [], monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
+    oneOffExpenses: [], periodDays: 1
+  });
+  assert.equal(result.withdrawalFeeSpend, 80);
+  assert.equal(result.withdrawalFeeCount, 1);
+  assert.equal(result.netCashAfterFuelPurchases, 8920);
+});

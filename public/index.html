@@ -472,7 +472,7 @@ import { buildDataFina } from "/data-fina.mjs";
       link.removeAttribute("aria-current");
     }
   });
-  const state = { trips: [], rewards: [], fuel: [], sessions: [], range: dashboardRangeFromSearch(location.search) };
+  const state = { trips: [], rewards: [], fuel: [], sessions: [], withdrawals: [], range: dashboardRangeFromSearch(location.search) };
   const LOCAL_SETTINGS_KEY = "etios-dash-operating-costs-v1";
   const DEFAULT_SETTINGS = {
     monthlyCosts: { insurance: null, maintenance: null, tires: null, tax: null, other: null },
@@ -975,17 +975,19 @@ import { buildDataFina } from "/data-fina.mjs";
   }
 
   async function loadData() {
-    const [trips, rewards, fuel, sessions, ledgerExport] = await Promise.all([
+    const [trips, rewards, fuel, sessions, withdrawals, ledgerExport] = await Promise.all([
       api("/api/trips?limit=5000"),
       api("/api/rewards?limit=5000"),
       api("/api/fuel?limit=500"),
       api("/api/sessions?limit=500"),
+      api("/api/withdrawals?limit=500"),
       api("/api/export")
     ]);
     state.trips = trips.trips || [];
     state.rewards = rewards.rewards || [];
     state.fuel = fuel.fuel || [];
     state.sessions = sessions.sessions || [];
+    state.withdrawals = withdrawals.withdrawals || [];
     renderLedgerAudit(auditLedger(ledgerExport));
     $("connection").textContent = "KV conectado · " + state.trips.length + " viajes · " + state.rewards.length + " recompensas";
     $("connection").style.background = "rgba(48,209,88,.13)";
@@ -997,6 +999,7 @@ import { buildDataFina } from "/data-fina.mjs";
     const rewards = selected(state.rewards);
     const allFuelLogs = [...state.fuel, ...localSettings.fuelLogs];
     const allSessions = [...state.sessions, ...localSettings.vehicleSessions];
+    const withdrawals = selected(state.withdrawals);
     const fuel = selected(allFuelLogs);
     const sessions = selected(allSessions);
     const tripGross = trips.reduce((sum, row) => sum + asNumber(row.amount), 0);
@@ -1028,6 +1031,7 @@ import { buildDataFina } from "/data-fina.mjs";
       trips, rewards, sessions,
       fuelLogs: allFuelLogs,
       fuelPurchases,
+      withdrawalFees: withdrawals,
       priceHistory: localSettings.priceHistory,
       monthlyCosts: localSettings.monthlyCosts,
       oneOffExpenses,
@@ -1082,7 +1086,8 @@ import { buildDataFina } from "/data-fina.mjs";
         : "No es neto final. Faltan: " + [...new Set(gaps)].join(", ") + ".";
     $("cash-net-estimate").textContent = money.format(financial.netCashAfterFuelPurchases);
     $("cash-net-estimate-hint").textContent =
-      money.format(financial.fuelPurchaseSpend) + " en cargas pagadas · " +
+      money.format(financial.fuelPurchaseSpend) + " en cargas pagadas" +
+      (financial.withdrawalFeeCount ? " · " + money.format(financial.withdrawalFeeSpend) + " en comisiones de retiro" : " · sin comisiones de retiro registradas") + " · " +
       (undatedFuelPayments.length
         ? undatedFuelPayments.length + " cargas sin fecha incluidas en cualquier período"
         : state.range === 0 ? "todo el historial" : "compras del período") +
@@ -1113,7 +1118,7 @@ import { buildDataFina } from "/data-fina.mjs";
     renderMonthlySummary(periodSummary.monthly);
     renderHours(trips);
     renderTrips(trips);
-    renderDataFina(trips, rewards, state.fuel);
+    renderDataFina(trips, rewards, state.fuel, withdrawals);
     renderTripTimeline(trips);
     renderRewards(rewards);
     renderSessions(sessions);
@@ -1246,13 +1251,14 @@ import { buildDataFina } from "/data-fina.mjs";
     });
   }
 
-  function renderDataFina(trips, rewards, ledgerFuel) {
+  function renderDataFina(trips, rewards, ledgerFuel, withdrawals = []) {
     const from = state.range > 0 ? localDateDaysAgo(state.range - 1) : null;
     const goal = localSettings.dailyGrossTarget || 80000;
     const result = buildDataFina({
       trips,
       rewards,
       fuel: ledgerFuel,
+      withdrawalFees: withdrawals,
       from,
       to: isoToday,
       dailyGoal: goal
@@ -1261,20 +1267,19 @@ import { buildDataFina } from "/data-fina.mjs";
     const width = (value, total) => Math.max(0, Math.min(100, pct(value, total)));
     const grossPerTrip = result.tripCount ? result.gross / result.tripCount : null;
     const litresReference = result.actualKm * ETIOS_L_PER_100KM / 100;
-    const marginAfterPurchasesPerKm = result.actualKm > 0
-      ? (result.gross - result.fuelSpend) / result.actualKm
-      : null;
-
     $("data-fina-cash-net").textContent = money.format(result.cashNet);
     $("data-fina-cash-caption").textContent =
       money.format(result.gross) + " en viajes + " +
       money.format(result.rewardGross) + " en recompensas - " +
-      money.format(result.fuelSpend) + " en combustible comprado. Caja registrada, no beneficio operativo.";
+      money.format(result.fuelSpend) + " en combustible comprado" +
+      (result.withdrawalFeeCount ? " - " + money.format(result.withdrawalFeeSpend) + " en comisiones de retiro" : ". Sin comisiones de retiro registradas.") +
+      " Caja registrada, no beneficio operativo.";
     $("data-fina-hero-pills").innerHTML = [
       result.tripCount + " viajes",
       money.format(result.gross) + " viajes",
       money.format(result.rewardGross) + " recompensas",
-      result.undatedFuelCount + " cargas sin fecha"
+      result.undatedFuelCount + " cargas sin fecha",
+      result.withdrawalFeeCount ? result.withdrawalFeeCount + " retiros con comisión" : "retiros: sin comisiones registradas"
     ].map((label) => "<span>" + escapeHtml(label) + "</span>").join("");
 
     const sparkDays = result.days.slice(-12);
@@ -1338,7 +1343,8 @@ import { buildDataFina } from "/data-fina.mjs";
       ["Bruto por hora de viaje", result.grossPerPassengerHour == null ? "—" : money.format(result.grossPerPassengerHour) + "/h", "Solo duracion de viajes; no horas conectadas"],
       ["Promedio por viaje", grossPerTrip == null ? "—" : money.format(grossPerTrip), result.tripCount + " viajes"],
       ["Bruto por km real", result.grossPerKm == null ? "—" : money.format(result.grossPerKm) + "/km", number.format(result.actualKm) + " km reales"],
-      ["Ingreso en franja prime", result.primeSharePercent.toFixed(1) + "%", money.format(result.primeGross) + " · mejor hora " + (result.bestHour == null ? "—" : String(result.bestHour).padStart(2, "0") + ":00")]
+      ["Ingreso en franja prime", result.primeSharePercent.toFixed(1) + "%", money.format(result.primeGross) + " · mejor hora " + (result.bestHour == null ? "—" : String(result.bestHour).padStart(2, "0") + ":00")],
+      ["Cobertura de modalidad", result.categoryCoverage.coveragePercent.toFixed(1) + "%", result.categoryCoverage.classifiedTrips + " clasificados · " + result.categoryCoverage.unclassifiedTrips + " sin clasificar"]
     ];
     $("data-fina-kpis").innerHTML = kpis.map((item) =>
       '<article class="dfl-kpi"><div class="dfl-kpi-label">' + escapeHtml(item[0]) +
@@ -1405,7 +1411,7 @@ import { buildDataFina } from "/data-fina.mjs";
       ["Km reales con pasajero", number.format(result.actualKm) + " km", result.actualKmTrips + " viajes con distancia real"],
       ["Nafta de referencia", number.format(litresReference) + " L", "Estimacion a " + ETIOS_L_PER_100KM + " L/100 km; no medida"],
       ["Combustible comprado", money.format(result.fuelSpend), result.undatedFuelCount + " cargas sin fecha incluidas"],
-      ["Margen caja por km", marginAfterPurchasesPerKm == null ? "—" : money.format(marginAfterPurchasesPerKm) + "/km", "Viajes menos compras de combustible, no costo consumido"]
+      ["Margen caja por km", result.cashMarginPerKm == null ? "—" : money.format(result.cashMarginPerKm) + "/km", "No se calcula sin cobertura compatible de costos y kilómetros"]
     ];
     $("data-fina-efficiency").innerHTML = efficiency.map((item) =>
       '<div class="dfl-efficiency-item"><div class="dfl-efficiency-label">' +

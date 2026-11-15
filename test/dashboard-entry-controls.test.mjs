@@ -138,7 +138,7 @@ test("dashboard renders fare detail and a per-day trip timeline without claiming
 });
 test("data-fina dashboard uses the live canonical aggregator and keeps finance evidence labelled", () => {
   assert.match(dashboard, /import \{ buildDataFina \} from "\/data-fina\.mjs"/);
-  assert.match(dashboard, /function renderDataFina\(trips, rewards, ledgerFuel\)/);
+  assert.match(dashboard, /function renderDataFina\(trips, rewards, ledgerFuel, withdrawals = \[\]\)/);
   assert.match(dashboard, /buildDataFina\(/);
   for (const id of [
     "data-fina-hero", "data-fina-cash-net", "data-fina-daily-target",

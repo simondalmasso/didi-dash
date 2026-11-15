@@ -152,3 +152,55 @@ test("live 14 November fare component counts reflect observed non-null detail li
   assert.equal(counts.diferencial,4);
   assert.equal(counts.reembolso_tarifario,1);
 });
+
+test("per-hour and per-km rates use only trip gross with matching observed duration or km coverage", () => {
+  const result = buildDataFina({
+    trips: [
+      { date: "2026-11-14", start: "18:00", amount: 1000, km: 2, km_source: "actual", min: 10, duration_seconds: 600 },
+      { date: "2026-11-14", start: "19:00", amount: 4000, km: 0, km_source: "unknown", min: 0 }
+    ],
+    rewards: [],
+    fuel: [],
+    dailyGoal: 80000
+  });
+  assert.equal(result.gross, 5000);
+  assert.equal(result.durationCoveredGross, 1000);
+  assert.equal(result.actualKmGross, 1000);
+  assert.equal(result.grossPerPassengerHour, 6000);
+  assert.equal(result.grossPerKm, 500);
+});
+
+test("withdrawal fees reduce cash net only for the selected dates and are reported separately", () => {
+  const result = buildDataFina({
+    trips: [{ date: "2026-11-14", start: "18:00", amount: 10000, min: 10 }],
+    rewards: [{ date: "2026-11-14", amount: 500 }],
+    fuel: [{ date: "2026-11-14", total_ars: 1000 }],
+    withdrawalFees: [
+      { date: "2026-11-14", amount_ars: 500 },
+      { date: "2026-11-01", amount_ars: 500 },
+      { date: null, amount_ars: 500 }
+    ],
+    from: "2026-11-14",
+    to: "2026-11-14"
+  });
+  assert.equal(result.withdrawalFeeSpend, 500);
+  assert.equal(result.cashNet, 9000);
+});
+
+test("service category coverage exposes classified and unclassified trips without inference", () => {
+  const result = buildDataFina({
+    trips: [
+      { date: "2026-11-14", start: "18:00", amount: 1000, service_type: "Express" },
+      { date: "2026-11-14", start: "19:00", amount: 1500, service_type: "Pone tu precio" },
+      { date: "2026-11-14", start: "20:00", amount: 2000 }
+    ],
+    rewards: [], fuel: []
+  });
+  assert.equal(result.categoryCoverage.classifiedTrips, 2);
+  assert.equal(result.categoryCoverage.unclassifiedTrips, 1);
+  assert.equal(result.categoryCoverage.coveragePercent, 2 / 3 * 100);
+  assert.deepEqual(result.categoryCoverage.byType, [
+    { serviceType: "Express", trips: 1, gross: 1000 },
+    { serviceType: "Pone tu precio", trips: 1, gross: 1500 }
+  ]);
+});

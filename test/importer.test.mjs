@@ -21,7 +21,7 @@ test("import parser accepts a structured backup and whitelists server records", 
   const parsed = parseImportJson(source);
   const payload = buildImportPayload(parsed);
 
-  assert.deepEqual(Object.keys(payload).sort(), ["fuel", "rewards", "sessions", "trips"]);
+  assert.deepEqual(Object.keys(payload).sort(), ["fuel", "rewards", "sessions", "trips", "withdrawals"]);
   assert.deepEqual(payload.trips[0], {
     id: "trip-1", date: "2026-11-13", start: "20:33", amount: 5100,
     km: 5.8, km_source: "actual", min: 15.9, duration_seconds: 954, platform: "didi", source: "didi_history_detail",
