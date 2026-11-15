@@ -251,6 +251,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <div class="kpi"><div class="label">Nafta estimada · YPF Súper</div><div id="fuel-estimate" class="value">—</div><div id="fuel-estimate-hint" class="hint">Etios 1.5 manual · 8,8 L/100 km</div></div>
         <div class="kpi"><div class="label">Otros costos</div><div id="other-cost-estimate" class="value">—</div><div id="other-cost-hint" class="hint">Seguro, mantenimiento, cubiertas, patente</div></div>
         <div class="kpi"><div class="label" id="net-estimate-label">Ganancia neta operativa</div><div id="net-estimate" class="value">—</div><div id="net-estimate-hint" class="hint">Requiere odómetro y gastos registrados</div></div>
+        <div class="kpi"><div class="label">Comisiones de retiro</div><div id="withdrawal-fees" class="value">—</div><div id="withdrawal-fees-hint" class="hint">Sin datos registrados · no equivale a $0</div></div>
         <div class="kpi"><div class="label">Caja disponible (recompensas incluidas)</div><div id="cash-net-estimate" class="value">—</div><div id="cash-net-estimate-hint" class="hint">Viajes + recompensas − nafta comprada − otros costos</div></div>
       </section>
       <section class="card" id="profitability-settings" data-area="inputs">
@@ -347,6 +348,10 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <section class="card"><h2>Horas conectadas</h2><div id="per-hour" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="hours-hint" class="note">Sin turnos registrados.</div><div id="sessions-list" class="note"></div></section>
         <section class="card"><h2>Combustible comprado</h2><div id="fuel-margin" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="fuel-hint" class="note">Sin tickets registrados.</div><div id="fuel-list" class="note"></div></section>
       </div>
+      <section class="card dfl-card" data-area="history" id="withdrawals-card">
+        <div class="section-head"><h2>Retiros de la billetera</h2><span id="withdrawals-status" class="note">Sin evidencia capturada</span></div>
+        <div id="withdrawals-summary" class="note">No hay registros de retiros ni comisiones. Esto no prueba que no hayan existido: una confirmación explícita o evidencia de la billetera puede cerrar el dato.</div>
+      </section>
       <section class="dfl-hero" data-area="history" id="data-fina-hero">
         <div class="dfl-hero-main">
           <div class="dfl-eyebrow">CAJA NETA REGISTRADA</div>
@@ -1084,14 +1089,22 @@ import { buildDataFina } from "/data-fina.mjs";
       : financial.netPartial === null
         ? "No hay kilómetros suficientes para calcular combustible."
         : "No es neto final. Faltan: " + [...new Set(gaps)].join(", ") + ".";
+    $("withdrawal-fees").textContent = financial.withdrawalFeeSpend == null ? "—" : money.format(financial.withdrawalFeeSpend);
+    $("withdrawal-fees-hint").textContent = financial.withdrawalFeeSpend == null
+      ? "Sin datos registrados · no equivale a $0"
+      : financial.withdrawalFeeCount + " retiro(s) con comisión registrada";
     $("cash-net-estimate").textContent = money.format(financial.netCashAfterFuelPurchases);
     $("cash-net-estimate-hint").textContent =
       money.format(financial.fuelPurchaseSpend) + " en cargas pagadas" +
-      (financial.withdrawalFeeCount ? " · " + money.format(financial.withdrawalFeeSpend) + " en comisiones de retiro" : " · sin comisiones de retiro registradas") + " · " +
+      (financial.withdrawalFeeSpend == null ? " · comisiones de retiro: sin datos (asume $0)" : " · " + money.format(financial.withdrawalFeeSpend) + " en comisiones de retiro") + " · " +
       (undatedFuelPayments.length
         ? undatedFuelPayments.length + " cargas sin fecha incluidas en cualquier período"
         : state.range === 0 ? "todo el historial" : "compras del período") +
       " · caja, no consumo estimado.";
+    $("withdrawals-status").textContent = withdrawals.length ? withdrawals.length + " registro(s) capturados" : "Sin evidencia capturada";
+    $("withdrawals-summary").textContent = withdrawals.length
+      ? "Los montos retirados son transferencias de caja, no gastos. Solo las comisiones observadas afectan la caja calculada."
+      : "No hay registros de retiros ni comisiones. Esto no prueba que no hayan existido: una confirmación explícita o evidencia de la billetera puede cerrar el dato.";
     $("fuel-unassigned-note").textContent = undatedFuelPayments.length
       ? "Cargas sin fecha: " + money.format(undatedFuelSpend) + " (" + undatedFuelPayments.length +
         "). Se incluyen en la caja neta de cualquier período, pero no se asignan a un día o mes."
@@ -1272,14 +1285,14 @@ import { buildDataFina } from "/data-fina.mjs";
       money.format(result.gross) + " en viajes + " +
       money.format(result.rewardGross) + " en recompensas - " +
       money.format(result.fuelSpend) + " en combustible comprado" +
-      (result.withdrawalFeeCount ? " - " + money.format(result.withdrawalFeeSpend) + " en comisiones de retiro" : ". Sin comisiones de retiro registradas.") +
-      " Caja registrada, no beneficio operativo.";
+      (result.withdrawalFeeSpend == null ? " - comisiones de retiro: sin datos (asume $0 para este cálculo)." : " - " + money.format(result.withdrawalFeeSpend) + " en comisiones de retiro.") +
+      " Hipótesis de cálculo, no certificación. Caja registrada, no beneficio operativo.";
     $("data-fina-hero-pills").innerHTML = [
       result.tripCount + " viajes",
       money.format(result.gross) + " viajes",
       money.format(result.rewardGross) + " recompensas",
       result.undatedFuelCount + " cargas sin fecha",
-      result.withdrawalFeeCount ? result.withdrawalFeeCount + " retiros con comisión" : "retiros: sin comisiones registradas"
+      result.withdrawalFeeSpend == null ? "retiros: sin datos registrados" : result.withdrawalFeeCount + " retiros con comisión"
     ].map((label) => "<span>" + escapeHtml(label) + "</span>").join("");
 
     const sparkDays = result.days.slice(-12);

@@ -115,8 +115,13 @@ export function buildDataFina({
   const tripGross = selectedTrips.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
   const rewardGross = selectedRewards.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
   const fuelSpend = selectedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
-  const withdrawalFeeSpend = selectedWithdrawalFees.reduce((sum, row) =>
-    sum + (validAmount(row.amount_ars ?? row.fee_ars) ?? 0), 0);
+  const withdrawalEvidence = selectedWithdrawalFees.length > 0;
+  const withdrawalFeeSpend = withdrawalEvidence
+    ? selectedWithdrawalFees.reduce((sum, row) => sum + (validAmount(row.fee_ars) ?? 0), 0)
+    : null;
+  const withdrawalFeeCount = withdrawalEvidence
+    ? selectedWithdrawalFees.filter((row) => (validAmount(row.fee_ars) ?? 0) > 0).length
+    : null;
   const undatedFuel = selectedFuel.filter((row) => !row?.date);
   const undatedFuelSpend = undatedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
   const actualKmTrips = selectedTrips.filter((row) =>
@@ -206,7 +211,8 @@ export function buildDataFina({
   const daysAtGoal = days.filter((day) => day.metGoal).length;
   const bestHour = hours.reduce((best, item) =>
     item.gross > (best?.gross ?? -1) ? item : best, null);
-  const cashNet = tripGross + rewardGross - fuelSpend - withdrawalFeeSpend;
+  // Unknown withdrawal evidence is displayed as unknown; cash net keeps an explicit zero-fee assumption for arithmetic only.
+  const cashNet = tripGross + rewardGross - fuelSpend - (withdrawalFeeSpend ?? 0);
   const passengerHours = reportedSeconds / 3600;
 
   return {
@@ -215,10 +221,10 @@ export function buildDataFina({
     rewardGross,
     fuelSpend,
     withdrawalFeeSpend,
-    withdrawalFeeCount: selectedWithdrawalFees.filter((row) =>
-      (validAmount(row.amount_ars ?? row.fee_ars) ?? 0) > 0
-    ).length,
+    withdrawalFeeCount,
+    withdrawalEvidence,
     cashNet,
+    cashNetAssumesZeroWithdrawalFees: !withdrawalEvidence,
     undatedFuelCount: undatedFuel.length,
     undatedFuelSpend,
     actualKm,

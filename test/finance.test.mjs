@@ -445,3 +445,16 @@ test("cash net subtracts observed withdrawal fees but not withdrawal principal",
   assert.equal(result.withdrawalFeeCount, 1);
   assert.equal(result.netCashAfterFuelPurchases, 8920);
 });
+
+test("missing withdrawal evidence remains unknown and does not silently become a fee", () => {
+  const result = calculateProfitability({
+    trips: [{ date: "2026-11-15", amount: 1000, km: 0, km_source: "unknown" }],
+    rewards: [], sessions: [], fuelLogs: [], fuelPurchases: [], withdrawalFees: [],
+    priceHistory: [], monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
+    oneOffExpenses: [], periodDays: 1
+  });
+  assert.equal(result.withdrawalEvidence, false);
+  assert.equal(result.withdrawalFeeSpend, null);
+  assert.equal(result.netCashAssumesZeroWithdrawalFees, true);
+  assert.equal(result.netCashAfterFuelPurchases, 1000);
+});

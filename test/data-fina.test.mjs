@@ -176,9 +176,9 @@ test("withdrawal fees reduce cash net only for the selected dates and are report
     rewards: [{ date: "2026-11-14", amount: 500 }],
     fuel: [{ date: "2026-11-14", total_ars: 1000 }],
     withdrawalFees: [
-      { date: "2026-11-14", amount_ars: 500 },
-      { date: "2026-11-01", amount_ars: 500 },
-      { date: null, amount_ars: 500 }
+      { date: "2026-11-14", amount_ars: 50000, fee_ars: 500 },
+      { date: "2026-11-01", amount_ars: 50000, fee_ars: 500 },
+      { date: null, amount_ars: 50000, fee_ars: 500 }
     ],
     from: "2026-11-14",
     to: "2026-11-14"
@@ -203,4 +203,25 @@ test("service category coverage exposes classified and unclassified trips withou
     { serviceType: "Express", trips: 1, gross: 1000 },
     { serviceType: "Pone tu precio", trips: 1, gross: 1500 }
   ]);
+});
+
+test("missing withdrawal evidence remains null while cash arithmetic marks its zero-fee assumption", () => {
+  const result = buildDataFina({
+    trips: [{ date: "2026-11-15", amount: 1000 }], rewards: [], fuel: [], withdrawalFees: []
+  });
+  assert.equal(result.withdrawalEvidence, false);
+  assert.equal(result.withdrawalFeeSpend, null);
+  assert.equal(result.withdrawalFeeCount, null);
+  assert.equal(result.cashNet, 1000);
+  assert.equal(result.cashNetAssumesZeroWithdrawalFees, true);
+});
+
+test("withdrawal principal is never treated as a fee", () => {
+  const result = buildDataFina({
+    trips: [{ date: "2026-11-15", amount: 1000 }], rewards: [], fuel: [],
+    withdrawalFees: [{ date: "2026-11-15", amount_ars: 900, fee_ars: 0 }]
+  });
+  assert.equal(result.withdrawalEvidence, true);
+  assert.equal(result.withdrawalFeeSpend, 0);
+  assert.equal(result.cashNet, 1000);
 });
