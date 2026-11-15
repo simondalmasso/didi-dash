@@ -176,9 +176,9 @@ test("withdrawal fees reduce cash net only for the selected dates and are report
     rewards: [{ date: "2026-11-14", amount: 500 }],
     fuel: [{ date: "2026-11-14", total_ars: 1000 }],
     withdrawalFees: [
-      { date: "2026-11-14", amount_ars: 50000, fee_ars: 500 },
-      { date: "2026-11-01", amount_ars: 50000, fee_ars: 500 },
-      { date: null, amount_ars: 50000, fee_ars: 500 }
+      { date: "2026-11-14", amount_ars: 50000, fee_ars: 500, reconciled: true },
+      { date: "2026-11-01", amount_ars: 50000, fee_ars: 500, reconciled: true },
+      { date: null, amount_ars: 50000, fee_ars: 500, reconciled: true }
     ],
     from: "2026-11-14",
     to: "2026-11-14"
@@ -212,6 +212,7 @@ test("missing withdrawal evidence remains null while cash arithmetic marks its z
   assert.equal(result.withdrawalEvidence, false);
   assert.equal(result.withdrawalFeeSpend, null);
   assert.equal(result.withdrawalFeeCount, null);
+  assert.equal(result.withdrawalRecordCount, 0);
   assert.equal(result.cashNet, 1000);
   assert.equal(result.cashNetAssumesZeroWithdrawalFees, true);
 });
@@ -219,9 +220,54 @@ test("missing withdrawal evidence remains null while cash arithmetic marks its z
 test("withdrawal principal is never treated as a fee", () => {
   const result = buildDataFina({
     trips: [{ date: "2026-11-15", amount: 1000 }], rewards: [], fuel: [],
-    withdrawalFees: [{ date: "2026-11-15", amount_ars: 900, fee_ars: 0 }]
+    withdrawalFees: [{ date: "2026-11-15", amount_ars: 900, fee_ars: 0, reconciled: true }]
   });
   assert.equal(result.withdrawalEvidence, true);
   assert.equal(result.withdrawalFeeSpend, 0);
   assert.equal(result.cashNet, 1000);
+});
+
+test("operational time bands use duration-covered gross and duration for the same trips", () => {
+  const trips = [];
+  const makeBand = (startHours, totalTrips, knownTrips, grossPerHour) => {
+    const start = startHours[0];
+    for (let i = 0; i < totalTrips; i += 1) {
+      const known = i < knownTrips;
+      trips.push({
+        date: i % 2 ? "2026-11-14" : "2026-11-13",
+        start: String(start).padStart(2, "0") + ":" + String(i % 2 ? 30 : 10).padStart(2, "0"),
+        amount: known ? (i === 0 ? Math.round(grossPerHour) : 0) : 9000,
+        duration_seconds: known ? (i === 0 ? 3600 - (knownTrips - 1) : 1) : null,
+        min: known ? (i === 0 ? (3600 - (knownTrips - 1)) / 60 : 1 / 60) : 0
+      });
+    }
+  };
+  makeBand([18, 19], 70, 66, 22003);
+  makeBand([20, 21], 10, 9, 26026);
+  makeBand([22, 23], 5, 4, 26405);
+  const result = buildDataFina({ trips, rewards: [], fuel: [] });
+  const byLabel = Object.fromEntries(result.timeBands.map((band) => [band.label, band]));
+  assert.equal(byLabel["18–20"].tripCount, 70);
+  assert.equal(byLabel["18–20"].durationTrips, 66);
+  assert.ok(Math.abs(byLabel["18–20"].coveragePercent - 66 / 70 * 100) < 0.001);
+  assert.equal(byLabel["18–20"].grossPerPassengerHour, 22003);
+  assert.equal(byLabel["20–22"].tripCount, 10);
+  assert.equal(byLabel["20–22"].durationTrips, 9);
+  assert.equal(byLabel["20–22"].grossPerPassengerHour, 26026);
+  assert.equal(byLabel["20–22"].ranked, true);
+  assert.equal(byLabel["22–24"].tripCount, 5);
+  assert.equal(byLabel["22–24"].durationTrips, 4);
+  assert.equal(byLabel["22–24"].coveragePercent, 80);
+  assert.equal(byLabel["22–24"].grossPerPassengerHour, 26405);
+  assert.equal(byLabel["22–24"].ranked, false);
+  assert.equal(result.connectedHours, null);
+});
+
+test("time-band hourly rate stays null when duration coverage is absent", () => {
+  const result = buildDataFina({
+    trips: [{ date: "2026-11-03", start: "18:10", amount: 10000, min: 0 }],
+    rewards: [], fuel: []
+  });
+  assert.equal(result.timeBands.find((x) => x.label === "18–20").grossPerPassengerHour, null);
+  assert.equal(result.timeBands.find((x) => x.label === "18–20").ranked, false);
 });

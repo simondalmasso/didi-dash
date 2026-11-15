@@ -194,13 +194,18 @@ async function normaliseFuelBatch(items, existingRows) {
     const idMatches = candidates.filter((row) => row.id === incoming.id);
     const identityMatches = candidates.filter((row) => sameFuelIdentity(row, incoming));
 
-    if (idMatches.length === 1 && identityMatches.length === 1 && idMatches[0] === identityMatches[0]) {
-      duplicates += 1;
-      recordDay(by_day, incoming.date, "fuel", "duplicates");
+    if (idMatches.length === 1) {
+      if (sameFuelIdentity(idMatches[0], incoming)) {
+        duplicates += 1;
+        recordDay(by_day, incoming.date, "fuel", "duplicates");
+      } else {
+        ambiguous += 1;
+        recordDay(by_day, incoming.date, "fuel", "ambiguous");
+      }
       continue;
     }
 
-    if (idMatches.length > 0 || identityMatches.length > 0) {
+    if (idMatches.length > 1 || identityMatches.length > 0) {
       ambiguous += 1;
       recordDay(by_day, incoming.date, "fuel", "ambiguous");
       continue;

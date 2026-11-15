@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:43197; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Etios</title>
   <script>document.documentElement.dataset.page = location.pathname.startsWith("/inputs") ? "inputs" : location.pathname.startsWith("/trips") ? "trips" : "home";</script>
@@ -411,6 +411,12 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
           <div class="dfl-chart-caption" id="data-fina-efficiency-caption"></div>
         </section>
       </div>
+      <section class="card dfl-card" data-area="history" id="data-fina-operations">
+        <div class="section-head"><h2>Inteligencia operativa</h2><span class="note">Señales exploratorias · no son turnos conectados</span></div>
+        <div id="data-fina-operational-bands" class="cost-history"><div class="empty">Calculando franjas con duración conocida…</div></div>
+        <div id="data-fina-operational-signal" class="dfl-note"></div>
+        <div id="data-fina-operational-caption" class="dfl-chart-caption"></div>
+      </section>
       <section class="card" data-area="history">
         <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
         <div id="trips-table" class="trip-list"><div class="empty">Cargando viajes…</div></div>
@@ -439,13 +445,14 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <div class="section-head"><h2 id="import-dialog-title">Importación controlada</h2><button id="close-import" class="ghost" type="button">Cerrar</button></div>
         <label for="import-file">Backup JSON de Didi Dash</label>
         <input id="import-file" type="file" accept="application/json,.json">
-        <div class="note">Primero seleccioná el archivo. Después conectá el Companion local para obtener una vista previa de solo lectura.</div>
+        <label for="ingest-credential" style="display:block;margin-top:14px">Credencial privada de ingestión</label>
+        <input id="ingest-credential" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pegá INGEST_TOKEN" aria-describedby="credential-note">
+        <div id="credential-note" class="note">Se conserva solo en memoria mientras este diálogo permanece abierto. No se guarda en el navegador ni se incorpora al archivo.</div>
         <label class="checkbox-field" for="include-local-sessions" style="display:flex;align-items:center;gap:8px;margin-top:14px">
           <input id="include-local-sessions" type="checkbox" style="width:auto">
           Incluir también los turnos locales guardados en este navegador
         </label>
         <div class="import-actions">
-          <button id="connect-companion" type="button" disabled>Conectar Companion</button>
           <button id="preview-import" class="secondary" type="button" disabled>Generar vista previa</button>
           <button id="commit-import" type="button" disabled>Confirmar importación</button>
         </div>
@@ -457,7 +464,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
   </div>
 <script type="module">
 import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, dashboardPageFromPath, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
-import { buildImportPayload, parseImportJson } from "/importer.mjs";
+import { buildImportPayload, parseImportJson, submitImportPayload } from "/importer.mjs";
 import { auditLedger } from "/audit.mjs";
 import { buildTripTimeline } from "/trip-analytics.mjs";
 import { buildDataFina } from "/data-fina.mjs";
@@ -515,11 +522,9 @@ import { buildDataFina } from "/data-fina.mjs";
     }
   }
   let localSettings = loadLocalSettings();
-  const COMPANION_BASE = "http://127.0.0.1:43197";
   let importSource = null;
   let importPayload = null;
-  let companionNonce = "";
-  let companionNonceExpiresAt = 0;
+  let ingestCredential = "";
   let lastImportPreview = null;
   function saveLocalSettings() {
     try { localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(localSettings)); return true; }
@@ -769,40 +774,9 @@ import { buildDataFina } from "/data-fina.mjs";
     }
     return data;
   }
-  async function queryLoopbackPermission() {
-    if (!navigator.permissions?.query) return "prompt";
-    try {
-      const permission = await navigator.permissions.query({ name: "loopback-network" });
-      return permission.state;
-    } catch {
-      return "prompt";
-    }
-  }
-
-  async function companionRequest(route, { method = "GET", body = null, nonce = "" } = {}) {
-    const response = await fetch(COMPANION_BASE + route, {
-      method,
-      mode: "cors",
-      credentials: "omit",
-      cache: "no-store",
-      redirect: "error",
-      targetAddressSpace: "loopback",
-      headers: {
-        ...(body == null ? {} : { "Content-Type": "application/json" }),
-        ...(nonce ? { "X-Companion-Nonce": nonce } : {})
-      },
-      ...(body == null ? {} : { body: JSON.stringify(body) })
-    });
-    const raw = await response.text();
-    let result = {};
-    try { result = raw ? JSON.parse(raw) : {}; } catch { result = {}; }
-    if (!response.ok) throw new Error(result.message || result.error || ("Companion HTTP " + response.status));
-    return result;
-  }
-
   function importCountsText(result) {
     const rows = [];
-    for (const collection of ["trips", "rewards", "fuel", "sessions"]) {
+    for (const collection of ["trips", "rewards", "fuel", "sessions", "withdrawals"]) {
       const counts = result[collection];
       if (!counts) continue;
       rows.push(collection + ": " + (counts.inserted || 0) + " nuevos, " +
@@ -815,17 +789,15 @@ import { buildDataFina } from "/data-fina.mjs";
   function initImportControls() {
     const dialog = $("import-dialog");
     const fileInput = $("import-file");
+    const credentialInput = $("ingest-credential");
     const status = $("import-status");
     const summary = $("import-summary");
-    const connectButton = $("connect-companion");
     const previewButton = $("preview-import");
     const commitButton = $("commit-import");
     if (!dialog || dialog.dataset.initialized === "true") return;
     dialog.dataset.initialized = "true";
 
     const resetPreview = () => {
-      companionNonce = "";
-      companionNonceExpiresAt = 0;
       importPayload = null;
       lastImportPreview = null;
       previewButton.disabled = true;
@@ -833,85 +805,77 @@ import { buildDataFina } from "/data-fina.mjs";
       summary.textContent = "";
     };
     const preparePayload = () => {
-      if (!importSource) throw new Error("Seleccion? primero un backup JSON.");
+      if (!importSource) throw new Error("Seleccioná primero un backup JSON.");
       importPayload = buildImportPayload(importSource, {
         includeLocalSessions: $("include-local-sessions").checked
       });
       return importPayload;
     };
+    const canPreview = () => {
+      previewButton.disabled = !(importSource && ingestCredential.length >= 16);
+    };
+    const clearSession = () => {
+      ingestCredential = "";
+      credentialInput.value = "";
+      fileInput.value = "";
+      importSource = null;
+      resetPreview();
+      status.textContent = "Diálogo cerrado. La credencial temporal fue descartada.";
+    };
 
     $("open-import").addEventListener("click", () => dialog.showModal());
     $("close-import").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", clearSession);
+
+    credentialInput.addEventListener("input", () => {
+      ingestCredential = credentialInput.value;
+      resetPreview();
+      canPreview();
+      status.textContent = ingestCredential.length >= 16
+        ? "Credencial en memoria. Generá una vista previa para verificar el plan."
+        : "La credencial se necesita solo durante esta sesión de importación.";
+    });
+
     fileInput.addEventListener("change", async () => {
       resetPreview();
-      connectButton.disabled = true;
       const file = fileInput.files && fileInput.files[0];
       if (!file) {
         importSource = null;
         status.textContent = "No hay archivo seleccionado.";
+        canPreview();
         return;
       }
       try {
         importSource = parseImportJson(await file.text());
         preparePayload();
-        status.textContent = "Archivo le?do y campos permitidos preparados. Conect? el Companion local.";
-        connectButton.disabled = false;
+        status.textContent = "Archivo leído y campos permitidos preparados. Revisá la vista previa antes de escribir.";
       } catch (error) {
         importSource = null;
         status.textContent = error.message;
       }
+      canPreview();
     });
+
     $("include-local-sessions").addEventListener("change", () => {
       resetPreview();
       if (importSource) {
-        try {
-          preparePayload();
-          status.textContent = "Selecci?n actualizada. Volv? a conectar y generar la vista previa.";
-          connectButton.disabled = false;
-        } catch (error) {
-          status.textContent = error.message;
-          connectButton.disabled = true;
-        }
+        try { preparePayload(); status.textContent = "Selección actualizada. Generá una nueva vista previa."; }
+        catch (error) { status.textContent = error.message; }
       }
-    });
-
-    connectButton.addEventListener("click", async () => {
-      try {
-        const permission = await queryLoopbackPermission();
-        if (permission === "denied") {
-          throw new Error("Chrome bloque? el permiso Loopback network para este sitio. Habilitalo en Permisos del sitio y volv? a intentar.");
-        }
-        const health = await companionRequest("/health");
-        if (!health.ok || typeof health.nonce !== "string" || !health.nonce) {
-          throw new Error("El Companion no devolvi? un nonce de emparejamiento v?lido.");
-        }
-        companionNonce = health.nonce;
-        companionNonceExpiresAt = Number(health.expires_at) || (Date.now() + 600000);
-        preparePayload();
-        previewButton.disabled = false;
-        commitButton.disabled = true;
-        status.textContent = "Companion conectado en 127.0.0.1:43197. La vista previa todav?a no escribe datos.";
-      } catch (error) {
-        resetPreview();
-        status.textContent = error.message + " Verific? que el Companion est? iniciado en esta PC.";
-      }
+      canPreview();
     });
 
     previewButton.addEventListener("click", async () => {
       try {
-        if (!companionNonce || Date.now() > companionNonceExpiresAt) {
-          throw new Error("La sesi?n local expir?. Volv? a conectar el Companion.");
-        }
-        preparePayload();
-        const result = await companionRequest("/preview", {
-          method: "POST", nonce: companionNonce, body: importPayload
-        });
+        if (ingestCredential.length < 16) throw new Error("Ingresá la credencial privada de ingestión.");
+        const payload = preparePayload();
+        const result = await submitImportPayload(payload, { credential: ingestCredential, dryRun: true });
         if (result.dry_run !== true || result.ok !== true) {
-          throw new Error("El Worker no confirm? un preview de solo lectura.");
+          throw new Error("El Worker no confirmó un preview de solo lectura.");
         }
         lastImportPreview = result;
         summary.textContent = importCountsText(result);
-        status.textContent = "Vista previa confirmada. No se escribi? ning?n registro.";
+        status.textContent = "Vista previa confirmada. KV no fue modificado.";
         commitButton.disabled = false;
       } catch (error) {
         lastImportPreview = null;
@@ -921,33 +885,29 @@ import { buildDataFina } from "/data-fina.mjs";
     });
 
     commitButton.addEventListener("click", async () => {
-      if (!lastImportPreview || lastImportPreview.dry_run !== true || !importPayload) return;
-      if (!window.confirm("Se escribir?n en el ledger s?lo los registros clasificados por el Worker. ?Confirm?s la importaci?n?")) return;
+      if (!lastImportPreview || lastImportPreview.dry_run !== true || !importPayload || ingestCredential.length < 16) return;
+      if (!window.confirm("Se escribirán en el ledger solo los registros clasificados por el Worker. ¿Confirmás la importación?")) return;
       try {
-        if (!companionNonce || Date.now() > companionNonceExpiresAt) {
-          const health = await companionRequest("/health");
-          companionNonce = health.nonce;
-          companionNonceExpiresAt = Number(health.expires_at) || (Date.now() + 600000);
-        }
-        const result = await companionRequest("/commit", {
-          method: "POST", nonce: companionNonce, body: importPayload
-        });
+        const result = await submitImportPayload(importPayload, { credential: ingestCredential, dryRun: false });
         if (result.dry_run !== false || result.ok !== true) {
-          throw new Error("El Worker no confirm? el commit.");
+          throw new Error("El Worker no confirmó el commit.");
         }
         summary.textContent = importCountsText(result);
-        status.textContent = "Importaci?n confirmada por el Worker. Actualizando el dashboard?";
+        status.textContent = "Importación confirmada por el Worker. Actualizando el dashboard…";
         commitButton.disabled = true;
         previewButton.disabled = true;
-        connectButton.disabled = true;
         lastImportPreview = null;
-        companionNonce = "";
         await loadData();
-        status.textContent = "Importaci?n confirmada y dashboard actualizado.";
+        ingestCredential = "";
+        credentialInput.value = "";
+        fileInput.value = "";
+        importSource = null;
+        importPayload = null;
+        status.textContent = "Importación confirmada y dashboard actualizado. La credencial temporal fue descartada.";
       } catch (error) {
-        status.textContent = error.message + " No reintentes a ciegas: consult? el ledger antes de repetir un commit.";
-        commitButton.disabled = true;
-        lastImportPreview = null;
+        status.textContent = error.message + " No reintentes a ciegas: consultá el ledger antes de repetir un commit.";
+        resetPreview();
+        canPreview();
       }
     });
   }
@@ -1091,19 +1051,24 @@ import { buildDataFina } from "/data-fina.mjs";
         : "No es neto final. Faltan: " + [...new Set(gaps)].join(", ") + ".";
     $("withdrawal-fees").textContent = financial.withdrawalFeeSpend == null ? "—" : money.format(financial.withdrawalFeeSpend);
     $("withdrawal-fees-hint").textContent = financial.withdrawalFeeSpend == null
-      ? "Sin datos registrados · no equivale a $0"
-      : financial.withdrawalFeeCount + " retiro(s) con comisión registrada";
+      ? (withdrawals.length ? withdrawals.length + " movimiento(s) sin comisión totalmente reconciliada; no equivale a $0" : "Sin movimientos registrados · no equivale a $0")
+      : financial.withdrawalFeeCount + " retiro(s) con comisión reconciliada";
     $("cash-net-estimate").textContent = money.format(financial.netCashAfterFuelPurchases);
     $("cash-net-estimate-hint").textContent =
       money.format(financial.fuelPurchaseSpend) + " en cargas pagadas" +
-      (financial.withdrawalFeeSpend == null ? " · comisiones de retiro: sin datos (asume $0)" : " · " + money.format(financial.withdrawalFeeSpend) + " en comisiones de retiro") + " · " +
+      (financial.withdrawalFeeSpend == null
+        ? " · " + (withdrawals.length ? withdrawals.length + " retiro(s), comisión no reconciliada" : "sin retiros registrados") + " (asume $0 solo para esta cuenta)"
+        : " · " + money.format(financial.withdrawalFeeSpend) + " en comisiones de retiro reconciliadas") + " · " +
       (undatedFuelPayments.length
         ? undatedFuelPayments.length + " cargas sin fecha incluidas en cualquier período"
         : state.range === 0 ? "todo el historial" : "compras del período") +
       " · caja, no consumo estimado.";
     $("withdrawals-status").textContent = withdrawals.length ? withdrawals.length + " registro(s) capturados" : "Sin evidencia capturada";
+    const withdrawalsFullyReconciled = withdrawals.length > 0 && withdrawals.every((row) => row.reconciled === true && row.fee_ars != null);
     $("withdrawals-summary").textContent = withdrawals.length
-      ? "Los montos retirados son transferencias de caja, no gastos. Solo las comisiones observadas afectan la caja calculada."
+      ? (withdrawalsFullyReconciled
+        ? "Los montos retirados son transferencias de caja, no gastos. Solo las comisiones reconciliadas afectan la caja calculada."
+        : "Hay movimientos registrados, pero alguna comisión no está reconciliada; el total de comisiones permanece desconocido. El cálculo de caja muestra un supuesto de $0, no un dato observado.")
       : "No hay registros de retiros ni comisiones. Esto no prueba que no hayan existido: una confirmación explícita o evidencia de la billetera puede cerrar el dato.";
     $("fuel-unassigned-note").textContent = undatedFuelPayments.length
       ? "Cargas sin fecha: " + money.format(undatedFuelSpend) + " (" + undatedFuelPayments.length +
@@ -1285,14 +1250,18 @@ import { buildDataFina } from "/data-fina.mjs";
       money.format(result.gross) + " en viajes + " +
       money.format(result.rewardGross) + " en recompensas - " +
       money.format(result.fuelSpend) + " en combustible comprado" +
-      (result.withdrawalFeeSpend == null ? " - comisiones de retiro: sin datos (asume $0 para este cálculo)." : " - " + money.format(result.withdrawalFeeSpend) + " en comisiones de retiro.") +
+      (result.withdrawalFeeSpend == null
+        ? " - " + (result.withdrawalRecordCount ? result.withdrawalRecordCount + " movimiento(s) sin comisión reconciliada" : "sin movimientos de retiro registrados") + " (supuesto $0 solo para este cálculo)."
+        : " - " + money.format(result.withdrawalFeeSpend) + " en comisiones de retiro reconciliadas.") +
       " Hipótesis de cálculo, no certificación. Caja registrada, no beneficio operativo.";
     $("data-fina-hero-pills").innerHTML = [
       result.tripCount + " viajes",
       money.format(result.gross) + " viajes",
       money.format(result.rewardGross) + " recompensas",
       result.undatedFuelCount + " cargas sin fecha",
-      result.withdrawalFeeSpend == null ? "retiros: sin datos registrados" : result.withdrawalFeeCount + " retiros con comisión"
+      result.withdrawalFeeSpend == null
+        ? (result.withdrawalRecordCount ? result.withdrawalRecordCount + " retiros sin comisión reconciliada" : "retiros: sin datos registrados")
+        : result.withdrawalFeeCount + " retiros con comisión reconciliada"
     ].map((label) => "<span>" + escapeHtml(label) + "</span>").join("");
 
     const sparkDays = result.days.slice(-12);
@@ -1434,6 +1403,37 @@ import { buildDataFina } from "/data-fina.mjs";
     ).join("");
     $("data-fina-efficiency-caption").textContent =
       "Las compras pagadas no equivalen al combustible consumido. Sin odometro de turnos, no se estima el consumo real del vehiculo.";
+
+    const timeBandLabel = (band) => band.label + " · " + band.tripCount + " viajes";
+    $("data-fina-operational-bands").innerHTML = result.timeBands.map((band) => {
+      const rate = band.grossPerPassengerHour == null ? "—" : money.format(band.grossPerPassengerHour) + "/h";
+      const coverage = band.coveragePercent.toFixed(0) + "%";
+      const status = band.ranked ? "Señal elegible" : "No rankeada";
+      const note = band.ranked
+        ? "" + band.durationTrips + "/" + band.tripCount + " con duración · " + band.dateCount + " fechas · umbral ≥" + result.timeBandMinCoveragePercent + "%"
+        : band.durationTrips + "/" + band.tripCount + " con duración · " + band.dateCount + " fechas · " + (band.reason || "cobertura insuficiente");
+      return '<div class="cost-history-row"><span><strong>' + escapeHtml(timeBandLabel(band)) + '</strong><br><span class="table-hint">Cobertura ' + coverage + ' · ' + escapeHtml(note) + '</span></span><strong>' + escapeHtml(rate) + '<br><span class="table-hint">' + escapeHtml(status) + '</span></strong></div>';
+    }).join("") || '<div class="empty">Sin viajes en estas franjas.</div>';
+
+    const ranked = result.rankedTimeBands;
+    if (ranked.length >= 2) {
+      const best = ranked[0];
+      const next = ranked[1];
+      const uplift = (best.grossPerPassengerHour / next.grossPerPassengerHour - 1) * 100;
+      $("data-fina-operational-signal").textContent =
+        best.label + " rinde " + money.format(best.grossPerPassengerHour) + "/h de viaje reportado frente a " +
+        money.format(next.grossPerPassengerHour) + "/h en " + next.label + " (" +
+        (uplift >= 0 ? "+" : "") + number.format(uplift) + "%). Señal exploratoria, no recomendación de horario conectado.";
+    } else {
+      $("data-fina-operational-signal").textContent = ranked.length === 1
+        ? "Hay una sola franja elegible; todavía no existe una comparación suficiente entre franjas."
+        : "Ninguna franja alcanza los umbrales para comparar productividad por duración observada.";
+    }
+    $("data-fina-operational-caption").textContent =
+      "$/h = suma de importes de viajes con duración conocida ÷ suma de esa misma duración. Cobertura = viajes con duración / viajes de la franja; se exige ≥" +
+      result.timeBandMinCoveragePercent + "% y al menos " + result.timeBandMinTrips + " viajes en " + result.timeBandMinDates + " fechas. " +
+      "El intervalo 22–24 puede mostrarse con tasa alta y quedar fuera del ranking si su cobertura es insuficiente. " +
+      "Son minutos con pasajero reportados por DiDi, no horas conectadas; el ledger registra 0 sesiones sincronizadas.";
   }
 
   function renderTripTimeline(trips) {

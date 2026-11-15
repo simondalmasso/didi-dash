@@ -69,3 +69,19 @@ El ledger actual conserva el formato histórico fare_breakdown con las seis clav
 ## Tests obligatorios
 
 Ejecutar npm test. Los casos cubren suma y tolerancia, seis componentes, nulos ausentes, códigos desconocidos, origen no real, revisión por descuadre, idempotencia, conflictos, whitelists, fuel sin fecha, buckets diarios/horarios y límites de horas conectadas.
+
+### Inteligencia operativa por franja
+
+Las franjas se agrupan por hora de inicio del viaje: 18–20, 20–22 y 22–24. Para cada franja:
+
+- `tripCount` incluye todos los viajes con hora de inicio válida en la franja.
+- `durationTrips` incluye solo viajes con duración observada positiva.
+- `coveragePercent = durationTrips / tripCount × 100`.
+- `grossPerPassengerHour = suma de importes de esos mismos viajes con duración / suma de sus duraciones × 3600`. No se usa el bruto de viajes sin duración en el numerador.
+- Una franja se puede ordenar solo con al menos 5 viajes, actividad en al menos 2 fechas y cobertura de duración de al menos 90%. Las demás se muestran como `no rankeada`, incluso cuando la tasa parcial parezca alta.
+
+La tasa representa horas con pasajero informadas por DiDi, no horas conectado a la app. La ausencia de sesiones sincronizadas significa que esa métrica es desconocida. Las comparaciones por día de semana con menos de 3 fechas por grupo también deben permanecer descriptivas, no rankeadas.
+
+### Comisiones de retiros
+
+`amount_ars` es el principal transferido y no se resta como gasto. `fee_ars: null` es comisión desconocida. Solo un `fee_ars` numérico con `reconciled: true` acredita la comisión para el período; un cero explícito reconciliado sí representa comisión cero. Si el período contiene movimientos sin comisión reconciliada, el total de comisión del período permanece desconocido. El cálculo de caja puede mostrar una hipótesis aritmética de $0, pero debe etiquetarla como supuesto, no como dato observado.

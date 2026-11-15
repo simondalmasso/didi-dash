@@ -435,7 +435,7 @@ test("static dashboard assets explicitly disable browser and CDN caching", async
 });
 
 
-test("ingestion rejects fuel without a date and leaves KV unchanged", async () => {
+test("ingestion rejects a cash-only fuel purchase without a date or stable ID and leaves KV unchanged", async () => {
   const DATA = memoryKV();
   const before = DATA.value();
   const response = await worker.fetch(apiRequest("/api/ingest", {
@@ -453,7 +453,6 @@ test("ingestion rejects fuel without a date and leaves KV unchanged", async () =
           full_tank: false
         },
         {
-          id: "fuel-cash-only",
           date: null,
           odometer_km: null,
           liters: null,
@@ -907,4 +906,32 @@ test("canonical breakdown conflicts are ambiguous and cannot overwrite recorded 
   assert.equal(response.status, 201);
   assert.equal((await response.json()).trips.ambiguous, 1);
   assert.deepEqual(DATA.value().trips, [existing]);
+});
+
+test("ingestion preserves an explicitly identified undated fuel purchase", async () => {
+  const DATA = memoryKV();
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ fuel: [{ id: "fuel-purchase-30k-1", date: null, total_ars: 30000 }] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(response.status, 201);
+  assert.equal(DATA.value().fuel[0].date, null);
+  assert.equal(DATA.value().fuel[0].total_ars, 30000);
+});
+
+
+test("undated fuel exact ID replay is idempotent with multiple identical purchases", async () => {
+  const ids = ["fuel-purchase-30k-1", "fuel-purchase-30k-2", "fuel-purchase-30k-3"];
+  const existing = ids.map((id) => ({ id, date: null, odometer_km: null, liters: null, total_ars: 30000, price_per_liter: null, station: null, full_tank: 0 }));
+  const DATA = memoryKV({ trips: [], rewards: [], fuel: existing, sessions: [], withdrawals: [] });
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ fuel: existing.map((row) => ({ id: row.id, date: null, odometer_km: null, liters: null, total_ars: 30000, station: null, full_tank: false })) })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.fuel.duplicates, 3);
+  assert.equal(body.fuel.ambiguous, 0);
+  assert.equal(body.fuel.inserted, 0);
+  assert.equal(DATA.value().fuel.length, 3);
 });

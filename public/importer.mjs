@@ -106,8 +106,10 @@ export function buildImportPayload(input, { includeLocalSessions = false } = {})
     const rows = source[collection] ?? [];
     if (!Array.isArray(rows)) fail(collection + " debe ser un array.");
     payload[collection] = rows.map((row) => pickFields(row, COLLECTION_FIELDS[collection], collection));
-    if (collection === "fuel" && payload.fuel.some((row) => !isValidISODate(row.date))) {
-      fail("Cada carga de combustible debe incluir una fecha válida (AAAA-MM-DD).");
+    if (collection === "fuel" && payload.fuel.some((row) =>
+      row.date == null ? !(typeof row.id === "string" && /^[A-Za-z0-9:_-]{1,128}$/.test(row.id)) : !isValidISODate(row.date)
+    )) {
+      fail("Cada carga debe tener fecha válida o una ID estable para preservar una compra sin fecha.");
     }
   }
 
@@ -129,4 +131,23 @@ export function buildImportPayload(input, { includeLocalSessions = false } = {})
   const total = Object.values(payload).reduce((sum, rows) => sum + rows.length, 0);
   if (total < 1) fail("El archivo no contiene registros para importar.");
   return payload;
+}
+
+
+export async function submitImportPayload(payload, { credential, dryRun = false, fetchImpl = globalThis.fetch } = {}) {
+  if (typeof credential !== "string" || credential.trim().length < 16) {
+    throw new Error("Ingresá la credencial privada para continuar.");
+  }
+  if (typeof fetchImpl !== "function") throw new TypeError("fetch implementation is required");
+  const response = await fetchImpl(dryRun ? "/api/ingest?dry=1" : "/api/ingest", {
+    method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store, max-age=0", "Authorization": "Bearer " + credential.trim() },
+    body: JSON.stringify(payload)
+  });
+  const raw = await response.text();
+  let result = {};
+  try { result = raw ? JSON.parse(raw) : {}; } catch { throw new Error("El Worker devolvió una respuesta que no es JSON válido."); }
+  if (JSON.stringify(result).includes(credential.trim())) throw new Error("El Worker devolvió una respuesta insegura; se descartó sin mostrarla.");
+  if (!response.ok) throw new Error(result.message || result.error || ("HTTP " + response.status));
+  return result;
 }

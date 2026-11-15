@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildImportPayload, parseImportJson } from "../public/importer.mjs";
+import { buildImportPayload, parseImportJson, submitImportPayload } from "../public/importer.mjs";
 
 test("import parser accepts a structured backup and whitelists server records", () => {
   const source = JSON.stringify({
@@ -71,8 +71,7 @@ test("parser accepts the legacy bare trips array but rejects malformed or unsupp
 
 test("fuel import fails closed when the purchase date is missing or invalid", () => {
   for (const row of [
-    { id: "undated", date: null, total_ars: 30000 },
-    { id: "missing-date", total_ars: 30000 },
+    { date: null, total_ars: 30000 },
     { id: "invalid-date", date: "2026-02-30", total_ars: 30000 }
   ]) {
     assert.throws(() => buildImportPayload({ fuel: [row] }), /fecha válida/i);
@@ -121,4 +120,48 @@ test("importer whitelists canonical breakdown components and modality", () => {
     ]
   });
   assert.equal(JSON.stringify(payload).includes("private"), false);
+});
+
+test("fuel import preserves explicitly identified undated cash purchases", () => {
+  const payload = buildImportPayload({ fuel: [{ id: "fuel-purchase-30k-1", date: null, total_ars: 30000 }] });
+  assert.deepEqual(payload.fuel, [{ id: "fuel-purchase-30k-1", date: null, total_ars: 30000 }]);
+  assert.throws(() => buildImportPayload({ fuel: [{ date: null, total_ars: 30000 }] }), /ID estable|identificador/i);
+});
+
+
+test("import request keeps its credential in the Authorization header and previews without writing", async () => {
+  let captured = null;
+  const credential = "private-session-credential-value";
+  const response = await submitImportPayload({ trips: [{ id: "t1" }] }, {
+    credential, dryRun: true,
+    fetchImpl: async (url, init) => {
+      captured = { url, init };
+      return new Response(JSON.stringify({ ok: true, dry_run: true, trips: { inserted: 1 } }), { status: 200 });
+    }
+  });
+  assert.equal(captured.url, "/api/ingest?dry=1");
+  assert.equal(captured.init.method, "POST");
+  assert.equal(captured.init.credentials, "same-origin");
+  assert.equal(captured.init.cache, "no-store");
+  assert.equal(captured.init.headers.Authorization, "Bearer " + credential);
+  assert.deepEqual(JSON.parse(captured.init.body), { trips: [{ id: "t1" }] });
+  assert.equal(response.dry_run, true);
+  assert.equal(JSON.stringify(response).includes(credential), false);
+});
+
+test("import commit posts to the same-origin API and rejects responses containing its credential", async () => {
+  let captured = null;
+  const credential = "private-session-credential-value";
+  const result = await submitImportPayload({ rewards: [{ id: "r1" }] }, {
+    credential,
+    fetchImpl: async (url, init) => {
+      captured = { url, init };
+      return new Response(JSON.stringify({ ok: true, dry_run: false, inserted: 1 }), { status: 201 });
+    }
+  });
+  assert.equal(captured.url, "/api/ingest");
+  assert.equal(captured.init.headers.Authorization, "Bearer " + credential);
+  assert.equal(result.dry_run, false);
+  await assert.rejects(() => submitImportPayload({}, { credential, fetchImpl: async () => new Response(JSON.stringify({ echo: credential }), { status: 200 }) }), /respuesta insegura/i);
+  await assert.rejects(() => submitImportPayload({}, { credential: "short" }), /credencial privada/i);
 });

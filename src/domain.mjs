@@ -191,7 +191,9 @@ export async function normaliseReward(input) {
 
 export async function normaliseFuelLog(input) {
   assertObject(input, "fuel log");
-  const date = requireDate(input.date);
+  const providedId = safeId(input.id);
+  const date = input.date == null || input.date === "" ? null : requireDate(input.date);
+  if (date == null && !providedId) throw new Error("undated fuel log requires an explicit stable id");
   const odometer_km = input.odometer_km == null || input.odometer_km === ""
     ? null
     : finiteNumber(input.odometer_km, "odometer_km", { min: 0, max: 10000000 });
@@ -201,7 +203,6 @@ export async function normaliseFuelLog(input) {
   const total_ars = finiteNumber(input.total_ars, "total_ars", { min: 1, max: 100000000 });
   const station = safeLabel(input.station, "station", 60);
   const full_tank = input.full_tank === true || input.full_tank === 1 ? 1 : 0;
-  const providedId = safeId(input.id);
   const id = providedId ?? await stableId([
     date ?? "",
     odometer_km == null ? "" : String(odometer_km),
@@ -219,14 +220,18 @@ export async function normaliseWithdrawal(input) {
   assertObject(input, "withdrawal");
   const date = requireDate(input.date);
   const amount_ars = finiteNumber(input.amount_ars, "amount_ars", { min: 1, max: 100000000 });
-  const fee_ars = finiteNumber(input.fee_ars ?? 0, "fee_ars", { min: 0, max: 100000000 });
+  const fee_ars = input.fee_ars == null || input.fee_ars === ""
+    ? null
+    : finiteNumber(input.fee_ars, "fee_ars", { min: 0, max: 100000000 });
   if (input.reconciled != null && typeof input.reconciled !== "boolean") throw new Error("reconciled must be a boolean");
+  const reconciled = input.reconciled === true;
+  if (reconciled && fee_ars == null) throw new Error("reconciled withdrawal requires an observed fee_ars (zero is explicit)");
   const source = String(input.source ?? "didi_wallet").trim().toLowerCase();
   if (!SOURCE_RE.test(source)) throw new Error("source must be a short identifier");
   const providedId = safeId(input.id);
-  const id = providedId ?? await stableId([date, String(amount_ars), String(fee_ars), source]);
-  // Withdrawal principal is a transfer of cash, not an expense. Only the observed fee affects cash-after-purchases.
-  return { id, date, amount_ars, fee_ars, reconciled: input.reconciled === true, source };
+  const id = providedId ?? await stableId([date, String(amount_ars), fee_ars == null ? "unknown" : String(fee_ars), source]);
+  // Withdrawal principal is a transfer of cash, not an expense. A fee affects cash only when the evidence is reconciled.
+  return { id, date, amount_ars, fee_ars, reconciled, source };
 }
 
 export async function normaliseWorkSession(input) {

@@ -437,7 +437,7 @@ test("cash net subtracts observed withdrawal fees but not withdrawal principal",
   const result = calculateProfitability({
     trips: [{ date: "2026-11-15", amount: 10000, km: 0, km_source: "unknown" }],
     rewards: [], sessions: [], fuelLogs: [], fuelPurchases: [{ total_ars: 1000 }],
-    withdrawalFees: [{ amount_ars: 50000, fee_ars: 80 }, { amount_ars: 10000, fee_ars: 0 }],
+    withdrawalFees: [{ amount_ars: 50000, fee_ars: 80, reconciled: true }, { amount_ars: 10000, fee_ars: 0, reconciled: true }],
     priceHistory: [], monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
     oneOffExpenses: [], periodDays: 1
   });
@@ -457,4 +457,39 @@ test("missing withdrawal evidence remains unknown and does not silently become a
   assert.equal(result.withdrawalFeeSpend, null);
   assert.equal(result.netCashAssumesZeroWithdrawalFees, true);
   assert.equal(result.netCashAfterFuelPurchases, 1000);
+});
+
+test("incomplete or unreconciled withdrawal fee evidence stays unknown", () => {
+  const base = {
+    trips: [{ date: "2026-11-15", amount: 10000, km: 0, km_source: "unknown" }],
+    rewards: [], sessions: [], fuelLogs: [], fuelPurchases: [], priceHistory: [],
+    monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
+    oneOffExpenses: [], periodDays: 1
+  };
+  for (const withdrawalFees of [
+    [{ amount_ars: 50000, fee_ars: null, reconciled: false }],
+    [{ amount_ars: 50000, fee_ars: 0, reconciled: false }],
+    [{ amount_ars: 50000, fee_ars: 80, reconciled: true }, { amount_ars: 10000, fee_ars: null, reconciled: false }]
+  ]) {
+    const result = calculateProfitability({ ...base, withdrawalFees });
+    assert.equal(result.withdrawalFeeSpend, null);
+    assert.equal(result.withdrawalEvidence, false);
+    assert.equal(result.netCashAssumesZeroWithdrawalFees, true);
+    assert.equal(result.netCashAfterFuelPurchases, 10000);
+  }
+});
+
+test("only fully reconciled withdrawal fees, including explicit zero, enter cash arithmetic", () => {
+  const result = calculateProfitability({
+    trips: [{ date: "2026-11-15", amount: 10000, km: 0, km_source: "unknown" }],
+    rewards: [], sessions: [], fuelLogs: [], fuelPurchases: [], withdrawalFees: [
+      { amount_ars: 50000, fee_ars: 80, reconciled: true },
+      { amount_ars: 10000, fee_ars: 0, reconciled: true }
+    ], priceHistory: [],
+    monthlyCosts: { insurance: 0, maintenance: 0, tires: 0, tax: 0, other: 0 },
+    oneOffExpenses: [], periodDays: 1
+  });
+  assert.equal(result.withdrawalFeeSpend, 80);
+  assert.equal(result.withdrawalEvidence, true);
+  assert.equal(result.netCashAfterFuelPurchases, 9920);
 });

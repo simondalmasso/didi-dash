@@ -115,12 +115,14 @@ export function buildDataFina({
   const tripGross = selectedTrips.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
   const rewardGross = selectedRewards.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
   const fuelSpend = selectedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
-  const withdrawalEvidence = selectedWithdrawalFees.length > 0;
+  const withdrawalEvidence = selectedWithdrawalFees.length > 0 && selectedWithdrawalFees.every((row) =>
+    row?.reconciled === true && validAmount(row.fee_ars) != null
+  );
   const withdrawalFeeSpend = withdrawalEvidence
-    ? selectedWithdrawalFees.reduce((sum, row) => sum + (validAmount(row.fee_ars) ?? 0), 0)
+    ? selectedWithdrawalFees.reduce((sum, row) => sum + validAmount(row.fee_ars), 0)
     : null;
   const withdrawalFeeCount = withdrawalEvidence
-    ? selectedWithdrawalFees.filter((row) => (validAmount(row.fee_ars) ?? 0) > 0).length
+    ? selectedWithdrawalFees.filter((row) => validAmount(row.fee_ars) > 0).length
     : null;
   const undatedFuel = selectedFuel.filter((row) => !row?.date);
   const undatedFuelSpend = undatedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
@@ -214,6 +216,42 @@ export function buildDataFina({
   // Unknown withdrawal evidence is displayed as unknown; cash net keeps an explicit zero-fee assumption for arithmetic only.
   const cashNet = tripGross + rewardGross - fuelSpend - (withdrawalFeeSpend ?? 0);
   const passengerHours = reportedSeconds / 3600;
+  const TIME_BANDS = [
+    { label: "18–20", startHour: 18, endHour: 20 },
+    { label: "20–22", startHour: 20, endHour: 22 },
+    { label: "22–24", startHour: 22, endHour: 24 }
+  ];
+  const MIN_TIME_BAND_TRIPS = 5;
+  const MIN_TIME_BAND_DATES = 2;
+  const MIN_TIME_BAND_COVERAGE_PERCENT = 90;
+  const timeBands = TIME_BANDS.map((band) => {
+    const rows = selectedTrips.filter((row) => {
+      const hour = Number(String(row.start ?? "").slice(0, 2));
+      return Number.isInteger(hour) && hour >= band.startHour && hour < band.endHour;
+    });
+    const withDuration = rows.filter((row) => tripDurationSeconds(row) > 0);
+    const coveredGross = withDuration.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+    const durationSeconds = withDuration.reduce((sum, row) => sum + tripDurationSeconds(row), 0);
+    const coveragePercent = rows.length ? withDuration.length / rows.length * 100 : 0;
+    const dateCount = new Set(rows.map((row) => row.date).filter((date) => inRange(date, from, to))).size;
+    const grossPerPassengerHour = durationSeconds > 0 ? coveredGross / (durationSeconds / 3600) : null;
+    const ranked = rows.length >= MIN_TIME_BAND_TRIPS && dateCount >= MIN_TIME_BAND_DATES && coveragePercent >= MIN_TIME_BAND_COVERAGE_PERCENT && grossPerPassengerHour != null;
+    return {
+      ...band,
+      tripCount: rows.length,
+      durationTrips: withDuration.length,
+      coveragePercent,
+      coveredGross,
+      durationSeconds,
+      dateCount,
+      grossPerPassengerHour,
+      ranked,
+      reason: ranked ? null : rows.length < MIN_TIME_BAND_TRIPS ? "muestra menor a 5 viajes" : dateCount < MIN_TIME_BAND_DATES ? "menos de 2 fechas con actividad" : coveragePercent < MIN_TIME_BAND_COVERAGE_PERCENT ? "cobertura de duración menor a 90%" : "sin duración observada"
+    };
+  });
+  const rankedTimeBands = timeBands.filter((band) => band.ranked).slice().sort((a, b) =>
+    b.grossPerPassengerHour - a.grossPerPassengerHour
+  );
 
   return {
     tripCount: selectedTrips.length,
@@ -222,6 +260,8 @@ export function buildDataFina({
     fuelSpend,
     withdrawalFeeSpend,
     withdrawalFeeCount,
+    withdrawalRecordCount: selectedWithdrawalFees.length,
+    withdrawalUnreconciledCount: withdrawalEvidence ? 0 : selectedWithdrawalFees.length,
     withdrawalEvidence,
     cashNet,
     cashNetAssumesZeroWithdrawalFees: !withdrawalEvidence,
@@ -236,6 +276,11 @@ export function buildDataFina({
     passengerHours,
     connectedHours: null,
     grossPerPassengerHour: passengerHours > 0 ? durationCoveredGross / passengerHours : null,
+    timeBands,
+    rankedTimeBands,
+    timeBandMinCoveragePercent: MIN_TIME_BAND_COVERAGE_PERCENT,
+    timeBandMinTrips: MIN_TIME_BAND_TRIPS,
+    timeBandMinDates: MIN_TIME_BAND_DATES,
     grossPerKm: actualKm > 0 ? actualKmGross / actualKm : null,
     cashMarginPerKm: null,
     categoryCoverage: {

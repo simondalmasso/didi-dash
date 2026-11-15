@@ -149,8 +149,8 @@ test("normaliseFuelLog accepts a dated ticket when the odometer is not known", a
   assert.equal(row.price_per_liter, 20000 / 9.18);
 });
 
-test("normaliseFuelLog rejects a cash-only fuel purchase without a date", async () => {
-  await assert.rejects(() => normaliseFuelLog({
+test("normaliseFuelLog preserves an undated cash purchase only with a stable ID", async () => {
+  const row = await normaliseFuelLog({
     id: "fuel-purchase-30k-test",
     date: null,
     odometer_km: null,
@@ -158,7 +158,11 @@ test("normaliseFuelLog rejects a cash-only fuel purchase without a date", async 
     total_ars: 30000,
     station: null,
     full_tank: false
-  }), /date/i);
+  });
+  assert.equal(row.date, null);
+  assert.equal(row.id, "fuel-purchase-30k-test");
+  assert.equal(row.total_ars, 30000);
+  await assert.rejects(() => normaliseFuelLog({ date: null, total_ars: 30000 }), /stable id/i);
 });
 
 
@@ -313,4 +317,14 @@ test("normaliseWithdrawal stores only financial evidence and never treats princi
   await assert.rejects(() => normaliseWithdrawal({
     date: "2026-02-30", amount_ars: 1, fee_ars: 0
   }), /date/i);
+});
+
+test("normaliseWithdrawal preserves an unknown fee as null until reconciled evidence exists", async () => {
+  const row = await normaliseWithdrawal({ date: "2026-11-15", amount_ars: 50000, source: "didi_wallet" });
+  assert.equal(row.amount_ars, 50000);
+  assert.equal(row.fee_ars, null);
+  assert.equal(row.reconciled, false);
+  await assert.rejects(() => normaliseWithdrawal({
+    date: "2026-11-15", amount_ars: 50000, reconciled: true
+  }), /fee_ars/i);
 });

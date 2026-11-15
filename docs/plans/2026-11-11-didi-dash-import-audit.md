@@ -1,3 +1,5 @@
+> **Historical proposal — superseded for v1.** The Windows Companion / DPAPI design below was not adopted. The approved v1 is the same-origin browser importer with an `INGEST_TOKEN` password field held only in dialog memory, authenticated `?dry=1` preview, and a separate confirmed commit. Do not implement or restore the Companion from this plan. See `AGENTS.md` and `README.md` for the current contract.
+
 # Didi Dash Import & Audit Implementation Plan
 
 > **For agentic workers:** Use the host's available task-by-task implementation workflow. Steps use checkbox (`- [ ]`) syntax for tracking.

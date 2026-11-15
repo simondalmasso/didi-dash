@@ -345,7 +345,10 @@ export function calculateProfitability({
   const otherCosts = fixedCosts + oneOffCosts;
   const purchases = Array.isArray(fuelPurchases) ? fuelPurchases : fuelLogs;
   const withdrawalRows = Array.isArray(withdrawalFees) ? withdrawalFees : [];
-  const withdrawalEvidence = withdrawalRows.length > 0;
+  const withdrawalEvidence = withdrawalRows.length > 0 && withdrawalRows.every((row) =>
+    row?.reconciled === true && row.fee_ars != null &&
+    Number.isFinite(Number(row.fee_ars)) && Number(row.fee_ars) >= 0
+  );
   const withdrawalFeeSpend = withdrawalEvidence
     ? Math.round((withdrawalRows.reduce((sum, row) => sum + amount(row.fee_ars), 0) + Number.EPSILON) * 100) / 100
     : null;

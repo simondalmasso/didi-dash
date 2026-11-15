@@ -114,3 +114,30 @@ Only the 17 reconciled detail screens from 2026-11-14 contribute to component to
 Total verified component allocation: **ARS 100,000**. Total gross not assigned to a verified component: **ARS 700,900** (one partial ride at ARS 6,400 plus 191 trips without real component detail). No component amounts were generated for those trips.
 
 The data-fina page calculates these numbers from the live export through public/data-fina.mjs; it does not load the old GLM static prototype's illustrative breakdowns. The GLM prototype's earlier snapshot (191 trips / ARS 694,500 / six pending 14/11 candidates) is obsolete and must not be used as a current data source.
+
+
+## Live production snapshot — 2026-11-15 23:42:53 UTC
+
+**Source:** fresh `GET /api/export` via the public production Worker. **Schema:** 3. **Truncation:** all exported collections reported `false`. This snapshot supersedes older count tables above; prior per-trip evidence remains historical evidence for the 14-Nov detail reconciliation.
+
+| Collection / metric | Live value |
+|---|---:|
+| Trips | 209 |
+| Rewards | 7 / ARS 109,300 |
+| Fuel purchases | 7 / ARS 200,000 |
+| Withdrawals | 0 records observed |
+| Synchronized sessions | 0 records observed |
+| Trip gross | ARS 800,900 |
+| Cash after recorded fuel purchases (rewards included) | ARS 710,200 |
+| Actual passenger kilometres | 668.2 km |
+| Trips with actual km and positive duration | 182 / 209 |
+| Reported passenger-trip time | 109,811 seconds (30h30m11s) |
+| Active dates | 10 |
+
+Daily coverage: 03-Nov 3/30; 05-Nov 16/16; 06-Nov 16/16; 07-Nov 22/22; 08-Nov 17/17; 10-Nov 19/19; 11-Nov 25/25; 12-Nov 23/23; 13-Nov 23/23; 14-Nov 18/18 (km and duration). The 03-Nov day remains partial; do not treat missing distances or durations as zero.
+
+Fuel records: three existing undated ARS 30,000 purchases remain undated (ARS 90,000 total); 11-Nov ARS 30,000 Super; 12-Nov ARS 30,000 nafta super; 14-Nov ARS 30,000 with station, litres and odometer unknown; 10-Nov ARS 20,000 YPF Super (9.18 L). The full fuel total is a cash-purchase amount, not measured fuel consumption.
+
+There are no withdrawal records in this export. This means no withdrawal activity is recorded in the ledger; it does not prove that no withdrawals occurred. Fee total remains unknown until observed and reconciled evidence is stored. Zero synced sessions likewise means connected hours remain unknown, not zero hours worked.
+
+The new operational time-band signal is computed on each dashboard load from the live trip records. Its rate numerator and denominator are both restricted to trips with positive observed duration; coverage is displayed alongside the result. Ranking requires at least 5 trips, 2 active dates and 90% duration coverage. A band below the coverage threshold remains visible but is not ranked.
