@@ -8,7 +8,9 @@
   },
   "scripts": {
     "test": "node --test",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "companion:setup": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File scripts/setup-companion-credential.ps1",
+    "companion:start": "node companion/server.mjs"
   },
   "devDependencies": {
     "wrangler": "4.158.0"

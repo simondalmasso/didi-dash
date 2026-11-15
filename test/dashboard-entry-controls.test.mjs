@@ -101,3 +101,60 @@ test("dashboard API requests bypass browser caches and use unique URLs", () => {
   assert.match(dashboard, /"Cache-Control": "no-store, max-age=0"/);
   assert.match(dashboard, /"Pragma": "no-cache"/);
 });
+
+test("history exposes a safe loopback import flow with separate preview and commit", () => {
+  assert.match(dashboard, /connect-src 'self' http:\/\/127\.0\.0\.1:43197/);
+  assert.match(dashboard, /importer\.mjs/);
+  assert.match(dashboard, /id="import-dialog"/);
+  assert.match(dashboard, /id="import-file"/);
+  assert.match(dashboard, /id="include-local-sessions"/);
+  assert.match(dashboard, /id="connect-companion"/);
+  assert.match(dashboard, /id="preview-import"/);
+  assert.match(dashboard, /id="commit-import"/);
+  assert.match(dashboard, /commit-import"[^>]*disabled/);
+  assert.match(dashboard, /targetAddressSpace:\s*"loopback"/);
+  assert.match(dashboard, /loopback-network/);
+  assert.doesNotMatch(dashboard, /INGEST_TOKEN/);
+  assert.match(dashboard, /id="import-status"/);
+});
+
+test("ledger coverage UI distinguishes partial data, truncation, and unsynced shifts", () => {
+  assert.match(dashboard, /audit\.mjs/);
+  assert.match(dashboard, /id="ledger-coverage"/);
+  assert.match(dashboard, /id="ledger-audit-summary"/);
+  assert.match(dashboard, /id="ledger-audit-days"/);
+  assert.match(dashboard, /Sin turnos sincronizados/);
+  assert.match(dashboard, /No comparado contra A22/);
+});
+test("dashboard renders fare detail and a per-day trip timeline without claiming gaps as wait time", () => {
+  assert.match(dashboard, /id="daily-trip-timeline"/);
+  assert.match(dashboard, /id="trip-timeline"/);
+  assert.match(dashboard, /buildTripTimeline/);
+  assert.match(dashboard, /renderTripTimeline\(trips\)/);
+  assert.match(dashboard, /espera/);
+  assert.match(dashboard, /breakdown\.status === "verified"/);
+  assert.match(dashboard, /conexion no registrada/);
+  assert.match(dashboard, /duration_seconds/);
+});
+test("data-fina dashboard uses the live canonical aggregator and keeps finance evidence labelled", () => {
+  assert.match(dashboard, /import \{ buildDataFina \} from "\/data-fina\.mjs"/);
+  assert.match(dashboard, /function renderDataFina\(trips, rewards, ledgerFuel\)/);
+  assert.match(dashboard, /buildDataFina\(/);
+  for (const id of [
+    "data-fina-hero", "data-fina-cash-net", "data-fina-daily-target",
+    "data-fina-detail-pct", "data-fina-allocation-bar",
+    "data-fina-components", "data-fina-days-chart",
+    "data-fina-hours-chart", "data-fina-efficiency"
+  ]) assert.match(dashboard, new RegExp('id="' + id + '"'));
+  assert.match(dashboard, /comprado/);
+  assert.match(dashboard, /no beneficio operativo/);
+  assert.match(dashboard, /no se consideran espera ni tiempo conectado/);
+  assert.match(dashboard, /solo se incluyen importes observados en pantallas reales/i);
+});
+
+test("daily gross goal is user-editable and persisted locally, not written to the public ledger", () => {
+  assert.match(dashboard, /dailyGrossTarget: 80000/);
+  assert.match(dashboard, /localSettings\.dailyGrossTarget/);
+  assert.match(dashboard, /saveLocalSettings\(\)/);
+  assert.match(dashboard, /initDataFinaControls\(\)/);
+});

@@ -434,8 +434,9 @@ test("static dashboard assets explicitly disable browser and CDN caching", async
 });
 
 
-test("trusted ingestion stores incomplete fuel receipts without inventing date, litres or odometer", async () => {
+test("ingestion rejects fuel without a date and leaves KV unchanged", async () => {
   const DATA = memoryKV();
+  const before = DATA.value();
   const response = await worker.fetch(apiRequest("/api/ingest", {
     method: "POST",
     headers: jsonHeaders(bearer()),
@@ -463,14 +464,36 @@ test("trusted ingestion stores incomplete fuel receipts without inventing date, 
     })
   }), { INGEST_TOKEN, DATA });
 
+  assert.equal(response.status, 400);
+  assert.deepEqual(DATA.value(), before);
+});
+
+test("fuel replays with a different id are held as ambiguous instead of double-counted", async () => {
+  const existing = {
+    id: "fuel-existing",
+    date: "2026-11-13",
+    odometer_km: null,
+    liters: null,
+    total_ars: 30000,
+    price_per_liter: null,
+    station: "YPF",
+    full_tank: 0
+  };
+  const DATA = memoryKV({ trips: [], rewards: [], fuel: [existing], sessions: [] });
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST",
+    headers: jsonHeaders(bearer()),
+    body: JSON.stringify({
+      fuel: [{ ...existing, id: "fuel-replayed-with-new-id" }]
+    })
+  }), { INGEST_TOKEN, DATA });
+
   assert.equal(response.status, 201);
   const body = await response.json();
-  assert.deepEqual(body.fuel, { received: 2, inserted: 2, duplicates: 0 });
-  assert.equal(DATA.value().fuel[0].odometer_km, null);
-  assert.equal(DATA.value().fuel[0].price_per_liter, 20000 / 9.18);
-  assert.equal(DATA.value().fuel[1].date, null);
-  assert.equal(DATA.value().fuel[1].liters, null);
-  assert.equal(DATA.value().fuel[1].price_per_liter, null);
+  assert.deepEqual(body.fuel, {
+    received: 1, inserted: 0, duplicates: 0, ambiguous: 1
+  });
+  assert.deepEqual(DATA.value().fuel, [existing]);
 });
 
 test("ingestion normalizes a legacy positive-km trip that is missing km_source", async () => {
@@ -718,4 +741,169 @@ test("dry-run and commit use the same classification for every collection", asyn
   assert.equal(DATA.value().rewards.length, 1);
   assert.equal(DATA.value().fuel.length, 1);
   assert.equal(DATA.value().sessions.length, 1);
+});
+
+test("detail ingestion enriches an existing ride with whitelisted DiDi fare components", async () => {
+  const DATA = memoryKV();
+  const summary = {
+    date: "2026-11-14", start: "18:02", amount: 6400,
+    km: 0, min: 0, platform: "didi", source: "didi_history"
+  };
+  const detail = {
+    ...summary, km: 7, km_source: "actual", min: 18 + 37 / 60,
+    source: "didi_history_detail", service_type: "Express",
+    fare_breakdown: {
+      distance_ars: 3000, time_ars: 1900, wait_ars: null,
+      dynamic_base_ars: 900, differential_price_ars: 600,
+      fare_reimbursement_ars: null, origin_address: "not persisted"
+    },
+    fare_total_ars: 6400, adjusted_from_ars: 6600,
+    earnings_adjusted: true, detail_verified: true,
+    passenger_phone: "not persisted"
+  };
+
+  const first = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [summary] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(first.status, 201);
+  const stableId = DATA.value().trips[0].id;
+
+  const enriched = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [detail] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(enriched.status, 201);
+  assert.deepEqual((await enriched.json()).trips, {
+    received: 1, inserted: 0, updated: 1, duplicates: 0, ambiguous: 0
+  });
+  const stored = DATA.value().trips[0];
+  assert.equal(stored.id, stableId);
+  assert.equal(stored.service_type, "Express");
+  assert.deepEqual(stored.fare_breakdown, {
+    distance_ars: 3000, time_ars: 1900, wait_ars: null,
+    dynamic_base_ars: 900, differential_price_ars: 600,
+    fare_reimbursement_ars: null
+  });
+  assert.equal(stored.fare_total_ars, 6400);
+  assert.equal(stored.adjusted_from_ars, 6600);
+  assert.equal(stored.earnings_adjusted, true);
+  assert.equal(stored.detail_verified, true);
+  assert.equal("passenger_phone" in stored, false);
+  assert.equal("origin_address" in stored.fare_breakdown, false);
+});
+
+test("conflicting DiDi fare detail is ambiguous and never overwrites an existing breakdown", async () => {
+  const existing = {
+    id: "detail-ride-1", date: "2026-11-14", start: "18:02", amount: 6400,
+    km: 7, km_source: "actual", min: 18 + 37 / 60,
+    platform: "didi", source: "didi_history_detail",
+    service_type: "Express", fare_total_ars: 6400,
+    fare_breakdown: {
+      distance_ars: 3000, time_ars: 1900, wait_ars: null,
+      dynamic_base_ars: 900, differential_price_ars: 600,
+      fare_reimbursement_ars: null
+    }
+  };
+  const DATA = memoryKV({ trips: [existing], rewards: [], fuel: [], sessions: [] });
+  const conflict = {
+    ...existing, id: "detail-ride-2",
+    fare_breakdown: { ...existing.fare_breakdown, distance_ars: 2900 }
+  };
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [conflict] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(response.status, 201);
+  assert.deepEqual((await response.json()).trips, {
+    received: 1, inserted: 0, updated: 0, duplicates: 0, ambiguous: 1
+  });
+  assert.deepEqual(DATA.value().trips, [existing]);
+});
+test("detail ingestion enriches a trip with exact duration seconds", async () => {
+  const DATA = memoryKV();
+  const base = {
+    date: "2026-11-14", start: "20:37", amount: 3500, km: 0,
+    min: 0, platform: "didi", source: "didi_history"
+  };
+  await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [base] })
+  }), { INGEST_TOKEN, DATA });
+  const detail = {
+    ...base, km: 2.5, km_source: "actual", min: 8.4167,
+    duration_seconds: 505, source: "didi_history_detail"
+  };
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [detail] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(response.status, 201);
+  assert.equal((await response.json()).trips.updated, 1);
+  assert.equal(DATA.value().trips.length, 1);
+  assert.equal(DATA.value().trips[0].duration_seconds, 505);
+});
+test("canonical breakdown enriches a matching trip without changing its identity", async () => {
+  const DATA = memoryKV();
+  const base = {
+    date: "2026-11-14", start: "20:54", amount: 3900, km: 0,
+    min: 0, platform: "didi", source: "didi_history"
+  };
+  await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [base] })
+  }), { INGEST_TOKEN, DATA });
+  const id = DATA.value().trips[0].id;
+  const detailed = {
+    ...base, km: 1.2, km_source: "actual", min: 6.95,
+    duration_seconds: 417, source: "didi_history_detail",
+    modality: "DiDi Express",
+    breakdown: { source: "actual", components: [
+      { code: "distancia", label: "Tarifa por distancia", amount: 500 },
+      { code: "tiempo", label: "Tarifa por tiempo", amount: 900 },
+      { code: "espera", label: "Tarifa por espera", amount: 100 },
+      { code: "base_dinamica", label: "Tarifa base dinámica", amount: 1000 },
+      { code: "diferencial", label: "Precio diferencial", amount: 1400 }
+    ]}
+  };
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [detailed] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(response.status, 201);
+  assert.equal((await response.json()).trips.updated, 1);
+  assert.equal(DATA.value().trips.length, 1);
+  assert.equal(DATA.value().trips[0].id, id);
+  assert.equal(DATA.value().trips[0].breakdown.components.length, 5);
+  assert.equal(DATA.value().trips[0].modality, "DiDi Express");
+});
+
+test("canonical breakdown conflicts are ambiguous and cannot overwrite recorded components", async () => {
+  const existing = {
+    id: "canonical-trip-1", date: "2026-11-14", start: "20:54",
+    amount: 3900, km: 1.2, km_source: "actual", min: 6.95,
+    duration_seconds: 417, platform: "didi", source: "didi_history_detail",
+    breakdown: { source: "actual", components: [
+      { code: "distancia", label: "Tarifa por distancia", amount: 500 },
+      { code: "tiempo", label: "Tarifa por tiempo", amount: 900 },
+      { code: "espera", label: "Tarifa por espera", amount: 100 },
+      { code: "base_dinamica", label: "Tarifa base dinámica", amount: 1000 },
+      { code: "diferencial", label: "Precio diferencial", amount: 1400 }
+    ]}
+  };
+  const DATA = memoryKV({ trips: [existing], rewards: [], fuel: [], sessions: [] });
+  const incoming = {
+    ...existing, id: "canonical-trip-2",
+    breakdown: { ...existing.breakdown, components: existing.breakdown.components.map((item, i) =>
+      i === 0 ? { ...item, amount: 600 } :
+      i === 4 ? { ...item, amount: 1300 } : item
+    )}
+  };
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST", headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips: [incoming] })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(response.status, 201);
+  assert.equal((await response.json()).trips.ambiguous, 1);
+  assert.deepEqual(DATA.value().trips, [existing]);
 });

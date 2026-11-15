@@ -162,6 +162,62 @@ async function normaliseBatch(items, normaliser, existingRows, collection) {
   return { rows, received: items.length, inserted: rows.length, duplicates, by_day };
 }
 
+function sameFuelIdentity(left, right) {
+  const sameNullableNumber = (a, b) =>
+    a == null || b == null ? a == null && b == null : Number(a) === Number(b);
+  return left.date === right.date &&
+    Number(left.total_ars) === Number(right.total_ars) &&
+    sameNullableNumber(left.odometer_km, right.odometer_km) &&
+    sameNullableNumber(left.liters, right.liters) &&
+    String(left.station ?? "").trim().toLowerCase() === String(right.station ?? "").trim().toLowerCase() &&
+    Number(left.full_tank ?? 0) === Number(right.full_tank ?? 0);
+}
+
+async function normaliseFuelBatch(items, existingRows) {
+  if (!Array.isArray(items)) throw new HttpError(400, "Each record collection must be an array");
+  const rows = [];
+  const by_day = {};
+  let duplicates = 0;
+  let ambiguous = 0;
+
+  for (const item of items) {
+    let incoming;
+    try {
+      incoming = await normaliseFuelLog(item);
+    } catch (error) {
+      throw new HttpError(400, error.message);
+    }
+
+    const candidates = [...existingRows, ...rows];
+    const idMatches = candidates.filter((row) => row.id === incoming.id);
+    const identityMatches = candidates.filter((row) => sameFuelIdentity(row, incoming));
+
+    if (idMatches.length === 1 && identityMatches.length === 1 && idMatches[0] === identityMatches[0]) {
+      duplicates += 1;
+      recordDay(by_day, incoming.date, "fuel", "duplicates");
+      continue;
+    }
+
+    if (idMatches.length > 0 || identityMatches.length > 0) {
+      ambiguous += 1;
+      recordDay(by_day, incoming.date, "fuel", "ambiguous");
+      continue;
+    }
+
+    rows.push(incoming);
+    recordDay(by_day, incoming.date, "fuel", "inserted");
+  }
+
+  return {
+    rows,
+    received: items.length,
+    inserted: rows.length,
+    duplicates,
+    ambiguous,
+    by_day
+  };
+}
+
 function sameTripIdentity(left, right) {
   return left.date === right.date &&
     left.start === right.start &&
@@ -178,7 +234,27 @@ function conflictsWithDetailedRide(existing, incoming) {
   const amountChanged = Number(incoming.amount) !== Number(existing.amount);
   const kmChanged = Math.abs((Number(incoming.km) || 0) - (Number(existing.km) || 0)) > 0.01;
   const minutesChanged = Math.abs((Number(incoming.min) || 0) - (Number(existing.min) || 0)) > 0.02;
-  return amountChanged || kmChanged || minutesChanged;
+  const secondsChanged = existing.duration_seconds != null && incoming.duration_seconds != null &&
+    Number(existing.duration_seconds) !== Number(incoming.duration_seconds);
+  if (amountChanged || kmChanged || minutesChanged || secondsChanged) return true;
+
+  if (existing.service_type && incoming.service_type &&
+      existing.service_type.toLowerCase() !== incoming.service_type.toLowerCase()) return true;
+  if (existing.modality && incoming.modality &&
+      existing.modality.toLowerCase() !== incoming.modality.toLowerCase()) return true;
+  if (existing.breakdown && incoming.breakdown &&
+      JSON.stringify(existing.breakdown) !== JSON.stringify(incoming.breakdown)) return true;
+  if (existing.fare_total_ars != null && incoming.fare_total_ars != null &&
+      Number(existing.fare_total_ars) !== Number(incoming.fare_total_ars)) return true;
+  if (existing.adjusted_from_ars != null && incoming.adjusted_from_ars != null &&
+      Number(existing.adjusted_from_ars) !== Number(incoming.adjusted_from_ars)) return true;
+  const existingFare = existing.fare_breakdown ?? {};
+  const incomingFare = incoming.fare_breakdown ?? {};
+  for (const key of Object.keys(incomingFare)) {
+    if (existingFare[key] != null && incomingFare[key] != null &&
+        Number(existingFare[key]) !== Number(incomingFare[key])) return true;
+  }
+  return false;
 }
 
 function mergeTripDetails(existing, incoming) {
@@ -227,6 +303,57 @@ function mergeTripDetails(existing, incoming) {
   const incomingMinutes = Number(incoming.min) || 0;
   if (existingMinutes <= 0 && incomingMinutes > 0) {
     next.min = incomingMinutes;
+    updated = true;
+  }
+  if (existing.duration_seconds == null && incoming.duration_seconds != null) {
+    next.duration_seconds = incoming.duration_seconds;
+    updated = true;
+  }
+
+  if (incoming.service_type && !existing.service_type) {
+    next.service_type = incoming.service_type;
+    updated = true;
+  }
+  if (incoming.modality && !existing.modality) {
+    next.modality = incoming.modality;
+    updated = true;
+  }
+  if (incoming.breakdown && !existing.breakdown) {
+    next.breakdown = incoming.breakdown;
+    delete next.breakdown_status;
+    updated = true;
+  } else if (incoming.breakdown_status === "review" &&
+      !existing.breakdown && !existing.breakdown_status) {
+    next.breakdown_status = "review";
+    next.detail_verified = false;
+    updated = true;
+  }
+
+  if (incoming.fare_breakdown && typeof incoming.fare_breakdown === "object") {
+    const currentFare = existing.fare_breakdown ?? {};
+    const mergedFare = { ...currentFare };
+    for (const [key, value] of Object.entries(incoming.fare_breakdown)) {
+      if (mergedFare[key] == null && value != null) {
+        mergedFare[key] = value;
+        updated = true;
+      } else if (!(key in mergedFare)) {
+        mergedFare[key] = value;
+      }
+    }
+    if (Object.keys(mergedFare).length) next.fare_breakdown = mergedFare;
+  }
+
+  for (const key of ["fare_total_ars", "adjusted_from_ars", "earnings_adjusted"]) {
+    if (existing[key] == null && incoming[key] != null) {
+      next[key] = incoming[key];
+      updated = true;
+    }
+  }
+  if (incoming.detail_verified === true && existing.detail_verified !== true) {
+    next.detail_verified = true;
+    updated = true;
+  } else if (existing.detail_verified == null && incoming.detail_verified === false) {
+    next.detail_verified = false;
     updated = true;
   }
 
@@ -420,7 +547,7 @@ async function handleIngest(request, env) {
   const ledger = await readLedger(env);
   const trips = await normaliseTripBatch(tripsInput, ledger.trips);
   const rewards = await normaliseBatch(rewardsInput, normaliseReward, ledger.rewards, "rewards");
-  const fuel = await normaliseBatch(fuelInput, normaliseFuelLog, ledger.fuel, "fuel");
+  const fuel = await normaliseFuelBatch(fuelInput, ledger.fuel);
   const sessions = await normaliseSessionBatch(sessionsInput, ledger.sessions);
   const by_day = mergeDayBreakdowns(trips.by_day, rewards.by_day, fuel.by_day, sessions.by_day);
 
@@ -435,13 +562,13 @@ async function handleIngest(request, env) {
     dry_run: dryRun,
     trips: { received: trips.received, inserted: trips.inserted, updated: trips.updated, duplicates: trips.duplicates, ambiguous: trips.ambiguous },
     rewards: { received: rewards.received, inserted: rewards.inserted, duplicates: rewards.duplicates },
-    fuel: { received: fuel.received, inserted: fuel.inserted, duplicates: fuel.duplicates },
+    fuel: { received: fuel.received, inserted: fuel.inserted, duplicates: fuel.duplicates, ambiguous: fuel.ambiguous },
     sessions: { received: sessions.received, inserted: sessions.inserted, updated: sessions.updated, duplicates: sessions.duplicates, ambiguous: sessions.ambiguous },
     by_day,
     received: total,
     inserted: trips.inserted + rewards.inserted + fuel.inserted + sessions.inserted,
     updated: trips.updated + sessions.updated,
-    ambiguous: trips.ambiguous + sessions.ambiguous,
+    ambiguous: trips.ambiguous + fuel.ambiguous + sessions.ambiguous,
     duplicates: trips.duplicates + rewards.duplicates + fuel.duplicates + sessions.duplicates
   }, dryRun ? 200 : 201);
 }

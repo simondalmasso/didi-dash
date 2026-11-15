@@ -1,0 +1,233 @@
+const COMPONENTS = [
+  { code: "distancia", label: "Tarifa por distancia", legacy: "distance_ars" },
+  { code: "tiempo", label: "Tarifa por tiempo", legacy: "time_ars" },
+  { code: "espera", label: "Tarifa por espera", legacy: "wait_ars" },
+  { code: "base_dinamica", label: "Tarifa base dinámica", legacy: "dynamic_base_ars" },
+  { code: "diferencial", label: "Precio diferencial", legacy: "differential_price_ars" },
+  { code: "reembolso_tarifario", label: "Reembolso tarifario", legacy: "fare_reimbursement_ars" }
+];
+const COMPONENT_BY_CODE = new Map(COMPONENTS.map((item) => [item.code, item]));
+const PRIME_HOURS = new Set([7, 8, 9, 17, 18, 19, 20, 21, 22]);
+
+function validAmount(value) {
+  if (value == null || value === "") return null;
+  const amount = Number(value);
+  return Number.isInteger(amount) && amount >= 0 && amount <= 100000000 ? amount : null;
+}
+
+function cleanCanonicalComponents(value) {
+  if (!Array.isArray(value)) return [];
+  const result = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const amount = validAmount(item.amount);
+    if (amount == null) continue;
+    const known = COMPONENT_BY_CODE.get(item.code);
+    const code = known ? known.code : "otro";
+    const label = typeof item.label === "string" && item.label.trim()
+      ? item.label.trim().slice(0, 48)
+      : known?.label ?? "Otro";
+    result.push({ code, label, amount });
+  }
+  return result;
+}
+
+export function readTripBreakdown(trip) {
+  if (!trip || typeof trip !== "object") {
+    return { status: "missing", components: [], total: 0, missingAmount: 0 };
+  }
+  const tripAmount = validAmount(trip.amount) ?? 0;
+  const canonical = trip.breakdown;
+  if (canonical && typeof canonical === "object" && !Array.isArray(canonical)) {
+    if (canonical.source !== "actual") {
+      return { status: "missing", components: [], total: 0, missingAmount: tripAmount };
+    }
+    const components = cleanCanonicalComponents(canonical.components);
+    const total = components.reduce((sum, item) => sum + item.amount, 0);
+    const reconciled = components.length > 0 && Math.abs(total - tripAmount) <= 2;
+    return {
+      status: reconciled ? "verified" : "partial",
+      components,
+      total,
+      missingAmount: Math.max(0, tripAmount - total),
+      difference: total - tripAmount
+    };
+  }
+
+  const legacy = trip.fare_breakdown;
+  if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+    const components = COMPONENTS.flatMap((item) => {
+      const amount = validAmount(legacy[item.legacy]);
+      return amount == null ? [] : [{ code: item.code, label: item.label, amount }];
+    });
+    const total = components.reduce((sum, item) => sum + item.amount, 0);
+    if (!components.length) {
+      return { status: "missing", components: [], total: 0, missingAmount: tripAmount };
+    }
+    const reconciled = trip.detail_verified === true && Math.abs(total - tripAmount) <= 2;
+    return {
+      status: reconciled ? "verified" : "partial",
+      components,
+      total,
+      missingAmount: Math.max(0, tripAmount - total),
+      difference: total - tripAmount
+    };
+  }
+
+  if (trip.breakdown_status === "review") {
+    return { status: "partial", components: [], total: 0, missingAmount: tripAmount };
+  }
+  return { status: "missing", components: [], total: 0, missingAmount: tripAmount };
+}
+
+function inRange(date, from, to) {
+  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  return (!from || date >= from) && (!to || date <= to);
+}
+
+function tripDurationSeconds(trip) {
+  const seconds = Number(trip.duration_seconds);
+  if (Number.isInteger(seconds) && seconds > 0 && seconds <= 86400) return seconds;
+  const minutes = Number(trip.min);
+  return Number.isFinite(minutes) && minutes > 0 && minutes <= 1440
+    ? Math.round(minutes * 60)
+    : 0;
+}
+
+export function buildDataFina({
+  trips = [],
+  rewards = [],
+  fuel = [],
+  from = null,
+  to = null,
+  dailyGoal = 80000
+} = {}) {
+  const selectedTrips = (Array.isArray(trips) ? trips : []).filter((row) => inRange(row?.date, from, to));
+  const selectedRewards = (Array.isArray(rewards) ? rewards : []).filter((row) => inRange(row?.date, from, to));
+  // Undated fuel remains in cash outflow for every range but never joins a dated chart.
+  const selectedFuel = (Array.isArray(fuel) ? fuel : []).filter((row) =>
+    !row?.date || inRange(row.date, from, to)
+  );
+
+  const tripGross = selectedTrips.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+  const rewardGross = selectedRewards.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+  const fuelSpend = selectedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
+  const undatedFuel = selectedFuel.filter((row) => !row?.date);
+  const undatedFuelSpend = undatedFuel.reduce((sum, row) => sum + (validAmount(row.total_ars) ?? 0), 0);
+  const actualKmTrips = selectedTrips.filter((row) =>
+    row.km_source === "actual" && Number.isFinite(Number(row.km)) && Number(row.km) > 0
+  );
+  const durationTrips = selectedTrips.filter((row) => tripDurationSeconds(row) > 0);
+  const actualKm = actualKmTrips.reduce((sum, row) => sum + Number(row.km), 0);
+  const reportedSeconds = selectedTrips.reduce((sum, row) => sum + tripDurationSeconds(row), 0);
+
+  const componentTotals = new Map(COMPONENTS.map((item) => [
+    item.code, { ...item, amount: 0, trips: 0 }
+  ]));
+  let verifiedTrips = 0;
+  let partialTrips = 0;
+  let missingTrips = 0;
+  let verifiedGross = 0;
+  let partialGross = 0;
+  let missingGross = 0;
+  for (const trip of selectedTrips) {
+    const breakdown = readTripBreakdown(trip);
+    if (breakdown.status === "verified") {
+      verifiedTrips += 1;
+      verifiedGross += Number(trip.amount) || 0;
+      for (const component of breakdown.components) {
+        const current = componentTotals.get(component.code) ??
+          { code: component.code, label: component.label, legacy: null, amount: 0, trips: 0 };
+        current.amount += component.amount;
+        current.trips += 1;
+        componentTotals.set(component.code, current);
+      }
+    } else if (breakdown.status === "partial") {
+      partialTrips += 1;
+      partialGross += Number(trip.amount) || 0;
+    } else {
+      missingTrips += 1;
+      missingGross += Number(trip.amount) || 0;
+    }
+  }
+  const verifiedBreakdownTotal = [...componentTotals.values()]
+    .reduce((sum, component) => sum + component.amount, 0);
+  const unallocatedGross = partialGross + missingGross;
+
+  const daysMap = new Map();
+  const hours = Array.from({ length: 24 }, (_, hour) => ({
+    hour, gross: 0, trips: 0, prime: PRIME_HOURS.has(hour)
+  }));
+  let primeGross = 0;
+  for (const trip of selectedTrips) {
+    const amount = validAmount(trip.amount) ?? 0;
+    const day = daysMap.get(trip.date) ?? { date: trip.date, gross: 0, trips: 0 };
+    day.gross += amount;
+    day.trips += 1;
+    daysMap.set(trip.date, day);
+    const hour = Number(String(trip.start ?? "").slice(0, 2));
+    if (Number.isInteger(hour) && hour >= 0 && hour < 24) {
+      hours[hour].gross += amount;
+      hours[hour].trips += 1;
+      if (PRIME_HOURS.has(hour)) primeGross += amount;
+    }
+  }
+  const goal = Number.isFinite(Number(dailyGoal)) && Number(dailyGoal) > 0
+    ? Number(dailyGoal)
+    : 80000;
+  const days = [...daysMap.values()].sort((a, b) => a.date.localeCompare(b.date))
+    .map((day) => ({ ...day, metGoal: day.gross >= goal }));
+  const activeDays = days.length;
+  const daysAtGoal = days.filter((day) => day.metGoal).length;
+  const bestHour = hours.reduce((best, item) =>
+    item.gross > (best?.gross ?? -1) ? item : best, null);
+  const cashNet = tripGross + rewardGross - fuelSpend;
+  const passengerHours = reportedSeconds / 3600;
+
+  return {
+    tripCount: selectedTrips.length,
+    gross: tripGross,
+    rewardGross,
+    fuelSpend,
+    cashNet,
+    undatedFuelCount: undatedFuel.length,
+    undatedFuelSpend,
+    actualKm,
+    actualKmTrips: actualKmTrips.length,
+    durationTrips: durationTrips.length,
+    reportedSeconds,
+    passengerHours,
+    connectedHours: null,
+    grossPerPassengerHour: passengerHours > 0 ? tripGross / passengerHours : null,
+    grossPerKm: actualKm > 0 ? tripGross / actualKm : null,
+    cashMarginPerKm: actualKm > 0 ? (tripGross - fuelSpend) / actualKm : null,
+    dailyAverage: activeDays > 0
+      ? days.reduce((sum, day) => sum + day.gross, 0) / activeDays
+      : null,
+    dailyGoal: goal,
+    activeDays,
+    daysAtGoal,
+    days,
+    hours,
+    primeGross,
+    primeSharePercent: tripGross > 0 ? primeGross / tripGross * 100 : 0,
+    bestHour: bestHour?.trips ? bestHour.hour : null,
+    bestHourGross: bestHour?.trips ? bestHour.gross : 0,
+    components: [...componentTotals.values()]
+      .filter((item) => item.amount > 0)
+      .sort((a, b) => b.amount - a.amount),
+    breakdown: {
+      verifiedTrips,
+      partialTrips,
+      missingTrips,
+      coveragePercent: selectedTrips.length ? verifiedTrips / selectedTrips.length * 100 : 0,
+      verifiedGross,
+      partialGross,
+      missingGross,
+      unallocatedGross,
+      verifiedBreakdownTotal
+    }
+  };
+}
+
+export const DATA_FINA_COMPONENTS = COMPONENTS.map(({ code, label }) => ({ code, label }));

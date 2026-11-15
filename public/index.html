@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:43197; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Etios</title>
   <script>document.documentElement.dataset.page = location.pathname.startsWith("/inputs") ? "inputs" : location.pathname.startsWith("/trips") ? "trips" : "home";</script>
@@ -112,6 +112,95 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 html[data-page="home"] [data-area="inputs"],html[data-page="home"] [data-area="history"],
 html[data-page="inputs"] [data-area="dashboard"],html[data-page="inputs"] [data-area="history"],
 html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-area="inputs"]{display:none!important}
+
+/* Verified trip-detail timeline */
+.day-timeline{border:1px solid rgba(255,255,255,.07);background:linear-gradient(145deg,#121216,#0b0b0d);border-radius:20px;padding:18px;margin:12px 0}
+.day-timeline-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:13px;border-bottom:1px solid var(--line)}
+.day-timeline-date{font-size:14px;font-weight:700;letter-spacing:-.02em}
+.day-timeline-metrics{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:10px}
+.day-timeline-metrics span{padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.045)}
+.timeline-list{position:relative;display:grid;gap:0;padding:12px 0 0}
+.timeline-item{position:relative;display:grid;grid-template-columns:62px 18px minmax(0,1fr);gap:10px;padding:7px 0 13px}
+.timeline-time{font-size:12px;font-weight:750;color:#e9e9ee;padding-top:3px}
+.timeline-rail{position:relative;display:flex;justify-content:center}
+.timeline-rail:before{content:"";position:absolute;top:7px;bottom:-17px;width:1px;background:linear-gradient(180deg,rgba(199,243,106,.65),rgba(120,169,255,.16))}
+.timeline-item:last-child .timeline-rail:before{display:none}
+.timeline-dot{position:relative;z-index:1;width:9px;height:9px;margin-top:6px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(199,243,106,.35)}
+.timeline-card{min-width:0;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);border-radius:14px;padding:11px 12px}
+.timeline-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.timeline-mode{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#c7f36a;font-weight:750}
+.timeline-amount{font-size:17px;letter-spacing:-.04em;font-weight:750;white-space:nowrap}
+.timeline-meta{display:flex;gap:7px;flex-wrap:wrap;color:#a5a5ad;font-size:10px;margin-top:5px}
+.timeline-meta span{padding:4px 7px;border-radius:7px;background:rgba(255,255,255,.045)}
+.timeline-status{font-size:9px;color:#c7f36a;margin-top:8px}
+.timeline-status.partial{color:#f4c76a}
+.timeline-fares{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.timeline-fare{font-size:9px;color:#b8b8c0;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:5px 7px}
+.timeline-gap{grid-column:3;font-size:9px;color:#909098;padding:0 2px 10px}
+.timeline-gap strong{color:#b4b4bd;font-weight:650}
+.timeline-footnote{font-size:10px;line-height:1.5;color:#85858d;margin:8px 0 0;padding-top:10px;border-top:1px solid var(--line)}
+@media(max-width:600px){.day-timeline{padding:13px;border-radius:17px}.timeline-item{grid-template-columns:48px 14px minmax(0,1fr);gap:7px}.timeline-time{font-size:10px}.timeline-card{padding:10px}.timeline-amount{font-size:15px}.timeline-gap{grid-column:3}}
+
+
+/* Data fina — live metrics and verified fare allocation */
+.dfl-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;min-height:158px;margin:0 0 12px;padding:20px 21px;border:1px solid var(--line);border-radius:24px;background:radial-gradient(ellipse at 92% 8%,rgba(48,209,88,.14),transparent 46%),linear-gradient(135deg,#15191a,#09090a 70%);overflow:hidden}
+.dfl-hero-main{min-width:0;flex:1}
+.dfl-eyebrow{font-size:11px;letter-spacing:.11em;color:var(--muted);font-weight:700}
+.dfl-value{font-size:clamp(38px,7vw,57px);line-height:1.08;letter-spacing:-.06em;font-weight:780;margin:8px 0}
+.dfl-caption{max-width:60ch;color:var(--muted);font-size:11px;line-height:1.55}
+.dfl-pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.dfl-pills span{border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);padding:5px 9px;font-size:10px;color:var(--text)}
+.dfl-spark{flex:0 0 28%;min-width:120px;max-width:205px;height:75px}
+.dfl-spark svg{width:100%;height:100%;overflow:visible}
+.dfl-meters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.dfl-meter{min-width:0;padding:14px 15px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.dfl-meter-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted)}
+.dfl-meter-head span:last-child{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap}
+.dfl-meter-value{font-size:21px;font-weight:750;letter-spacing:-.045em;margin:5px 0 10px}
+.dfl-track{height:9px;border-radius:999px;background:var(--surface2);overflow:hidden}
+.dfl-fill{height:100%;width:0;border-radius:999px;transition:width .55s ease}
+.dfl-fill.goal{background:#30d158}
+.dfl-fill.detail{background:#0a84ff}
+.dfl-fill.coverage{background:#bf5af2}
+.dfl-meter-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;margin-top:9px;color:var(--muted);font-size:9.5px;line-height:1.4}
+.dfl-target-label{font-size:9.5px;color:var(--muted)}
+.dfl-target{width:82px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--text);padding:4px 6px;font-size:11px;text-align:right}
+.dfl-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:0 0 12px}
+.dfl-kpi{min-width:0;padding:13px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(145deg,#151518,#0c0c0e)}
+.dfl-kpi-label{font-size:10px;color:var(--muted)}
+.dfl-kpi-value{font-size:clamp(17px,2.8vw,24px);font-weight:740;letter-spacing:-.045em;margin-top:6px;white-space:nowrap}
+.dfl-kpi-hint{font-size:9px;color:var(--muted);margin-top:3px;line-height:1.35}
+.dfl-card{min-width:0}
+.dfl-allocation{display:flex;gap:2px;height:13px;border-radius:8px;overflow:hidden;background:var(--surface2);margin:5px 0 10px}
+.dfl-allocation span{min-width:0;height:100%;transition:width .5s ease}
+.dfl-comp{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.dfl-comp:last-child{border-bottom:0}
+.dfl-comp-dot{width:10px;height:10px;border-radius:3px}
+.dfl-comp-label{font-size:11px;font-weight:620}
+.dfl-comp-sub{font-size:9px;color:var(--muted);margin-top:2px}
+.dfl-comp-value{text-align:right;font-size:12px;font-weight:720;white-space:nowrap}
+.dfl-comp-share{display:block;color:var(--muted);font-size:9px;font-weight:500}
+.dfl-note,.dfl-chart-caption{color:var(--muted);font-size:10px;line-height:1.55;margin-top:10px}
+.dfl-day-chart{display:flex;align-items:stretch;gap:7px;min-height:160px;overflow-x:auto;padding:8px 2px 0}
+.dfl-day-item{display:flex;flex:1 0 28px;min-width:28px;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px}
+.dfl-day-value{font-size:8px;color:var(--muted);white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg);height:36px}
+.dfl-day-track{display:flex;align-items:flex-end;justify-content:center;width:100%;height:94px;border-radius:7px 7px 3px 3px;background:rgba(255,255,255,.035);overflow:hidden}
+.dfl-day-bar{width:72%;min-height:2px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#30d158,#16843a)}
+.dfl-day-label{font-size:9px;color:var(--muted);white-space:nowrap}
+.dfl-hour-chart{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));align-items:end;gap:3px;height:155px;padding:10px 1px 0}
+.dfl-hour-item{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;height:100%;min-width:0}
+.dfl-hour-track{display:flex;align-items:flex-end;justify-content:center;height:125px;width:100%;border-radius:4px 4px 2px 2px;background:rgba(255,255,255,.025);overflow:hidden}
+.dfl-hour-bar{width:100%;min-height:2px;border-radius:4px 4px 0 0;background:#5a5a60}
+.dfl-hour-bar.prime{background:#30d158}
+.dfl-hour-label{font-size:8px;color:var(--muted)}
+.dfl-efficiency{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dfl-efficiency-item{padding:10px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}
+.dfl-efficiency-label{font-size:9px;color:var(--muted)}
+.dfl-efficiency-value{font-size:18px;font-weight:730;letter-spacing:-.035em;margin-top:4px}
+.dfl-efficiency-hint{font-size:8.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+@media(max-width:720px){.dfl-meters{grid-template-columns:1fr}.dfl-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dfl-hero{padding:17px}.dfl-spark{display:none}.dfl-day-chart{min-height:145px}}
+@media(max-width:420px){.dfl-hero{border-radius:19px}.dfl-value{font-size:39px}.dfl-kpi{padding:10px}.dfl-kpi-value{font-size:17px}}
+
 </style>
 </head>
 <body>
@@ -258,16 +347,115 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <section class="card"><h2>Horas conectadas</h2><div id="per-hour" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="hours-hint" class="note">Sin turnos registrados.</div><div id="sessions-list" class="note"></div></section>
         <section class="card"><h2>Combustible comprado</h2><div id="fuel-margin" class="hero-value" style="font-size:32px;margin:2px 0">—</div><div id="fuel-hint" class="note">Sin tickets registrados.</div><div id="fuel-list" class="note"></div></section>
       </div>
+      <section class="dfl-hero" data-area="history" id="data-fina-hero">
+        <div class="dfl-hero-main">
+          <div class="dfl-eyebrow">CAJA NETA REGISTRADA</div>
+          <div class="dfl-value" id="data-fina-cash-net">—</div>
+          <div class="dfl-caption" id="data-fina-cash-caption">Calculando viajes, recompensas y compras registradas…</div>
+          <div class="dfl-pills" id="data-fina-hero-pills"></div>
+        </div>
+        <div class="dfl-spark" id="data-fina-spark" aria-hidden="true"></div>
+      </section>
+      <div class="dfl-meters" data-area="history" id="data-fina-meters">
+        <article class="dfl-meter">
+          <div class="dfl-meter-head"><span>Meta diaria de ingresos</span><span id="data-fina-goal-pct">—</span></div>
+          <div class="dfl-meter-value" id="data-fina-goal-value">—</div>
+          <div class="dfl-track"><div class="dfl-fill goal" id="data-fina-goal-fill"></div></div>
+          <div class="dfl-meter-foot">
+            <span id="data-fina-goal-foot">Días que alcanzaron la meta: —</span>
+            <label class="dfl-target-label" for="data-fina-daily-target">Meta $</label>
+            <input class="dfl-target" id="data-fina-daily-target" type="number" min="1000" step="1000" value="80000" inputmode="numeric">
+          </div>
+        </article>
+        <article class="dfl-meter">
+          <div class="dfl-meter-head"><span>Desglose tarifario real</span><span id="data-fina-detail-pct">—</span></div>
+          <div class="dfl-meter-value" id="data-fina-detail-value">—</div>
+          <div class="dfl-track"><div class="dfl-fill detail" id="data-fina-detail-fill"></div></div>
+          <div class="dfl-meter-foot" id="data-fina-detail-foot">Sin evidencia de componentes.</div>
+        </article>
+        <article class="dfl-meter">
+          <div class="dfl-meter-head"><span>Datos del viaje</span><span id="data-fina-trip-pct">—</span></div>
+          <div class="dfl-meter-value" id="data-fina-trip-value">—</div>
+          <div class="dfl-track"><div class="dfl-fill coverage" id="data-fina-trip-fill"></div></div>
+          <div class="dfl-meter-foot" id="data-fina-trip-foot">Cobertura de km reales y duración reportada.</div>
+        </article>
+      </div>
+      <div class="dfl-kpis" data-area="history" id="data-fina-kpis"></div>
+      <div class="grid two" data-area="history">
+        <section class="card dfl-card" id="data-fina-allocation">
+          <div class="section-head"><h2>Composición real de las ganancias</h2><span class="note" id="data-fina-allocation-total">—</span></div>
+          <div class="dfl-allocation" id="data-fina-allocation-bar"></div>
+          <div id="data-fina-components"></div>
+          <div class="dfl-note" id="data-fina-allocation-note"></div>
+        </section>
+        <section class="card dfl-card">
+          <div class="section-head"><h2>Ingresos por día</h2><span class="note" id="data-fina-days-note"></span></div>
+          <div class="dfl-day-chart" id="data-fina-days-chart"></div>
+          <div class="dfl-chart-caption" id="data-fina-days-caption"></div>
+        </section>
+      </div>
+      <div class="grid two" data-area="history">
+        <section class="card dfl-card">
+          <div class="section-head"><h2>Por hora de inicio</h2><span class="note">Franjas de referencia</span></div>
+          <div class="dfl-hour-chart" id="data-fina-hours-chart"></div>
+          <div class="dfl-chart-caption" id="data-fina-hours-caption"></div>
+        </section>
+        <section class="card dfl-card">
+          <div class="section-head"><h2>Eficiencia del Etios</h2><span class="note">Referencia, no medición del auto</span></div>
+          <div class="dfl-efficiency" id="data-fina-efficiency"></div>
+          <div class="dfl-chart-caption" id="data-fina-efficiency-caption"></div>
+        </section>
+      </div>
       <section class="card" data-area="history">
         <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
         <div id="trips-table" class="trip-list"><div class="empty">Cargando viajes…</div></div>
       </section>
+      <section class="card" data-area="history" id="daily-trip-timeline">
+        <div class="section-head">
+          <h2>Jornada ? cronolog?a de viajes</h2>
+          <span class="note" id="timeline-period-note">Tiempo de viaje reportado por DiDi</span>
+        </div>
+        <div id="trip-timeline"><div class="empty">Construyendo cronolog?a?</div></div>
+      </section>
       <section class="card" data-area="history"><h2>Recompensas</h2><div id="rewards-table" class="reward-list"><div class="empty">Cargando recompensas…</div></div></section>
+      <section class="card" data-area="history" id="ledger-coverage">
+        <h2>Auditoría de cobertura del ledger</h2>
+        <div id="ledger-audit-summary" class="note">Leyendo exportación completa…</div>
+        <div id="ledger-session-status" class="note">Sin turnos sincronizados</div>
+        <div id="ledger-a22-state" class="note">No comparado contra A22</div>
+        <div id="ledger-audit-days" class="table-wrap"><div class="empty">Calculando cobertura por fecha…</div></div>
+      </section>
+      <section class="card" data-area="history">
+        <div class="section-head"><h2>Importar backup</h2><span class="note">Archivo estructurado · vista previa antes de escribir</span></div>
+        <p class="note">El importador conserva los campos permitidos y descarta nombres, teléfonos, direcciones y otros datos ajenos al ledger. Los turnos locales de este navegador quedan excluidos salvo selección explícita.</p>
+        <button id="open-import" class="secondary" type="button">Importar archivo JSON</button>
+      </section>
+      <dialog id="import-dialog" aria-labelledby="import-dialog-title">
+        <div class="section-head"><h2 id="import-dialog-title">Importación controlada</h2><button id="close-import" class="ghost" type="button">Cerrar</button></div>
+        <label for="import-file">Backup JSON de Didi Dash</label>
+        <input id="import-file" type="file" accept="application/json,.json">
+        <div class="note">Primero seleccioná el archivo. Después conectá el Companion local para obtener una vista previa de solo lectura.</div>
+        <label class="checkbox-field" for="include-local-sessions" style="display:flex;align-items:center;gap:8px;margin-top:14px">
+          <input id="include-local-sessions" type="checkbox" style="width:auto">
+          Incluir también los turnos locales guardados en este navegador
+        </label>
+        <div class="import-actions">
+          <button id="connect-companion" type="button" disabled>Conectar Companion</button>
+          <button id="preview-import" class="secondary" type="button" disabled>Generar vista previa</button>
+          <button id="commit-import" type="button" disabled>Confirmar importación</button>
+        </div>
+        <div id="import-status" class="import-status" role="status" aria-live="polite">No hay archivo seleccionado.</div>
+        <div id="import-summary" class="import-summary" aria-live="polite"></div>
+      </dialog>
       <footer>Etios · Historial de viajes</footer>
     </main>
   </div>
 <script type="module">
 import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, dashboardPageFromPath, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
+import { buildImportPayload, parseImportJson } from "/importer.mjs";
+import { auditLedger } from "/audit.mjs";
+import { buildTripTimeline } from "/trip-analytics.mjs";
+import { buildDataFina } from "/data-fina.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -291,6 +479,7 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
     oneOffExpenses: [],
     vehicleSessions: [],
     fuelLogs: [],
+    dailyGrossTarget: 80000,
     priceHistory: [{
       effective_from: "2026-11-02",
       price_ars_per_liter: 2167,
@@ -312,6 +501,8 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
         oneOffExpenses: Array.isArray(saved.oneOffExpenses) ? saved.oneOffExpenses : [],
         vehicleSessions: Array.isArray(saved.vehicleSessions) ? saved.vehicleSessions : [],
         fuelLogs: Array.isArray(saved.fuelLogs) ? saved.fuelLogs : [],
+        dailyGrossTarget: Number.isFinite(Number(saved.dailyGrossTarget)) && Number(saved.dailyGrossTarget) >= 1000
+          ? Number(saved.dailyGrossTarget) : DEFAULT_SETTINGS.dailyGrossTarget,
         priceHistory: mergePriceHistory(saved.priceHistory, DEFAULT_SETTINGS.priceHistory)
       };
     } catch {
@@ -319,6 +510,12 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
     }
   }
   let localSettings = loadLocalSettings();
+  const COMPANION_BASE = "http://127.0.0.1:43197";
+  let importSource = null;
+  let importPayload = null;
+  let companionNonce = "";
+  let companionNonceExpiresAt = 0;
+  let lastImportPreview = null;
   function saveLocalSettings() {
     try { localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(localSettings)); return true; }
     catch { return false; }
@@ -567,17 +764,229 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
     }
     return data;
   }
+  async function queryLoopbackPermission() {
+    if (!navigator.permissions?.query) return "prompt";
+    try {
+      const permission = await navigator.permissions.query({ name: "loopback-network" });
+      return permission.state;
+    } catch {
+      return "prompt";
+    }
+  }
+
+  async function companionRequest(route, { method = "GET", body = null, nonce = "" } = {}) {
+    const response = await fetch(COMPANION_BASE + route, {
+      method,
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      redirect: "error",
+      targetAddressSpace: "loopback",
+      headers: {
+        ...(body == null ? {} : { "Content-Type": "application/json" }),
+        ...(nonce ? { "X-Companion-Nonce": nonce } : {})
+      },
+      ...(body == null ? {} : { body: JSON.stringify(body) })
+    });
+    const raw = await response.text();
+    let result = {};
+    try { result = raw ? JSON.parse(raw) : {}; } catch { result = {}; }
+    if (!response.ok) throw new Error(result.message || result.error || ("Companion HTTP " + response.status));
+    return result;
+  }
+
+  function importCountsText(result) {
+    const rows = [];
+    for (const collection of ["trips", "rewards", "fuel", "sessions"]) {
+      const counts = result[collection];
+      if (!counts) continue;
+      rows.push(collection + ": " + (counts.inserted || 0) + " nuevos, " +
+        (counts.updated || 0) + " actualizados, " + (counts.duplicates || 0) +
+        " duplicados, " + (counts.ambiguous || 0) + " ambiguos");
+    }
+    return rows.join("\n");
+  }
+
+  function initImportControls() {
+    const dialog = $("import-dialog");
+    const fileInput = $("import-file");
+    const status = $("import-status");
+    const summary = $("import-summary");
+    const connectButton = $("connect-companion");
+    const previewButton = $("preview-import");
+    const commitButton = $("commit-import");
+    if (!dialog || dialog.dataset.initialized === "true") return;
+    dialog.dataset.initialized = "true";
+
+    const resetPreview = () => {
+      companionNonce = "";
+      companionNonceExpiresAt = 0;
+      importPayload = null;
+      lastImportPreview = null;
+      previewButton.disabled = true;
+      commitButton.disabled = true;
+      summary.textContent = "";
+    };
+    const preparePayload = () => {
+      if (!importSource) throw new Error("Seleccion? primero un backup JSON.");
+      importPayload = buildImportPayload(importSource, {
+        includeLocalSessions: $("include-local-sessions").checked
+      });
+      return importPayload;
+    };
+
+    $("open-import").addEventListener("click", () => dialog.showModal());
+    $("close-import").addEventListener("click", () => dialog.close());
+    fileInput.addEventListener("change", async () => {
+      resetPreview();
+      connectButton.disabled = true;
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) {
+        importSource = null;
+        status.textContent = "No hay archivo seleccionado.";
+        return;
+      }
+      try {
+        importSource = parseImportJson(await file.text());
+        preparePayload();
+        status.textContent = "Archivo le?do y campos permitidos preparados. Conect? el Companion local.";
+        connectButton.disabled = false;
+      } catch (error) {
+        importSource = null;
+        status.textContent = error.message;
+      }
+    });
+    $("include-local-sessions").addEventListener("change", () => {
+      resetPreview();
+      if (importSource) {
+        try {
+          preparePayload();
+          status.textContent = "Selecci?n actualizada. Volv? a conectar y generar la vista previa.";
+          connectButton.disabled = false;
+        } catch (error) {
+          status.textContent = error.message;
+          connectButton.disabled = true;
+        }
+      }
+    });
+
+    connectButton.addEventListener("click", async () => {
+      try {
+        const permission = await queryLoopbackPermission();
+        if (permission === "denied") {
+          throw new Error("Chrome bloque? el permiso Loopback network para este sitio. Habilitalo en Permisos del sitio y volv? a intentar.");
+        }
+        const health = await companionRequest("/health");
+        if (!health.ok || typeof health.nonce !== "string" || !health.nonce) {
+          throw new Error("El Companion no devolvi? un nonce de emparejamiento v?lido.");
+        }
+        companionNonce = health.nonce;
+        companionNonceExpiresAt = Number(health.expires_at) || (Date.now() + 600000);
+        preparePayload();
+        previewButton.disabled = false;
+        commitButton.disabled = true;
+        status.textContent = "Companion conectado en 127.0.0.1:43197. La vista previa todav?a no escribe datos.";
+      } catch (error) {
+        resetPreview();
+        status.textContent = error.message + " Verific? que el Companion est? iniciado en esta PC.";
+      }
+    });
+
+    previewButton.addEventListener("click", async () => {
+      try {
+        if (!companionNonce || Date.now() > companionNonceExpiresAt) {
+          throw new Error("La sesi?n local expir?. Volv? a conectar el Companion.");
+        }
+        preparePayload();
+        const result = await companionRequest("/preview", {
+          method: "POST", nonce: companionNonce, body: importPayload
+        });
+        if (result.dry_run !== true || result.ok !== true) {
+          throw new Error("El Worker no confirm? un preview de solo lectura.");
+        }
+        lastImportPreview = result;
+        summary.textContent = importCountsText(result);
+        status.textContent = "Vista previa confirmada. No se escribi? ning?n registro.";
+        commitButton.disabled = false;
+      } catch (error) {
+        lastImportPreview = null;
+        commitButton.disabled = true;
+        status.textContent = error.message;
+      }
+    });
+
+    commitButton.addEventListener("click", async () => {
+      if (!lastImportPreview || lastImportPreview.dry_run !== true || !importPayload) return;
+      if (!window.confirm("Se escribir?n en el ledger s?lo los registros clasificados por el Worker. ?Confirm?s la importaci?n?")) return;
+      try {
+        if (!companionNonce || Date.now() > companionNonceExpiresAt) {
+          const health = await companionRequest("/health");
+          companionNonce = health.nonce;
+          companionNonceExpiresAt = Number(health.expires_at) || (Date.now() + 600000);
+        }
+        const result = await companionRequest("/commit", {
+          method: "POST", nonce: companionNonce, body: importPayload
+        });
+        if (result.dry_run !== false || result.ok !== true) {
+          throw new Error("El Worker no confirm? el commit.");
+        }
+        summary.textContent = importCountsText(result);
+        status.textContent = "Importaci?n confirmada por el Worker. Actualizando el dashboard?";
+        commitButton.disabled = true;
+        previewButton.disabled = true;
+        connectButton.disabled = true;
+        lastImportPreview = null;
+        companionNonce = "";
+        await loadData();
+        status.textContent = "Importaci?n confirmada y dashboard actualizado.";
+      } catch (error) {
+        status.textContent = error.message + " No reintentes a ciegas: consult? el ledger antes de repetir un commit.";
+        commitButton.disabled = true;
+        lastImportPreview = null;
+      }
+    });
+  }
+
+  function renderLedgerAudit(report) {
+    $("ledger-audit-summary").textContent = report.globalTruncated
+      ? report.summary
+      : report.summary + " ? Exportaci?n: " + (report.exportedAt || "fecha desconocida");
+    $("ledger-session-status").textContent = report.sessionSyncStatus;
+    $("ledger-a22-state").textContent = report.a22Comparison;
+    if (!report.days.length) {
+      $("ledger-audit-days").innerHTML = '<div class="empty">No hay fechas para auditar.</div>';
+      return;
+    }
+    const headings = ["Fecha", "Viajes", "Viajes con km reales", "Viajes con km estimados", "Viajes sin km", "Viajes sin duraci?n", "Recompensas", "Nafta", "Estado"];
+    const rows = report.days.map((day) =>
+      '<tr><td>' + escapeHtml(dateLabel(day.date)) + '</td>' +
+      '<td class="right">' + day.trips + '</td>' +
+      '<td class="right">' + day.actualKm + '</td>' +
+      '<td class="right">' + day.estimatedKm + '</td>' +
+      '<td class="right">' + day.unknownKm + '</td>' +
+      '<td class="right">' + day.missingDuration + '</td>' +
+      '<td class="right">' + day.rewards + '</td>' +
+      '<td class="right">' + day.fuelEntries + '</td>' +
+      '<td>' + escapeHtml(day.status) + '</td></tr>'
+    ).join("");
+    $("ledger-audit-days").innerHTML = '<div class="summary-scroll"><table><thead><tr>' +
+      headings.map((heading) => '<th>' + heading + '</th>').join("") +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
   async function loadData() {
-    const [trips, rewards, fuel, sessions] = await Promise.all([
+    const [trips, rewards, fuel, sessions, ledgerExport] = await Promise.all([
       api("/api/trips?limit=5000"),
       api("/api/rewards?limit=5000"),
       api("/api/fuel?limit=500"),
-      api("/api/sessions?limit=500")
+      api("/api/sessions?limit=500"),
+      api("/api/export")
     ]);
     state.trips = trips.trips || [];
     state.rewards = rewards.rewards || [];
     state.fuel = fuel.fuel || [];
     state.sessions = sessions.sessions || [];
+    renderLedgerAudit(auditLedger(ledgerExport));
     $("connection").textContent = "KV conectado · " + state.trips.length + " viajes · " + state.rewards.length + " recompensas";
     $("connection").style.background = "rgba(48,209,88,.13)";
     $("connection").style.color = "var(--green)";
@@ -704,6 +1113,8 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
     renderMonthlySummary(periodSummary.monthly);
     renderHours(trips);
     renderTrips(trips);
+    renderDataFina(trips, rewards, state.fuel);
+    renderTripTimeline(trips);
     renderRewards(rewards);
     renderSessions(sessions);
     renderFuel(fuel);
@@ -808,13 +1219,268 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
       '<div class="bar-row"><span>' + String(x.hour).padStart(2,"0") + ':00</span><div class="bar"><i style="width:' + (x.value/max*100).toFixed(1) + '%"></i></div><strong class="right">' + money.format(x.value) + '</strong></div>'
     ).join("");
   }
+  const DATA_FINA_COLORS = {
+    distancia: "#0a84ff",
+    tiempo: "#bf5af2",
+    espera: "#64d2ff",
+    base_dinamica: "#30d158",
+    diferencial: "#ff9f0a",
+    reembolso_tarifario: "#8e8e93",
+    otro: "#d1d1d6"
+  };
+
+  function initDataFinaControls() {
+    const target = $("data-fina-daily-target");
+    if (!target || target.dataset.initialized === "true") return;
+    target.dataset.initialized = "true";
+    target.value = String(localSettings.dailyGrossTarget || 80000);
+    target.addEventListener("change", () => {
+      const value = Number(target.value);
+      if (!Number.isFinite(value) || value < 1000 || value > 100000000) {
+        target.value = String(localSettings.dailyGrossTarget || 80000);
+        return;
+      }
+      localSettings.dailyGrossTarget = Math.round(value);
+      saveLocalSettings();
+      render();
+    });
+  }
+
+  function renderDataFina(trips, rewards, ledgerFuel) {
+    const from = state.range > 0 ? localDateDaysAgo(state.range - 1) : null;
+    const goal = localSettings.dailyGrossTarget || 80000;
+    const result = buildDataFina({
+      trips,
+      rewards,
+      fuel: ledgerFuel,
+      from,
+      to: isoToday,
+      dailyGoal: goal
+    });
+    const pct = (value, total) => total > 0 ? value / total * 100 : 0;
+    const width = (value, total) => Math.max(0, Math.min(100, pct(value, total)));
+    const grossPerTrip = result.tripCount ? result.gross / result.tripCount : null;
+    const litresReference = result.actualKm * ETIOS_L_PER_100KM / 100;
+    const marginAfterPurchasesPerKm = result.actualKm > 0
+      ? (result.gross - result.fuelSpend) / result.actualKm
+      : null;
+
+    $("data-fina-cash-net").textContent = money.format(result.cashNet);
+    $("data-fina-cash-caption").textContent =
+      money.format(result.gross) + " en viajes + " +
+      money.format(result.rewardGross) + " en recompensas - " +
+      money.format(result.fuelSpend) + " en combustible comprado. Caja registrada, no beneficio operativo.";
+    $("data-fina-hero-pills").innerHTML = [
+      result.tripCount + " viajes",
+      money.format(result.gross) + " viajes",
+      money.format(result.rewardGross) + " recompensas",
+      result.undatedFuelCount + " cargas sin fecha"
+    ].map((label) => "<span>" + escapeHtml(label) + "</span>").join("");
+
+    const sparkDays = result.days.slice(-12);
+    if (sparkDays.length >= 2) {
+      const values = sparkDays.map((day) => day.gross);
+      const minimum = Math.min(...values);
+      const maximum = Math.max(...values);
+      const points = values.map((value, index) => {
+        const x = index * 100 / (values.length - 1);
+        const y = 56 - ((value - minimum) / Math.max(maximum - minimum, 1)) * 43;
+        return [x, y];
+      });
+      const line = points.map((point, index) =>
+        (index ? "L" : "M") + point[0].toFixed(1) + " " + point[1].toFixed(1)
+      ).join(" ");
+      const area = line + " L100 64 L0 64 Z";
+      $("data-fina-spark").innerHTML =
+        '<svg viewBox="0 0 100 64" preserveAspectRatio="none" role="img" aria-label="Tendencia de ingresos registrados">' +
+        '<defs><linearGradient id="dfl-spark-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#30d158" stop-opacity=".28"/><stop offset="1" stop-color="#30d158" stop-opacity="0"/></linearGradient></defs>' +
+        '<path d="' + area + '" fill="url(#dfl-spark-fill)"/><path d="' + line +
+        '" fill="none" stroke="#30d158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+    } else {
+      $("data-fina-spark").innerHTML = "";
+    }
+
+    const goalAverage = result.dailyAverage ?? 0;
+    const goalProgress = width(goalAverage, goal);
+    $("data-fina-goal-pct").textContent = Math.round(pct(goalAverage, goal)) + "% de la meta";
+    $("data-fina-goal-value").textContent = result.dailyAverage == null
+      ? "—"
+      : money.format(result.dailyAverage) + " / dia";
+    $("data-fina-goal-fill").style.width = goalProgress + "%";
+    $("data-fina-goal-foot").textContent =
+      result.daysAtGoal + "/" + result.activeDays + " dias activos alcanzaron la meta";
+
+    const breakdownProgress = width(result.breakdown.verifiedTrips, result.tripCount);
+    $("data-fina-detail-pct").textContent =
+      result.tripCount ? Math.round(breakdownProgress) + "% del volumen de viajes" : "Sin viajes";
+    $("data-fina-detail-value").textContent =
+      result.breakdown.verifiedTrips + " / " + result.tripCount + " verificados";
+    $("data-fina-detail-fill").style.width = breakdownProgress + "%";
+    $("data-fina-detail-foot").textContent =
+      result.breakdown.partialTrips + " parciales · " +
+      result.breakdown.missingTrips + " sin desglose real";
+
+    const completeTripCount = trips.filter((row) =>
+      row.km_source === "actual" &&
+      Number(row.km) > 0 &&
+      (Number(row.duration_seconds) > 0 || Number(row.min) > 0)
+    ).length;
+    const tripProgress = width(completeTripCount, result.tripCount);
+    $("data-fina-trip-pct").textContent =
+      result.tripCount ? Math.round(tripProgress) + "% completos" : "Sin viajes";
+    $("data-fina-trip-value").textContent = completeTripCount + " / " + result.tripCount;
+    $("data-fina-trip-fill").style.width = tripProgress + "%";
+    $("data-fina-trip-foot").textContent =
+      result.actualKmTrips + " con km reales · " +
+      result.durationTrips + " con duracion informada";
+
+    const kpis = [
+      ["Bruto por hora de viaje", result.grossPerPassengerHour == null ? "—" : money.format(result.grossPerPassengerHour) + "/h", "Solo duracion de viajes; no horas conectadas"],
+      ["Promedio por viaje", grossPerTrip == null ? "—" : money.format(grossPerTrip), result.tripCount + " viajes"],
+      ["Bruto por km real", result.grossPerKm == null ? "—" : money.format(result.grossPerKm) + "/km", number.format(result.actualKm) + " km reales"],
+      ["Ingreso en franja prime", result.primeSharePercent.toFixed(1) + "%", money.format(result.primeGross) + " · mejor hora " + (result.bestHour == null ? "—" : String(result.bestHour).padStart(2, "0") + ":00")]
+    ];
+    $("data-fina-kpis").innerHTML = kpis.map((item) =>
+      '<article class="dfl-kpi"><div class="dfl-kpi-label">' + escapeHtml(item[0]) +
+      '</div><div class="dfl-kpi-value">' + escapeHtml(item[1]) +
+      '</div><div class="dfl-kpi-hint">' + escapeHtml(item[2]) + '</div></article>'
+    ).join("");
+
+    const verifiedTotal = result.breakdown.verifiedBreakdownTotal;
+    $("data-fina-allocation-total").textContent =
+      money.format(verifiedTotal) + " · " + result.breakdown.verifiedTrips + " viajes conciliados";
+    if (verifiedTotal > 0) {
+      $("data-fina-allocation-bar").innerHTML = result.components.map((item) =>
+        '<span title="' + escapeHtml(item.label) + ': ' + money.format(item.amount) +
+        '" style="width:' + (item.amount / verifiedTotal * 100).toFixed(3) +
+        '%;background:' + (DATA_FINA_COLORS[item.code] || DATA_FINA_COLORS.otro) + '"></span>'
+      ).join("");
+      $("data-fina-components").innerHTML = result.components.map((item) =>
+        '<div class="dfl-comp"><i class="dfl-comp-dot" style="background:' +
+        (DATA_FINA_COLORS[item.code] || DATA_FINA_COLORS.otro) + '"></i>' +
+        '<div><div class="dfl-comp-label">' + escapeHtml(item.label) + '</div>' +
+        '<div class="dfl-comp-sub">' + item.trips + ' viajes con este concepto</div></div>' +
+        '<div class="dfl-comp-value">' + money.format(item.amount) +
+        '<small class="dfl-comp-share">' + pct(item.amount, verifiedTotal).toFixed(1) + '% del desglose conciliado</small></div></div>'
+      ).join("");
+    } else {
+      $("data-fina-allocation-bar").innerHTML = "";
+      $("data-fina-components").innerHTML = '<div class="empty">Todavia no hay desgloses reales conciliados en este periodo.</div>';
+    }
+    $("data-fina-allocation-note").textContent =
+      "Desglose conciliado: " + money.format(verifiedTotal) +
+      ". Sin asignar: " + money.format(result.breakdown.unallocatedGross) +
+      " (" + result.breakdown.partialTrips + " parciales y " +
+      result.breakdown.missingTrips + " sin detalle). Solo se incluyen importes observados en pantallas reales.";
+
+    const dayMaximum = Math.max(1, ...result.days.map((day) => day.gross));
+    $("data-fina-days-note").textContent = result.days.length + " dias activos";
+    $("data-fina-days-chart").innerHTML = result.days.length
+      ? result.days.map((day) => {
+        const barHeight = Math.max(2, day.gross / dayMaximum * 94);
+        return '<div class="dfl-day-item" title="' + escapeHtml(dateLabel(day.date)) +
+          ' · ' + money.format(day.gross) + ' · ' + day.trips + ' viajes">' +
+          '<div class="dfl-day-value">' + money.format(day.gross) + '</div>' +
+          '<div class="dfl-day-track"><div class="dfl-day-bar" style="height:' + barHeight.toFixed(1) + '%"></div></div>' +
+          '<div class="dfl-day-label">' + escapeHtml(day.date.slice(8)) + '</div></div>';
+      }).join("")
+      : '<div class="empty">Sin actividad en las fechas elegidas.</div>';
+    $("data-fina-days-caption").textContent =
+      "Se muestran solo fechas con viajes registrados. Una fecha ausente en el ledger no prueba que haya sido franco.";
+
+    const hourMaximum = Math.max(1, ...result.hours.map((item) => item.gross));
+    $("data-fina-hours-chart").innerHTML = result.hours.map((item) => {
+      const barHeight = item.gross > 0 ? Math.max(2, item.gross / hourMaximum * 125) : 0;
+      return '<div class="dfl-hour-item" title="' + String(item.hour).padStart(2, "0") +
+        ':00 · ' + item.trips + ' viajes · ' + money.format(item.gross) + '">' +
+        '<div class="dfl-hour-track"><div class="dfl-hour-bar' + (item.prime ? " prime" : "") +
+        '" style="height:' + barHeight.toFixed(1) + 'px"></div></div>' +
+        '<div class="dfl-hour-label">' + (item.hour % 3 === 0 ? String(item.hour).padStart(2, "0") : "") +
+        '</div></div>';
+    }).join("");
+    $("data-fina-hours-caption").textContent =
+      "Hora de inicio del viaje. Franja prime de referencia: 07–09 y 17–22. No equivale a horas conectadas.";
+
+    const efficiency = [
+      ["Km reales con pasajero", number.format(result.actualKm) + " km", result.actualKmTrips + " viajes con distancia real"],
+      ["Nafta de referencia", number.format(litresReference) + " L", "Estimacion a " + ETIOS_L_PER_100KM + " L/100 km; no medida"],
+      ["Combustible comprado", money.format(result.fuelSpend), result.undatedFuelCount + " cargas sin fecha incluidas"],
+      ["Margen caja por km", marginAfterPurchasesPerKm == null ? "—" : money.format(marginAfterPurchasesPerKm) + "/km", "Viajes menos compras de combustible, no costo consumido"]
+    ];
+    $("data-fina-efficiency").innerHTML = efficiency.map((item) =>
+      '<div class="dfl-efficiency-item"><div class="dfl-efficiency-label">' +
+      escapeHtml(item[0]) + '</div><div class="dfl-efficiency-value">' +
+      escapeHtml(item[1]) + '</div><div class="dfl-efficiency-hint">' +
+      escapeHtml(item[2]) + '</div></div>'
+    ).join("");
+    $("data-fina-efficiency-caption").textContent =
+      "Las compras pagadas no equivalen al combustible consumido. Sin odometro de turnos, no se estima el consumo real del vehiculo.";
+  }
+
+  function renderTripTimeline(trips) {
+    const days = buildTripTimeline(trips);
+    if (!days.length) {
+      $("trip-timeline").innerHTML = '<div class="empty">Todavia no hay viajes con fecha y hora validas en este periodo.</div>';
+      $("timeline-period-note").textContent = "Sin jornadas";
+      return;
+    }
+    $("timeline-period-note").textContent = days.length + " jornadas · tiempo reportado por DiDi";
+    $("trip-timeline").innerHTML = days.map((day) => {
+      const events = day.trips.map((trip) => {
+        const km = trip.km > 0
+          ? number.format(trip.km) + " km " + (trip.kmSource === "estimated" ? "estimados" : "reales")
+          : "Km pendientes";
+        const durationLabel = trip.durationSeconds == null
+          ? (trip.durationMinutes == null ? "Duracion pendiente" : number.format(trip.durationMinutes) + " min")
+          : Math.floor(trip.durationSeconds / 60) + "m" + String(trip.durationSeconds % 60).padStart(2, "0") + "s";
+        const duration = trip.durationMinutes == null
+          ? durationLabel
+          : durationLabel + " · fin aprox. " + trip.end;
+        const mode = trip.serviceType || "Modalidad no registrada";
+        const breakdown = trip.fareBreakdown || { status: "missing", components: [], total: 0, missingAmount: trip.amount };
+        const status = breakdown.status === "verified"
+          ? '<div class="timeline-status">Desglose conciliado con el total</div>'
+          : breakdown.status === "partial"
+            ? '<div class="timeline-status partial">Desglose parcial · faltan ' + money.format(breakdown.missingAmount || 0) + '</div>'
+            : '<div class="timeline-status partial">Detalle tarifario pendiente</div>';
+        const fare = (breakdown.components || []).map((component) =>
+          '<span class="timeline-fare">' + escapeHtml(component.label) + ' · ' +
+          escapeHtml(money.format(component.amount)) + '</span>'
+        ).join("");
+        const fareMarkup = fare ? '<div class="timeline-fares">' + fare + '</div>' : "";
+        const gap = trip.gapBeforeMinutes > 0
+          ? '<div class="timeline-gap">' + number.format(trip.gapBeforeMinutes) +
+            ' min entre viajes · <strong>conexion no registrada</strong></div>'
+          : "";
+        return gap +
+          '<div class="timeline-item"><div class="timeline-time">' + escapeHtml(trip.start) +
+          '</div><div class="timeline-rail"><i class="timeline-dot"></i></div>' +
+          '<article class="timeline-card"><div class="timeline-card-head"><span class="timeline-mode">' +
+          escapeHtml(mode) + '</span><strong class="timeline-amount">' + money.format(trip.amount) +
+          '</strong></div><div class="timeline-meta"><span>' + escapeHtml(duration) +
+          '</span><span>' + escapeHtml(km) + '</span></div>' + status + fareMarkup +
+          '</article></div>';
+      }).join("");
+      return '<section class="day-timeline"><div class="day-timeline-head"><div>' +
+        '<div class="day-timeline-date">' + escapeHtml(dateLabel(day.date)) + '</div>' +
+        '<div class="note">' + day.tripCount + ' viajes · ' + number.format(day.travelMinutes) +
+        ' min de viaje reportado</div></div><div class="day-timeline-metrics">' +
+        '<span>' + money.format(day.gross) + '</span><span>' + number.format(day.actualKm) +
+        ' km reales</span><span>' + day.verifiedCount + '/' + day.tripCount +
+        ' desgloses conciliados</span></div></div><div class="timeline-list">' + events +
+        '</div><p class="timeline-footnote">Los finales se calculan con la duracion indicada por DiDi. Los intervalos entre viajes no se consideran espera ni tiempo conectado sin una sesion registrada.</p></section>';
+    }).join("");
+  }
+
   function renderTrips(trips) {
     if (!trips.length) { $('trips-table').innerHTML = '<div class="empty">No hay viajes importados en este período.</div>'; return; }
     const rows = trips.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
     $('trips-table').innerHTML = rows.map((row) => {
       const km = row.km != null && asNumber(row.km) > 0 ? number.format(row.km) + ' km · ' + ((row.km_source ?? 'actual') === 'estimated' ? 'estimado' : 'real') : 'Km —';
-      const duration = row.min != null && asNumber(row.min) > 0 ? number.format(row.min) + ' min' : 'Duración —';
-      return '<article class="trip-row"><div class="trip-head"><div><div class="trip-platform">' + escapeHtml(String(row.platform || 'didi').toUpperCase()) + '</div><div class="trip-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="trip-amount">' + money.format(asNumber(row.amount)) + '</div></div><div class="trip-details"><span>' + km + '</span><span>' + duration + '</span></div></article>';
+      const duration = row.duration_seconds != null
+        ? Math.floor(asNumber(row.duration_seconds) / 60) + 'm' + String(asNumber(row.duration_seconds) % 60).padStart(2, '0') + 's'
+        : row.min != null && asNumber(row.min) > 0 ? number.format(row.min) + ' min' : 'Duraci?n ?';
+      return '<article class="trip-row"><div class="trip-head"><div><div class="trip-platform">' + escapeHtml(row.modality || row.service_type || String(row.platform || 'didi').toUpperCase()) + '</div><div class="trip-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="trip-amount">' + money.format(asNumber(row.amount)) + '</div></div><div class="trip-details"><span>' + km + '</span><span>' + duration + '</span></div></article>';
     }).join('');
   }
 
@@ -872,13 +1538,15 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
     }
   });
   $("export-csv").addEventListener("click", () => {
-    const cols = ["id","date","start","platform","amount","km","km_source","min","source"];
-    const csv = [cols.join(","), ...selected(state.trips).map((t) => cols.map((key) => '"' + String(t[key] ?? "").replace(/"/g,'""') + '"').join(","))].join("\r\n");
+    const cols = ["id","date","start","platform","service_type","modality","amount","km","km_source","min","duration_seconds","fare_total_ars","adjusted_from_ars","earnings_adjusted","detail_verified","breakdown_status","breakdown","fare_breakdown","source"];
+    const csv = [cols.join(","), ...selected(state.trips).map((t) => cols.map((key) => '"' + String(t[key] == null ? "" : typeof t[key] === "object" ? JSON.stringify(t[key]) : t[key]).replace(/"/g,'""') + '"').join(","))].join("\r\n");
     const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"}));
     const a = document.createElement("a"); a.href = url; a.download = "didi-dash-trips.csv"; a.click(); URL.revokeObjectURL(url);
   });
 
   initCostForms();
+  initImportControls();
+  initDataFinaControls();
   loadData().catch((error) => {
     $("connection").textContent = "Sin conexión: " + error.message;
     $("connection").style.background = "rgba(255,69,58,.13)";

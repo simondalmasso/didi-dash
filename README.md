@@ -139,3 +139,31 @@ Requires Node.js 22 or newer:
 npm ci
 npm test
 ```
+
+
+## Detailed DiDi trip analytics
+
+A DiDi detail import may include `service_type`, exact `duration_seconds`, `fare_breakdown`, `fare_total_ars`, `adjusted_from_ars`, `earnings_adjusted` and `detail_verified`. The fare object is independently whitelisted to distance, time, waiting, dynamic base, differential price and tariff reimbursement. Unknown nested fields are discarded. Conflicting non-null fare details are classified ambiguous rather than overwriting existing values.
+
+The ride history includes a daily journey timeline with start time, amount, exact duration, estimated end, actual passenger kilometres and fare-component chips. Inter-trip gaps are shown as unclassified unless a synchronized work session provides evidence; they are not inferred to be waiting or online time. A trip with `detail_verified=false` remains visible with a partial-detail indicator.
+
+See [the current data status](docs/DATA-STATUS.md) for the 2026-11-14 A22 reconciliation and production snapshot.
+
+## Private Windows import Companion
+
+The dashboard import dialog is in `/trips/`. On the Windows PC, configure the credential once with `npm run companion:setup`, then start the loopback process with `npm run companion:start`. The Companion reads the current Windows user's DPAPI-protected credential from `%LOCALAPPDATA%\\DidiDash\\ingest-token.dpapi`; the browser never receives the Bearer token.
+
+In the dashboard, select the structured JSON file, connect the Companion, inspect the count-only dry-run preview, then use the separate confirmation to commit. The local-session checkbox is opt-in and unchecked by default. Preview and commit are separate requests; after an uncertain commit response, inspect a fresh export before retrying.
+
+Deployment uses the DPAPI-protected credential when available. `npm run deploy -- --dry-run` builds an authenticated Wrangler dry run without changing production; `npm run deploy` performs the production deploy after the test suite is green.
+
+The raw DiDi list/detail capture producer remains separate from this import contract. Do not claim the dashboard itself parses a raw DiDi export. Every new acquisition path must be tested on a small real-device sample and must emit only the whitelisted, sanitized fields.
+
+
+## Data Fina — real fare breakdown and operating picture
+
+The Trips view includes a live data-fina section: registered cash net, a locally editable daily gross target, verified-detail coverage, trip-data coverage, actual component allocation, active-day gross bars, start-hour distribution and Etios reference efficiency. All figures are calculated from the current ledger with public/data-fina.mjs; the reference HTML received from GLM is not bundled and its illustrative component allocations are not used.
+
+Canonical trip detail uses modality and breakdown with source actual and a components list. Six component codes are supported because DiDi's actual detail screen includes a separate waiting-fare line: distancia, tiempo, espera, base_dinamica, diferencial, and reembolso_tarifario. See docs/DATA-FINA-SCHEMA.md.
+
+The component bar includes only actual breakdowns that reconcile to trip amount within ARS 2. Missing or null lines are absent, not zero. A partial trip remains unallocated until reconciled. The current snapshot is documented in docs/DATA-STATUS.md: 209 trips / ARS 800,900 gross, ARS 109,300 rewards, ARS 200,000 recorded fuel purchases and 17 reconciled detail breakdowns from the 14 November source. No synchronized sessions exist, so the hourly KPI is per reported trip-time hour, never connected-hour productivity. Undated fuel purchases affect cash but are never assigned to a day or month.
