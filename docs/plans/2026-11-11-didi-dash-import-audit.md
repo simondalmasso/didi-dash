@@ -283,6 +283,6 @@ git commit -m "docs: define import contract and ledger data status"
 - [x] Full verification: 131/131 tests, module syntax checks, inline dashboard syntax and git diff --check.
 - [x] Authenticated Wrangler dry-run and production deploy completed; Worker version: 29beb7cb-8d42-4c34-b44c-5e65d0fe4943.
 - [x] Post-deploy checks: dashboard HTML, data-fina module, timeline module and fresh public export returned successfully; export remains 209 trips and no truncation.
-- [ ] Publish the implementation branch to GitHub and verify the remote commit.
+- [x] Published branch feat/didi-dash-import-audit-2026-11-11; remote HEAD verified at 4ac1ecf9877e520dd0de0611230e54ab851d6320. Open PR #25 against main: https://github.com/simondalmasso/didi-dash/pull/25 (open, mergeable; not merged).
 
 The data-fina component allocation is evidence-only: verified ARS 100,000 from 17 actual 14/11 breakdowns, one partial ride with ARS 900 unexplained, and 191 trips without component breakdown. Null values remain absent, not zero.
