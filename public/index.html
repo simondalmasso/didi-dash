@@ -1096,7 +1096,7 @@ import { buildDataFina } from "/data-fina.mjs";
     renderMonthlySummary(periodSummary.monthly);
     renderHours(trips);
     renderTrips(trips);
-    renderDataFina(trips, rewards, state.fuel, withdrawals);
+    renderDataFina(trips, rewards, state.fuel, withdrawals, sessions);
     renderTripTimeline(trips);
     renderRewards(rewards);
     renderSessions(sessions);
@@ -1229,11 +1229,12 @@ import { buildDataFina } from "/data-fina.mjs";
     });
   }
 
-  function renderDataFina(trips, rewards, ledgerFuel, withdrawals = []) {
+  function renderDataFina(trips, rewards, ledgerFuel, withdrawals = [], sessions = []) {
     const from = state.range > 0 ? localDateDaysAgo(state.range - 1) : null;
     const goal = localSettings.dailyGrossTarget || 80000;
     const result = buildDataFina({
       trips,
+      sessions,
       rewards,
       fuel: ledgerFuel,
       withdrawalFees: withdrawals,
@@ -1322,6 +1323,9 @@ import { buildDataFina } from "/data-fina.mjs";
       result.durationTrips + " con duracion informada";
 
     const kpis = [
+      ["Total de días trabajados", number.format(result.workDays), "Fechas únicas con viajes o turnos conectados registrados"],
+      ["Total de horas trabajadas", result.connectedHours == null ? "Sin datos" : number.format(result.connectedHours) + " h", result.workSessionCount ? result.workSessionCount + " turnos registrados; no equivale a tiempo conduciendo" : "Sin turnos registrados; total desconocido"],
+      ["Horas con pasajero", result.durationTrips ? number.format(result.passengerHours) + " h" : "Sin datos", result.durationTrips + " viajes con duración observada; intervalos entre viajes excluidos"],
       ["Bruto por hora de viaje", result.grossPerPassengerHour == null ? "—" : money.format(result.grossPerPassengerHour) + "/h", "Solo duracion de viajes; no horas conectadas"],
       ["Promedio por viaje", grossPerTrip == null ? "—" : money.format(grossPerTrip), result.tripCount + " viajes"],
       ["Bruto por km real", result.grossPerKm == null ? "—" : money.format(result.grossPerKm) + "/km", number.format(result.actualKm) + " km reales"],
