@@ -467,7 +467,7 @@ import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, das
 import { buildImportPayload, parseImportJson, submitImportPayload } from "/importer.mjs";
 import { auditLedger } from "/audit.mjs";
 import { buildTripTimeline } from "/trip-analytics.mjs";
-import { buildDataFina } from "/data-fina.mjs";
+import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -963,7 +963,7 @@ import { buildDataFina } from "/data-fina.mjs";
     const trips = selected(state.trips);
     const rewards = selected(state.rewards);
     const allFuelLogs = [...state.fuel, ...localSettings.fuelLogs];
-    const allSessions = [...state.sessions, ...localSettings.vehicleSessions];
+    const allSessions = deduplicateWorkSessions([...state.sessions, ...localSettings.vehicleSessions]);
     const withdrawals = selected(state.withdrawals);
     const fuel = selected(allFuelLogs);
     const sessions = selected(allSessions);
