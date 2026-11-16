@@ -1,6 +1,6 @@
 # Extracción desde el teléfono (A22) — procedimiento operativo
 
-**Estado al 15/11/2026:** el pipeline TIRÓN está validado de punta a punta sobre frames sintéticos, en dos sistemas operativos (Linux y Windows/Python 3.13): demo 46/46 duplicados, e2e recall 100% sin viajes fantasma, costura PASS. **Muestra real completada (15/11/2026):** 8 frames redactados, 18 tarjetas parseadas, 0 ambiguas, 2 filas parciales sin hora (bordes de scroll), ARS 106.400. Los 18 registros corresponden al 14/11; esto valida el formato real pero no demuestra cobertura completa del rango 09/11-15/11. La captura completa y el cruce con el ledger siguen pendientes.
+**Estado al 15/11/2026:** TIR?N v1.2 validado con muestra real y captura completa del A22. Captura: 56 frames redactados, 112 tarjetas reconocidas (10?14/11), 15 filas OCR sin parsear (12 sin hora, 3 sin monto). Cruce con export del Worker filtrado al rango 09?15/11 (108 viajes, `truncated=false`): 107 duplicados, 4 candidatos nuevos, 1 discrepancia y 0 faltantes. Los 4 nuevos y la discrepancia quedan en revisi?n; **no se ejecut? POST /api/ingest, no se modific? el ledger y no hubo deploy**.
 
 Este documento es el punto de entrada para cualquier agente que necesite extraer viajes del teléfono. La verdad operativa del ledger sigue siendo el Worker (`GET /api/export`); la extracción es solo su fuente de alimentación. Antes de tocar el ledger, leer `AGENTS.md` y `docs/DATA-STATUS.md`.
 

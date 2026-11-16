@@ -42,6 +42,8 @@ a mano). Todo el procesamiento es local: los datos nunca salen de la maquina.
 
 ## 0. Versiones
 
+- **v1.3 (15/11):** validaci?n real completa en A22: 56 frames, 112 tarjetas, 5 fechas con viajes; delta contra export acotado al rango: 107 duplicados, 4 nuevos, 1 discrepancia, 0 faltantes. Sin ingest ni cambios del Worker.
+
 - **v1.2 (15/11):** reconoce el timestamp real de tarjeta `DD/MM/YYYY, h:mm am/pm`, conserva ?nicamente esa caja segura y asocia fecha/hora con la fila de modalidad + monto. Muestra real A22: 8 frames, 18 tarjetas, 2 filas parciales sin hora por recorte de scroll; falta cubrir el rango completo.
 
 - **v1.1 (15/11, noche):** multiplataforma — fuentes con cadena de candidatos (Linux DejaVu → Windows Arial → macOS → fallback de PIL), stdout/stderr en UTF-8 y `subprocess` con encoding explícito en los tests. Sin cambios de lógica de captura/OCR/costura. Re-validada en Linux: demo 46/46, e2e PASS, stitch PASS.
