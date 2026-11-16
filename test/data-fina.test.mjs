@@ -313,3 +313,36 @@ test("work-hour total stays unknown when no connected work sessions are recorded
   assert.equal(result.connectedHours, null);
   assert.equal(result.passengerHours, 10 / 60);
 });
+
+
+test("recorded work sessions count once when a local session is also present in the synced ledger", () => {
+  const synced = {
+    id: "server-session-1",
+    date: "2026-11-14",
+    platform: "didi",
+    connected_start: "17:00",
+    connected_end: "18:30",
+    connected_minutes: 90,
+    odometer_start: 1000,
+    odometer_end: 1010,
+    odometer_km: 10
+  };
+  const localCopy = {
+    ...synced,
+    id: "local-session-1",
+    odometer_start: null,
+    odometer_end: null,
+    odometer_km: null
+  };
+  const result = buildDataFina({
+    trips: [],
+    sessions: [synced, localCopy],
+    rewards: [],
+    fuel: []
+  });
+
+  assert.equal(result.workDays, 1);
+  assert.equal(result.workSessionCount, 1);
+  assert.equal(result.connectedMinutes, 90);
+  assert.equal(result.connectedHours, 1.5);
+});
