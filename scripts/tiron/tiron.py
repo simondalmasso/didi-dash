@@ -56,6 +56,10 @@ MESES_ABR = {"ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
 DIAS_SEM = {"lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"}
 
 RE_HORA = re.compile(r"(?<![\d:])([01]?\d|2[0-3]):([0-5]\d)(?![\d:])")
+RE_FECHA_HORA_UI = re.compile(
+    r"(\d{1,2})/(\d{1,2})/(\d{4})[, ]+(\d{1,2}):([0-5]\d)\s*(am|pm)",
+    re.IGNORECASE,
+)
 RE_MONTO = re.compile(r"(?:\$|\bARS\b)\s*([0-9OolI.,]+)", re.IGNORECASE)
 RE_FECHA_ES = re.compile(
     r"(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)?\s*,?\s*"
@@ -98,6 +102,25 @@ def tipos_compatibles(a: str, b: str) -> bool:
 # ============================================================
 # Parseo de fechas (encabezados de la UI y valores del export)
 # ============================================================
+def parse_fecha_hora_ui(texto: str):
+    """Parse the DiDi card timestamp DD/MM/YYYY, h:mm am/pm strictly."""
+    match = RE_FECHA_HORA_UI.fullmatch(str(texto or "").strip())
+    if not match:
+        return None
+    day, month, year, hour, minute = map(int, match.groups()[:5])
+    meridiem = match.group(6).lower()
+    if not 1 <= hour <= 12:
+        return None
+    try:
+        fecha = date(year, month, day).isoformat()
+    except ValueError:
+        return None
+    hour = hour % 12
+    if meridiem == "pm":
+        hour += 12
+    return fecha, "%02d:%02d" % (hour, minute)
+
+
 def parse_fecha_header(texto: str):
     """Detecta si una fila es SOLO un encabezado de fecha. Devuelve 'YYYY-MM-DD' o None."""
     t = sin_acentos(texto).strip().lower().strip(".·|-– ")
@@ -204,7 +227,8 @@ def sanitize_ocr_items(items):
             continue
         normalized = sin_acentos(text).lower()
         safe_value = (
-            _safe_date_header(text)
+            parse_fecha_hora_ui(text) is not None
+            or _safe_date_header(text)
             or RE_HORA.fullmatch(text) is not None
             or amount_only.fullmatch(text) is not None
             or _safe_modality(text)
@@ -528,6 +552,11 @@ def clasificar_fila(fila):
     cy = sum(it["cy"] for it in fila) / len(fila)
     conf = sum(it["conf"] for it in fila) / len(fila)
 
+    fecha_hora = parse_fecha_hora_ui(texto)
+    if fecha_hora:
+        return {"kind": "fecha_hora", "token": fecha_hora[0],
+                "hora": fecha_hora[1], "cy": cy}
+
     tok = parse_fecha_header(t)
     if tok:
         return {"kind": "fecha", "token": tok, "cy": cy}
@@ -592,9 +621,19 @@ def procesar_frame(items):
     eventos.sort(key=lambda e: e["cy"])
 
     resueltos = []
+    timestamp_pendiente = None
     i = 0
     while i < len(eventos):
         ev = eventos[i]
+        if ev["kind"] == "fecha_hora":
+            timestamp_pendiente = ev
+            i += 1
+            continue
+        if ev["kind"] == "card" and timestamp_pendiente:
+            if not ev.get("hora"):
+                ev["hora"] = timestamp_pendiente["hora"]
+            ev["token"] = timestamp_pendiente["token"]
+            timestamp_pendiente = None
         if ev["kind"] == "card" and ev["hora"] and not ev["monto_digits"]:
             if (i + 1 < len(eventos) and eventos[i + 1]["kind"] == "card"
                     and eventos[i + 1]["monto_digits"] and not eventos[i + 1]["hora"]
@@ -682,7 +721,10 @@ def cmd_stitch(a):
                 fecha_carry = resolver_fecha(ev["token"], hoy)
                 header_en_frame = True
                 continue
-            # tarjeta: fecha vigente (header de este frame arriba, o la heredada)
+            if ev.get("token"):
+                fecha_carry = resolver_fecha(ev["token"], hoy)
+                header_en_frame = True
+            # tarjeta: fecha vigente (timestamp/header de este frame, o la heredada)
             fecha = fecha_carry
             if fecha is None:
                 sin_parsear_total.append({"frame": frame, "motivo": "sin_fecha",

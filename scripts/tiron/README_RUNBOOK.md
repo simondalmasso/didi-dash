@@ -42,6 +42,8 @@ a mano). Todo el procesamiento es local: los datos nunca salen de la maquina.
 
 ## 0. Versiones
 
+- **v1.2 (15/11):** reconoce el timestamp real de tarjeta `DD/MM/YYYY, h:mm am/pm`, conserva ?nicamente esa caja segura y asocia fecha/hora con la fila de modalidad + monto. Muestra real A22: 8 frames, 18 tarjetas, 2 filas parciales sin hora por recorte de scroll; falta cubrir el rango completo.
+
 - **v1.1 (15/11, noche):** multiplataforma — fuentes con cadena de candidatos (Linux DejaVu → Windows Arial → macOS → fallback de PIL), stdout/stderr en UTF-8 y `subprocess` con encoding explícito en los tests. Sin cambios de lógica de captura/OCR/costura. Re-validada en Linux: demo 46/46, e2e PASS, stitch PASS.
 - **v1.0 (15/11):** validada en Linux por GLM y en Windows/Python 3.13 por ARQ (demo 46/46 duplicados, e2e PASS recall 100%, stitch PASS — con ajustes locales de fuentes/encoding que v1.1 incorpora de serie).
 
@@ -88,7 +90,7 @@ python tiron.py all --sesion muestra --hoy <fecha-de-hoy>
 python tiron.py rows --sesion muestra --frame 2
 ```
 
-4. Verificar en `muestra/out/ledger.csv` que hora/tipo/monto se parsean
+4. La UI actual presenta fecha y hora juntas (`DD/MM/YYYY, h:mm am/pm`) y la modalidad + monto en la fila siguiente. Verificar en `muestra/out/ledger.csv` que fecha/hora/tipo/monto se parsean
    bien sobre la UI real. Si algo no cierra, mandar la salida de `rows` a
    GLM para ajustar los patrones (al tope de `tiron.py`: `RE_HORA`,
    `RE_MONTO`, `parse_fecha_header`, `clasificar_fila`, `MODALIDADES`).

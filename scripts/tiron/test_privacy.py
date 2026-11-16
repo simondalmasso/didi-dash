@@ -134,5 +134,24 @@ class PrivacyTests(unittest.TestCase):
             self.assertEqual(saved.getpixel((180, 95)), (24, 24, 24))
 
 
+    def test_numeric_12_hour_timestamp_is_safe_and_drives_card_date_time(self):
+        timestamp = item("14/11/2026, 8:54 pm", 40, 100, 260, 130)
+        modality = item("Express", 80, 155, 190, 185)
+        amount = item("$3.900", 510, 155, 650, 185)
+
+        safe = tiron.sanitize_ocr_items([timestamp, modality, amount])
+        self.assertEqual([x["text"] for x in safe], [
+            "14/11/2026, 8:54 pm", "Express", "$3.900"
+        ])
+
+        events, unparsed, _ = tiron.procesar_frame(tiron.items_con_geom({"items": safe}))
+        self.assertEqual(unparsed, [])
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["kind"], "card")
+        self.assertEqual(events[0]["token"], "2026-11-14")
+        self.assertEqual(events[0]["hora"], "20:54")
+        self.assertEqual(events[0]["monto_digits"], 3900)
+        self.assertEqual(events[0]["tipo"], "Express")
+
 if __name__ == "__main__":
     unittest.main()

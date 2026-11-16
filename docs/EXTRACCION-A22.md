@@ -1,6 +1,6 @@
 # Extracción desde el teléfono (A22) — procedimiento operativo
 
-**Estado al 16/11/2026:** el pipeline TIRÓN está validado de punta a punta sobre frames sintéticos, en dos sistemas operativos (Linux y Windows/Python 3.13): demo 46/46 duplicados, e2e recall 100% sin viajes fantasma, costura PASS. **La muestra real de 8 frames sobre la UI del teléfono sigue pendiente: es el gate obligatorio antes de la primera captura masiva.** La validación sintética no reemplaza esa muestra.
+**Estado al 15/11/2026:** el pipeline TIRÓN está validado de punta a punta sobre frames sintéticos, en dos sistemas operativos (Linux y Windows/Python 3.13): demo 46/46 duplicados, e2e recall 100% sin viajes fantasma, costura PASS. **Muestra real completada (15/11/2026):** 8 frames redactados, 18 tarjetas parseadas, 0 ambiguas, 2 filas parciales sin hora (bordes de scroll), ARS 106.400. Los 18 registros corresponden al 14/11; esto valida el formato real pero no demuestra cobertura completa del rango 09/11-15/11. La captura completa y el cruce con el ledger siguen pendientes.
 
 Este documento es el punto de entrada para cualquier agente que necesite extraer viajes del teléfono. La verdad operativa del ledger sigue siendo el Worker (`GET /api/export`); la extracción es solo su fuente de alimentación. Antes de tocar el ledger, leer `AGENTS.md` y `docs/DATA-STATUS.md`.
 
@@ -19,6 +19,8 @@ La investigación de fuentes estructuradas está **cerrada con evidencia (15/11/
 **TIRÓN — captura de la UI visible + OCR local — es la única vía operativa.** Re-sondear esas vías es trabajo desperdiciado.
 
 ## 2. Piezas
+
+**Formato real confirmado de la UI:** cada tarjeta muestra un sello `DD/MM/YYYY, h:mm am/pm` (por ejemplo `14/11/2026, 8:54 pm`) en una fila y modalidad + importe en la siguiente. TIR?N lo conserva como campo allowlisted, valida la fecha y normaliza la hora a `HH:MM`; los textos de direcciones contin?an excluidos. Regresi?n automatizada en `test_privacy.py` y `test_stitch_cases.py`.
 
 | Pieza | Dónde | Rol |
 |---|---|---|

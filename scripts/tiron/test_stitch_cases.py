@@ -122,6 +122,19 @@ def main():
           len(filas) == 1 and filas[0]["monto_num"] == "4800",
           "(%s)" % (filas[0]["monto_num"] if filas else "—"))
 
+    # F) timestamp numerico de tarjeta DiDi + modalidad/monto en la fila siguiente
+    ses = escribir_sesion("F_timestamp_ui", [[
+        item("14/11/2026, 8:54 pm", 40, 100, 260, 130),
+        item("Express", 80, 155, 190, 185),
+        item("$3.900", 510, 155, 650, 185),
+    ]])
+    filas = stitch(ses)
+    check("F: timestamp UI produce 1 tarjeta", len(filas) == 1, "(%d)" % len(filas))
+    if filas:
+        check("F: fecha DD/MM/YYYY", filas[0]["fecha"] == "2026-11-14", "(%s)" % filas[0]["fecha"])
+        check("F: hora 12h -> 24h", filas[0]["hora"] == "20:54", "(%s)" % filas[0]["hora"])
+        check("F: monto exacto", filas[0]["monto_num"] == "3900", "(%s)" % filas[0]["monto_num"])
+
     print()
     if FALLOS:
         print("RESULTADO: FAIL (%s)" % ", ".join(FALLOS))
