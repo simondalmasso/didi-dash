@@ -30,6 +30,15 @@ Before changing the ledger, Worker, extractor or dashboard, read this file and `
 - The user enters `INGEST_TOKEN` into a password input. Keep it only in dialog/session memory; clear it when the dialog closes or import finishes. Never put it in localStorage, HTML source, import JSON, logs, screenshots, chat or committed files.
 - Preview must call authenticated `POST /api/ingest?dry=1`; commit must call the same endpoint without `dry=1`, only after explicit user confirmation. No local helper process is part of v1.
 
+## Phone extraction (A22)
+
+- The only operational extraction path is TIRÓN in `scripts/tiron/`; the full procedure and its validation gates are in `docs/EXTRACCION-A22.md`. There is no structured exportable source on the current install (verified 2026-11-15: release build blocks `run-as`, `allowBackup=false`, data providers are not exported). Do not re-probe those paths.
+- History-list captures enter as `source: didi_history` (date, start, amount, platform). The per-trip detail screen is the only source for kilometres, duration, service type and fare breakdown (`didi_history_detail`).
+- Detail screens show pickup/drop-off addresses: crop captures to the numeric zone or discard them immediately after transcription. Never persist frames that contain addresses.
+- Raw screenshots and unrestricted OCR are processed in memory only. Before an input frame is OCR-processed, its on-disk copy is replaced with a solid privacy mask; only then is the in-memory source OCR-processed and a selectively restored, masked frame written.
+- Persist only allowlisted OCR boxes (date, time, modality, amount, numeric km/min) and normalized trip fields. Raw OCR text and unknown rows must never enter OCR JSON, ledger.csv, candidatos.csv or filas_sin_parsear.csv. Existing OCR JSON is always regenerated, never trusted as a cache.
+- TIRÓN sessions (frames/ocr/out directories) are transient evidence and are never committed to the repository.
+
 ## Development and release
 
 - Preserve all pre-existing worktree changes. Never run `git reset --hard`, `git clean`, or destructive checkout commands on the active worktree.
