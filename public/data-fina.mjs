@@ -94,6 +94,29 @@ function tripDurationSeconds(trip) {
     : 0;
 }
 
+export function deduplicateWorkSessions(sessions) {
+  const seen = new Set();
+  return (Array.isArray(sessions) ? sessions : []).filter((row) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return false;
+    const identityParts = [
+      row.date,
+      String(row.platform ?? "").toLowerCase(),
+      row.connected_start,
+      row.connected_end
+    ];
+    const hasNaturalIdentity = identityParts.every((part) =>
+      typeof part === "string" && part.length > 0
+    );
+    const identity = hasNaturalIdentity
+      ? identityParts.join("|")
+      : typeof row.id === "string" && row.id ? "id:" + row.id : null;
+    if (identity == null) return true;
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
+
 export function buildDataFina({
   trips = [],
   sessions = [],
@@ -105,8 +128,9 @@ export function buildDataFina({
   dailyGoal = 80000
 } = {}) {
   const selectedTrips = (Array.isArray(trips) ? trips : []).filter((row) => inRange(row?.date, from, to));
-  const selectedSessions = (Array.isArray(sessions) ? sessions : [])
-    .filter((row) => inRange(row?.date, from, to));
+  const selectedSessions = deduplicateWorkSessions(
+    (Array.isArray(sessions) ? sessions : []).filter((row) => inRange(row?.date, from, to))
+  );
   const recordedSessions = selectedSessions.filter((row) => {
     const minutes = Number(row?.connected_minutes);
     return Number.isFinite(minutes) && minutes > 0;
