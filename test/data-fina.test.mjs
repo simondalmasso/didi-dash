@@ -271,3 +271,78 @@ test("time-band hourly rate stays null when duration coverage is absent", () => 
   assert.equal(result.timeBands.find((x) => x.label === "18–20").grossPerPassengerHour, null);
   assert.equal(result.timeBands.find((x) => x.label === "18–20").ranked, false);
 });
+
+
+test("work totals merge active trip dates with recorded work sessions without double-counting days", () => {
+  const result = buildDataFina({
+    trips: [
+      { date: "2026-11-14", start: "18:00", amount: 1000, min: 30 },
+      { date: "2026-11-13", start: "19:00", amount: 1000, min: 15 }
+    ],
+    sessions: [
+      { date: "2026-11-14", connected_minutes: 90 },
+      { date: "2026-11-12", connected_minutes: 120 },
+      { date: "2026-11-11", connected_minutes: 60 },
+      { date: "2026-11-12", connected_minutes: 0 }
+    ],
+    rewards: [],
+    fuel: [],
+    from: "2026-11-12",
+    to: "2026-11-14"
+  });
+
+  assert.equal(result.workDays, 3);
+  assert.equal(result.workSessionCount, 2);
+  assert.equal(result.connectedMinutes, 210);
+  assert.equal(result.connectedHours, 3.5);
+  assert.equal(result.activeDays, 2);
+  assert.equal(result.passengerHours, 0.75);
+});
+
+test("work-hour total stays unknown when no connected work sessions are recorded", () => {
+  const result = buildDataFina({
+    trips: [{ date: "2026-11-14", start: "18:00", amount: 1000, min: 10 }],
+    sessions: [],
+    rewards: [],
+    fuel: []
+  });
+
+  assert.equal(result.workDays, 1);
+  assert.equal(result.workSessionCount, 0);
+  assert.equal(result.connectedMinutes, 0);
+  assert.equal(result.connectedHours, null);
+  assert.equal(result.passengerHours, 10 / 60);
+});
+
+
+test("recorded work sessions count once when a local session is also present in the synced ledger", () => {
+  const synced = {
+    id: "server-session-1",
+    date: "2026-11-14",
+    platform: "didi",
+    connected_start: "17:00",
+    connected_end: "18:30",
+    connected_minutes: 90,
+    odometer_start: 1000,
+    odometer_end: 1010,
+    odometer_km: 10
+  };
+  const localCopy = {
+    ...synced,
+    id: "local-session-1",
+    odometer_start: null,
+    odometer_end: null,
+    odometer_km: null
+  };
+  const result = buildDataFina({
+    trips: [],
+    sessions: [synced, localCopy],
+    rewards: [],
+    fuel: []
+  });
+
+  assert.equal(result.workDays, 1);
+  assert.equal(result.workSessionCount, 1);
+  assert.equal(result.connectedMinutes, 90);
+  assert.equal(result.connectedHours, 1.5);
+});
