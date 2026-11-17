@@ -201,6 +201,8 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
 @media(max-width:720px){.dfl-meters{grid-template-columns:1fr}.dfl-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dfl-hero{padding:17px}.dfl-spark{display:none}.dfl-day-chart{min-height:145px}}
 @media(max-width:420px){.dfl-hero{border-radius:19px}.dfl-value{font-size:39px}.dfl-kpi{padding:10px}.dfl-kpi-value{font-size:17px}}
 
+
+.trip-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,.55fr);gap:9px;margin:12px 0}.trip-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.trip-pagination .row{gap:8px}.trip-pagination button{padding:8px 13px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:520px){.trip-tools{grid-template-columns:1fr}.trip-pagination{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
@@ -419,7 +421,24 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
       </section>
       <section class="card" data-area="history">
         <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
+        <div class="trip-tools" data-area="history">
+          <label class="sr-only" for="trip-search">Buscar viajes</label>
+          <input id="trip-search" type="search" placeholder="Buscar fecha, modalidad, importe o ID" autocomplete="off">
+          <label class="sr-only" for="trip-sort">Ordenar viajes</label>
+          <select id="trip-sort" aria-label="Ordenar viajes">
+            <option value="date-desc">Fecha: recientes primero</option>
+            <option value="date-asc">Fecha: antiguos primero</option>
+            <option value="amount-desc">Importe: mayor primero</option>
+            <option value="amount-asc">Importe: menor primero</option>
+            <option value="km-desc">Kilómetros: mayor primero</option>
+            <option value="km-asc">Kilómetros: menor primero</option>
+          </select>
+        </div>
         <div id="trips-table" class="trip-list"><div class="empty">Cargando viajes…</div></div>
+        <div class="trip-pagination" id="trip-pagination">
+          <span id="trip-page-status" class="note" aria-live="polite">Sin resultados</span>
+          <div class="row"><button id="trip-prev" class="ghost" type="button" disabled>Anterior</button><button id="trip-next" class="ghost" type="button" disabled>Siguiente</button></div>
+        </div>
       </section>
       <section class="card" data-area="history" id="daily-trip-timeline">
         <div class="section-head">
@@ -464,6 +483,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
   </div>
 <script type="module">
 import { calculateProfitability, calculateTripNetAfterFuel, dashboardApiUrl, dashboardPageFromPath, dashboardRangeFromSearch, dashboardUrlWithRange, ETIOS_BASELINE_L_PER_100KM, summarizeEarnings, createWorkSession, createFuelEntry, mergePriceHistory, selectFuelPurchasesForPeriod } from "/finance.mjs";
+import { queryTripRows } from "/trip-table.mjs";
 import { buildImportPayload, parseImportJson, submitImportPayload } from "/importer.mjs";
 import { auditLedger } from "/audit.mjs";
 import { buildTripTimeline } from "/trip-analytics.mjs";
@@ -484,7 +504,7 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
       link.removeAttribute("aria-current");
     }
   });
-  const state = { trips: [], rewards: [], fuel: [], sessions: [], withdrawals: [], range: dashboardRangeFromSearch(location.search) };
+  const state = { trips: [], rewards: [], fuel: [], sessions: [], withdrawals: [], range: dashboardRangeFromSearch(location.search), tripSearch: "", tripSort: "date-desc", tripPage: 1 };
   const LOCAL_SETTINGS_KEY = "etios-dash-operating-costs-v1";
   const DEFAULT_SETTINGS = {
     monthlyCosts: { insurance: null, maintenance: null, tires: null, tax: null, other: null },
@@ -1496,16 +1516,33 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
   }
 
   function renderTrips(trips) {
-    if (!trips.length) { $('trips-table').innerHTML = '<div class="empty">No hay viajes importados en este período.</div>'; return; }
-    const rows = trips.slice().sort((a,b) => (b.date + b.start).localeCompare(a.date + a.start));
-    $('trips-table').innerHTML = rows.map((row) => {
-      const km = row.km != null && asNumber(row.km) > 0 ? number.format(row.km) + ' km · ' + ((row.km_source ?? 'actual') === 'estimated' ? 'estimado' : 'real') : 'Km —';
-      const duration = row.duration_seconds != null
-        ? Math.floor(asNumber(row.duration_seconds) / 60) + 'm' + String(asNumber(row.duration_seconds) % 60).padStart(2, '0') + 's'
-        : row.min != null && asNumber(row.min) > 0 ? number.format(row.min) + ' min' : 'Duraci?n ?';
-      return '<article class="trip-row"><div class="trip-head"><div><div class="trip-platform">' + escapeHtml(row.modality || row.service_type || String(row.platform || 'didi').toUpperCase()) + '</div><div class="trip-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="trip-amount">' + money.format(asNumber(row.amount)) + '</div></div><div class="trip-details"><span>' + km + '</span><span>' + duration + '</span></div></article>';
-    }).join('');
+    const [sort, direction] = state.tripSort.split("-");
+    const result = queryTripRows(trips, {
+      query: state.tripSearch,
+      sort,
+      direction,
+      page: state.tripPage,
+      pageSize: 25
+    });
+    state.tripPage = result.page;
+    if (!result.total) {
+      $("trips-table").innerHTML = '<div class="empty">No hay viajes que coincidan con la búsqueda en este período.</div>';
+    } else {
+      $("trips-table").innerHTML = result.rows.map((row) => {
+        const km = row.km != null && asNumber(row.km) > 0 ? number.format(row.km) + ' km · ' + ((row.km_source ?? "actual") === "estimated" ? "estimado" : "real") : "Km —";
+        const duration = row.duration_seconds != null
+          ? Math.floor(asNumber(row.duration_seconds) / 60) + "m" + String(asNumber(row.duration_seconds) % 60).padStart(2, "0") + "s"
+          : row.min != null && asNumber(row.min) > 0 ? number.format(row.min) + " min" : "Duración —";
+        return '<article class="trip-row"><div class="trip-head"><div><div class="trip-platform">' + escapeHtml(row.modality || row.service_type || String(row.platform || "didi").toUpperCase()) + '</div><div class="trip-date">' + escapeHtml(dateLabel(row.date)) + ' · ' + escapeHtml(row.start) + '</div></div><div class="trip-amount">' + money.format(asNumber(row.amount)) + '</div></div><div class="trip-details"><span>' + km + '</span><span>' + duration + '</span></div></article>';
+      }).join("");
+    }
+    $("trip-page-status").textContent = result.total
+      ? (result.total === 1 ? "1 viaje" : result.total + " viajes") + " · página " + result.page + " de " + result.pageCount
+      : "0 viajes";
+    $("trip-prev").disabled = result.page <= 1;
+    $("trip-next").disabled = result.page >= result.pageCount;
   }
+
 
   function renderSessions(sessions) {
     if (!sessions.length) { $("sessions-list").textContent = "Todavía no hay turnos importados."; return; }
@@ -1565,6 +1602,38 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
     const csv = [cols.join(","), ...selected(state.trips).map((t) => cols.map((key) => '"' + String(t[key] == null ? "" : typeof t[key] === "object" ? JSON.stringify(t[key]) : t[key]).replace(/"/g,'""') + '"').join(","))].join("\r\n");
     const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"}));
     const a = document.createElement("a"); a.href = url; a.download = "didi-dash-trips.csv"; a.click(); URL.revokeObjectURL(url);
+  });
+
+  $("trip-search").addEventListener("input", (event) => {
+    state.tripSearch = event.target.value;
+    state.tripPage = 1;
+    renderTrips(selected(state.trips));
+  });
+  $("trip-sort").addEventListener("change", (event) => {
+    state.tripSort = event.target.value;
+    state.tripPage = 1;
+    renderTrips(selected(state.trips));
+  });
+  $("trip-prev").addEventListener("click", () => {
+    state.tripPage = Math.max(1, state.tripPage - 1);
+    renderTrips(selected(state.trips));
+  });
+  $("trip-next").addEventListener("click", () => {
+    state.tripPage += 1;
+    renderTrips(selected(state.trips));
+  });
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      if (currentPage === "trips") $("trip-search").focus();
+      else location.href = "/trips/#trip-search";
+    }
+    if (event.key === "Escape" && document.activeElement === $("trip-search")) {
+      $("trip-search").value = "";
+      state.tripSearch = "";
+      state.tripPage = 1;
+      renderTrips(selected(state.trips));
+    }
   });
 
   initCostForms();
