@@ -80,9 +80,12 @@ export function buildHelioViewModel(result = {}, financial = {}) {
     tripCount: Math.max(0, valueOf(result.tripCount)),
     tripGross: gross,
     rewardGross: Math.max(0, valueOf(result.rewardGross)),
-    fuelPurchaseSpend: Math.max(0, valueOf(result.fuelSpend)),
+    fuelPurchaseSpend: Math.max(0, valueOf(financial.fuelPurchaseSpend, valueOf(result.fuelSpend))),
     cashAfterRecordedCosts: nullable(financial.netCashAfterFuelPurchases),
-    operatingProfit: nullable(financial.netOperating),
+    cashAssumesZeroWithdrawalFees: financial.netCashAssumesZeroWithdrawalFees === true,
+    withdrawalEvidence: financial.withdrawalEvidence === true,
+    withdrawalFeeSpend: nullable(financial.withdrawalFeeSpend),
+    operatingProfit: financial.netComplete === true ? nullable(financial.netOperating) : null,
     operatingComplete: financial.netComplete === true,
     fuelCostEstimate: nullable(financial.fuelCost),
     fuelMode: typeof financial.fuelMode === "string" ? financial.fuelMode : "unavailable",
@@ -124,6 +127,12 @@ function markup(model) {
   const operating = model.operatingProfit == null
     ? "No disponible"
     : money.format(model.operatingProfit);
+  const cashCaveat = model.cashAssumesZeroWithdrawalFees
+    ? "Sin evidencia de comisiones de retiro: esta cifra supone ARS 0 solo para el cálculo."
+    : "Comisiones de retiro reconciliadas.";
+  const withdrawalLabel = model.cashAssumesZeroWithdrawalFees
+    ? "No reconciliadas · supuesto ARS 0"
+    : model.withdrawalFeeSpend == null ? "Sin datos" : money.format(model.withdrawalFeeSpend);
   const fuelEstimate = model.fuelCostEstimate == null
     ? "Sin base suficiente"
     : money.format(model.fuelCostEstimate);
@@ -174,10 +183,11 @@ function markup(model) {
       ["Recompensas", money.format(model.rewardGross)],
       ["Combustible comprado", money.format(model.fuelPurchaseSpend)],
       ["Otros costos cargados", money.format(model.otherCosts)],
+      ["Comisiones de retiro", withdrawalLabel],
       ["Caja tras combustible y otros costos", model.cashAfterRecordedCosts == null ? "Sin datos" : money.format(model.cashAfterRecordedCosts)],
       ["Resultado operativo estimado", operating]
     ]) + '</div>'
-    + '<p class="helio-note">Caja no equivale a beneficio. El resultado operativo queda sin publicar mientras falte información necesaria para completarlo.</p>'
+    + '<p class="helio-note">Caja no equivale a beneficio. ' + safe(cashCaveat) + ' El resultado operativo queda sin publicar mientras falte información necesaria para completarlo.</p>'
     + '</section></div></article>'
 
     + '<article class="helio-card" data-helio-card><div class="helio-inner">'
