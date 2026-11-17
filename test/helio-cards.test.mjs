@@ -79,8 +79,8 @@ test("Helio view model preserves the canonical Data Fina prime rule and separate
 
 test("Helio flip controls transfer keyboard focus to the visible face", () => {
   const source = readFileSync(helioModuleUrl, "utf8");
-  assert.match(source, /const visibleFlip = card\.querySelector/);
-  assert.match(source, /visibleFlip\?\.focus\(\)/);
+  assert.ok(source.includes("const visibleFlip = card.querySelector"));
+  assert.ok(source.includes("visibleFlip?.focus()"));
 });
 
 test("the history dashboard mounts Helio from the current Data Fina and profitability results", () => {
