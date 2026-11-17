@@ -207,6 +207,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
 .history-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 @media(max-width:760px){.history-actions{width:100%;justify-content:flex-start}.history-actions .period{width:auto;flex:1;min-width:0}.history-actions .period button{flex:1}}
 </style>
+  <link rel="stylesheet" href="/helio-cards.css">
 </head>
 <body>
   <div class="shell">
@@ -367,6 +368,10 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         </div>
         <div class="dfl-spark" id="data-fina-spark" aria-hidden="true"></div>
       </section>
+      <section class="helio-section" data-area="history" aria-labelledby="helio-heading">
+        <div class="helio-section-head"><div><h2 id="helio-heading">Helio · exploración financiera</h2><p>Interacción visual sobre los mismos cálculos del dashboard</p></div></div>
+        <div id="helio-cards"></div>
+      </section>
       <div class="dfl-meters" data-area="history" id="data-fina-meters">
         <article class="dfl-meter">
           <div class="dfl-meter-head"><span>Meta diaria de ingresos</span><span id="data-fina-goal-pct">—</span></div>
@@ -487,6 +492,7 @@ import { buildImportPayload, parseImportJson, submitImportPayload } from "/impor
 import { auditLedger } from "/audit.mjs";
 import { buildTripTimeline } from "/trip-analytics.mjs";
 import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
+import { renderHelioCards } from "/helio-cards.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -1115,7 +1121,7 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
     renderMonthlySummary(periodSummary.monthly);
     renderHours(trips);
     renderTrips(trips);
-    renderDataFina(trips, rewards, state.fuel, withdrawals, sessions);
+    renderDataFina(trips, rewards, state.fuel, withdrawals, sessions, financial);
     renderTripTimeline(trips);
     renderRewards(rewards);
     renderSessions(sessions);
@@ -1248,7 +1254,7 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
     });
   }
 
-  function renderDataFina(trips, rewards, ledgerFuel, withdrawals = [], sessions = []) {
+  function renderDataFina(trips, rewards, ledgerFuel, withdrawals = [], sessions = [], financial = {}) {
     const from = state.range > 0 ? localDateDaysAgo(state.range - 1) : null;
     const goal = localSettings.dailyGrossTarget || 80000;
     const result = buildDataFina({
@@ -1457,6 +1463,7 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
       result.timeBandMinCoveragePercent + "% y al menos " + result.timeBandMinTrips + " viajes en " + result.timeBandMinDates + " fechas. " +
       "El intervalo 22–24 puede mostrarse con tasa alta y quedar fuera del ranking si su cobertura es insuficiente. " +
       "Son minutos con pasajero reportados por DiDi, no horas conectadas; el ledger registra 0 sesiones sincronizadas.";
+    renderHelioCards($("helio-cards"), result, financial);
   }
 
   function renderTripTimeline(trips) {
