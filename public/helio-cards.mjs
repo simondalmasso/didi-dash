@@ -135,7 +135,7 @@ function markup(model) {
         ? "Odómetro completo"
         : "Sin distancia válida";
   const bandLegend = model.bands.map((band) => {
-    const share = model.hourGross ? band.gross / model.hourGross * 100 : 0;
+    const share = model.tripGross ? band.gross / model.tripGross * 100 : 0;
     return '<div class="helio-legend-row"><i style="background:' + band.color +
       '"></i><span>' + safe(band.label) + '</span><strong>' +
       safe(money.format(band.gross)) + ' · ' + number.format(share) + '%</strong></div>';
