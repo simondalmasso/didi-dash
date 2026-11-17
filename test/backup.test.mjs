@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { validateExport, stampFor, parseArgs } from "../scripts/backup-ledger.mjs";
 
 const goodPayload = (overrides = {}) => ({
@@ -56,4 +57,15 @@ test("parseArgs honours --url (stripping trailing slashes) and --out", () => {
 test("parseArgs fails fast on unknown or incomplete flags", () => {
   assert.throws(() => parseArgs(["node", "b.mjs", "--nada", "x"], {}), /uso:/);
   assert.throws(() => parseArgs(["node", "b.mjs", "--url"], {}), /uso:/);
+});
+
+test("serializeBackup checksum matches the exact persisted UTF-8 bytes", async () => {
+  const { serializeBackup } = await import("../scripts/backup-ledger.mjs");
+  assert.equal(typeof serializeBackup, "function");
+  const artifact = serializeBackup(goodPayload());
+  assert.equal(artifact.content.endsWith("\n"), true);
+  assert.equal(
+    createHash("sha256").update(Buffer.from(artifact.content, "utf8")).digest("hex"),
+    artifact.sha256
+  );
 });

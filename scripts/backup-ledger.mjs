@@ -44,6 +44,12 @@ export function validateExport(payload) {
   return { ok: errors.length === 0, errors, counts };
 }
 
+/** Serializa el JSON tal como se guarda y calcula SHA-256 sobre esos mismos bytes UTF-8. */
+export function serializeBackup(payload) {
+  const content = `${JSON.stringify(payload, null, 2)}\n`;
+  const sha256 = createHash("sha256").update(content, "utf8").digest("hex");
+  return { content, sha256 };
+}
 /** Marca UTC YYYYMMDD-HHMMSS para el nombre de archivo. */
 export function stampFor(now = new Date()) {
   const pad = (value) => String(value).padStart(2, "0");
@@ -82,13 +88,12 @@ async function main() {
     throw new Error("el export no pasó la validación — NO se escribió ningún archivo:\n  - " + errors.join("\n  - "));
   }
   const file = path.join(dir, `ledger-${stampFor()}.json`);
-  const body = JSON.stringify(payload, null, 2);
+  const { content, sha256 } = serializeBackup(payload);
   await mkdir(dir, { recursive: true });
-  await writeFile(file, body + "\n");
-  const sha256 = createHash("sha256").update(body).digest("hex");
+  await writeFile(file, content, { flag: "wx" });
   console.log(`[ok] ${file}`);
   console.log(`     ${COLLECTIONS.map((name) => `${name}: ${counts[name]}`).join(" · ")}`);
-  console.log(`     exported_at ${payload.exported_at} · sha256 ${sha256.slice(0, 16)}…`);
+  console.log(`     exported_at ${payload.exported_at} · sha256 ${sha256}`);
   console.log("[i] backups/ no se commitea: copiar el archivo a otro soporte (regla 3-2-1).");
 }
 
