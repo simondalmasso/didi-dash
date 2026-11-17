@@ -935,3 +935,19 @@ test("undated fuel exact ID replay is idempotent with multiple identical purchas
   assert.equal(body.fuel.inserted, 0);
   assert.equal(DATA.value().fuel.length, 3);
 });
+
+test("ingest rejects batches above the 500-record limit without writing KV", async () => {
+  const DATA = memoryKV();
+  const trips = Array.from({ length: 501 }, () => ({
+    date: "2026-11-03", start: "09:10", amount: 2300, platform: "didi", source: "didi_history"
+  }));
+  const response = await worker.fetch(apiRequest("/api/ingest", {
+    method: "POST",
+    headers: jsonHeaders(bearer()),
+    body: JSON.stringify({ trips })
+  }), { INGEST_TOKEN, DATA });
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.match(body.message, /500/);
+  assert.equal(DATA.calls.filter((call) => call.method === "put").length, 0);
+});

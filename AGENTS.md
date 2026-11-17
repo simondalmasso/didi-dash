@@ -46,6 +46,7 @@ Before changing the ledger, Worker, extractor or dashboard, read this file and `
 - Do not weaken tests to make the suite green.
 - Deployment, merge, repository writes and production ledger writes require explicit user authorization. The 2026-11-15 deployment and 2026-11-14 ledger import were explicitly authorized in this conversation.
 - For each new ingestion source, keep a sanitized evidence summary and update `docs/DATA-STATUS.md`.
+- After every authorized production ingest session, run `npm run backup` and keep the timestamped export outside the repository; the recovery procedure is `docs/BACKUP-RESTORE.md`.
 
 
 ## Data Fina rules

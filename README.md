@@ -133,7 +133,7 @@ Phone extraction is done with TIRÓN (`scripts/tiron/`): ADB screen capture plus
 - `GET /api/withdrawals?limit=5000`
 - `GET /api/export` — JSON backup of all ledger collections.
 
-KV holds the complete ledger in one value (maximum 25 MiB). This project is intended for one rider's low-volume personal ledger, not high-concurrency multi-user writes.
+KV holds the complete ledger in one value (maximum 25 MiB). This project is intended for one rider's low-volume personal ledger, not high-concurrency multi-user writes. Back up the ledger after every authorized ingest session with `npm run backup`; the full backup and disaster-recovery procedure is in `docs/BACKUP-RESTORE.md`.
 
 ## Local verification
 

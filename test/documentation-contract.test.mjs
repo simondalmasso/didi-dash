@@ -93,11 +93,23 @@ test("extraction procedure documents the TIRÓN pipeline, its validation gate an
   assert.match(runbook, /ambiguous/);
 });
 
-test("TIRÓN documents and tests redacted, allowlisted, non-cached OCR", () => {
+test("TIRON documents and tests redacted, allowlisted, non-cached OCR", () => {
   assert.match(agents, /solid privacy mask/i);
   assert.match(agents, /Existing OCR JSON is always regenerated/i);
   assert.match(extraccion, /copia por una imagen completamente enmascarada/i);
   assert.match(extraccion, /nunca texto OCR libre/i);
   assert.match(runbook, /test_privacy\.py/);
   assert.match(runbook, /siempre reprocesa los frames/i);
+});
+
+test("backup and restore procedure documents the single-value KV risk and both recovery tiers", () => {
+  const backupDoc = read("../docs/BACKUP-RESTORE.md");
+  assert.match(backupDoc, /api\/export/);
+  assert.match(backupDoc, /truncada/i);
+  assert.match(backupDoc, /npm run backup/);
+  assert.match(backupDoc, /ledger:v1/);
+  assert.match(backupDoc, /wrangler/i);
+  assert.match(backupDoc, /3-2-1/);
+  assert.match(agents, /BACKUP-RESTORE/);
+  assert.match(readme, /BACKUP-RESTORE/);
 });
