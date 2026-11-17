@@ -63,6 +63,9 @@ El ledger actual conserva el formato histórico fare_breakdown con las seis clav
 - La caja neta registrada es viajes + recompensas − compras de combustible. No se llama beneficio neto.
 - Compras de combustible sin fecha se incluyen en caja, pero no en una fecha o mes.
 - El importe por hora usa duración de viajes. No equivale a hora conectada.
+- El total de días trabajados cuenta fechas únicas con al menos un viaje o una sesión de trabajo válida con minutos conectados positivos; varias fuentes el mismo día cuentan una sola vez. Combustible y recompensas por sí solos no crean un día trabajado.
+- El total de horas de jornada registradas suma `connected_minutes` de las sesiones dentro del período. Sin sesiones válidas, el total es desconocido (`null`), no cero. La conexión registrada no demuestra por sí sola tiempo conduciendo.
+- Las horas con pasajero suman únicamente la duración observada de los viajes y se muestran por separado de las horas conectadas. Los intervalos entre viajes no se suman.
 - Las bandas horarias se etiquetan como referencia. No demuestran turnos, prime-time contractual ni tiempo disponible.
 - El consumo del Etios a 8.8 L/100 km se muestra como referencia de prueba aplicada a km reales con pasajero, no medición del vehículo.
 

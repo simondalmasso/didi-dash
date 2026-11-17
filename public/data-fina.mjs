@@ -94,8 +94,32 @@ function tripDurationSeconds(trip) {
     : 0;
 }
 
+export function deduplicateWorkSessions(sessions) {
+  const seen = new Set();
+  return (Array.isArray(sessions) ? sessions : []).filter((row) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return false;
+    const identityParts = [
+      row.date,
+      String(row.platform ?? "").toLowerCase(),
+      row.connected_start,
+      row.connected_end
+    ];
+    const hasNaturalIdentity = identityParts.every((part) =>
+      typeof part === "string" && part.length > 0
+    );
+    const identity = hasNaturalIdentity
+      ? identityParts.join("|")
+      : typeof row.id === "string" && row.id ? "id:" + row.id : null;
+    if (identity == null) return true;
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
+
 export function buildDataFina({
   trips = [],
+  sessions = [],
   rewards = [],
   fuel = [],
   withdrawalFees = [],
@@ -104,6 +128,15 @@ export function buildDataFina({
   dailyGoal = 80000
 } = {}) {
   const selectedTrips = (Array.isArray(trips) ? trips : []).filter((row) => inRange(row?.date, from, to));
+  const selectedSessions = deduplicateWorkSessions(
+    (Array.isArray(sessions) ? sessions : []).filter((row) => inRange(row?.date, from, to))
+  );
+  const recordedSessions = selectedSessions.filter((row) => {
+    const minutes = Number(row?.connected_minutes);
+    return Number.isFinite(minutes) && minutes > 0;
+  });
+  const connectedMinutes = recordedSessions.reduce((sum, row) => sum + Number(row.connected_minutes), 0);
+  const connectedHours = recordedSessions.length ? connectedMinutes / 60 : null;
   const selectedRewards = (Array.isArray(rewards) ? rewards : []).filter((row) => inRange(row?.date, from, to));
   const selectedWithdrawalFees = (Array.isArray(withdrawalFees) ? withdrawalFees : [])
     .filter((row) => inRange(row?.date, from, to));
@@ -210,6 +243,12 @@ export function buildDataFina({
   const days = [...daysMap.values()].sort((a, b) => a.date.localeCompare(b.date))
     .map((day) => ({ ...day, metGoal: day.gross >= goal }));
   const activeDays = days.length;
+  const workDates = new Set([
+    ...selectedTrips.map((row) => row.date),
+    ...recordedSessions.map((row) => row.date)
+  ]);
+  const workDays = workDates.size;
+  const workSessionCount = recordedSessions.length;
   const daysAtGoal = days.filter((day) => day.metGoal).length;
   const bestHour = hours.reduce((best, item) =>
     item.gross > (best?.gross ?? -1) ? item : best, null);
@@ -274,7 +313,10 @@ export function buildDataFina({
     durationCoveredGross,
     reportedSeconds,
     passengerHours,
-    connectedHours: null,
+    workDays,
+    workSessionCount,
+    connectedMinutes,
+    connectedHours,
     grossPerPassengerHour: passengerHours > 0 ? durationCoveredGross / passengerHours : null,
     timeBands,
     rankedTimeBands,
