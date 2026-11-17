@@ -31,7 +31,7 @@ test("Helio view model preserves the canonical Data Fina prime rule and separate
     tripCount: 9,
     gross: 4000,
     rewardGross: 500,
-    fuelSpend: 700,
+    fuelSpend: 500,
     cashNet: 3800,
     days: [{ date: "2026-11-14", gross: 4000, trips: 9 }],
     hours: hourlyRows(hours),
@@ -48,6 +48,10 @@ test("Helio view model preserves the canonical Data Fina prime rule and separate
   };
   const financial = {
     netCashAfterFuelPurchases: 3500,
+    netCashAssumesZeroWithdrawalFees: true,
+    withdrawalEvidence: false,
+    withdrawalFeeSpend: null,
+    fuelPurchaseSpend: 700,
     netOperating: null,
     netComplete: false,
     fuelCost: 12000,
@@ -63,7 +67,10 @@ test("Helio view model preserves the canonical Data Fina prime rule and separate
   assert.equal(model.unassignedHourGross, 100);
   assert.deepEqual(model.bands.map((band) => band.gross), [300, 600, 900, 2100, 100]);
   assert.equal(model.cashAfterRecordedCosts, 3500);
+  assert.equal(model.cashAssumesZeroWithdrawalFees, true);
+  assert.equal(model.withdrawalFeeSpend, null);
   assert.equal(model.operatingProfit, null, "incomplete operating result must stay unknown");
+  assert.equal(model.fuelPurchaseSpend, 700, "purchase cash total must come from profitability, including local entries");
   assert.equal(model.fuelCostEstimate, 12000);
   assert.equal(model.fuelMode, "passenger_km_partial");
   assert.equal(model.connectedHours, null);
