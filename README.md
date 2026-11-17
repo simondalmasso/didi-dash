@@ -121,6 +121,8 @@ A request accepts up to 500 total records:
 
 The API accepts the legacy bare trips array too. `withdrawals` store transfer principal separately from fees: an unknown fee is `fee_ars: null`, and only a numeric fee with `reconciled: true` contributes to observed cash fees. Explicit reconciled zero is distinct from missing evidence. The response includes `inserted`, `updated`, `duplicates` and `ambiguous` counts for trips. Ambiguous trip identities are left untouched to avoid corrupting or silently duplicating the ledger. Passenger and location fields are excluded before storage.
 
+Phone extraction is done with TIRÓN (`scripts/tiron/`): ADB screen capture plus local OCR of the DiDi trip history. The full procedure — validation gates, capture, candidate classification, detail enrichment, dry-run import and verification — is documented in `docs/EXTRACCION-A22.md`.
+
 ## Public read APIs
 
 - `GET|HEAD /api/health`
@@ -131,7 +133,7 @@ The API accepts the legacy bare trips array too. `withdrawals` store transfer pr
 - `GET /api/withdrawals?limit=5000`
 - `GET /api/export` — JSON backup of all ledger collections.
 
-KV holds the complete ledger in one value (maximum 25 MiB). This project is intended for one rider's low-volume personal ledger, not high-concurrency multi-user writes.
+KV holds the complete ledger in one value (maximum 25 MiB). This project is intended for one rider's low-volume personal ledger, not high-concurrency multi-user writes. Back up the ledger after every authorized ingest session with `npm run backup`; the full backup and disaster-recovery procedure is in `docs/BACKUP-RESTORE.md`.
 
 ## Local verification
 

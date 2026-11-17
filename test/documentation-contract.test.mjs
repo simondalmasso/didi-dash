@@ -8,6 +8,8 @@ const status = read("../docs/DATA-STATUS.md");
 const readme = read("../README.md");
 const schema = read("../docs/DATA-FINA-SCHEMA.md");
 const oldPlan = read("../docs/plans/2026-11-11-didi-dash-import-audit.md");
+const extraccion = read("../docs/EXTRACCION-A22.md");
+const runbook = read("../scripts/tiron/README_RUNBOOK.md");
 
 test("agent contract records privacy, safe preview/commit, fuel and verification boundaries", () => {
   assert.match(agents, /docs\/DATA-STATUS\.md/);
@@ -73,4 +75,41 @@ test("docs state same-trip duration coverage, unranked bands, and unknown withdr
   assert.match(status, /2026-11-15 23:42:53 UTC/);
   assert.match(status, /182 \/ 209/);
   assert.match(status, /Withdrawals \| 0 records observed/);
+});
+
+test("extraction procedure documents the TIRÓN pipeline, its validation gate and PII boundaries", () => {
+  assert.match(extraccion, /scripts\/tiron/);
+  assert.match(extraccion, /muestra real/i);
+  assert.match(extraccion, /no volver a sondear/i);
+  assert.match(extraccion, /allowBackup=false/);
+  assert.match(extraccion, /didi_history_detail/);
+  assert.match(extraccion, /dry=1/);
+  assert.match(extraccion, /DATA-FINA-SCHEMA/);
+  assert.match(extraccion, /DATA-STATUS/);
+  assert.match(extraccion, /direcciones/i);
+  assert.match(agents, /docs\/EXTRACCION-A22\.md/);
+  assert.match(readme, /EXTRACCION-A22/);
+  assert.match(runbook, /candidatos\.csv/);
+  assert.match(runbook, /ambiguous/);
+});
+
+test("TIRON documents and tests redacted, allowlisted, non-cached OCR", () => {
+  assert.match(agents, /solid privacy mask/i);
+  assert.match(agents, /Existing OCR JSON is always regenerated/i);
+  assert.match(extraccion, /copia por una imagen completamente enmascarada/i);
+  assert.match(extraccion, /nunca texto OCR libre/i);
+  assert.match(runbook, /test_privacy\.py/);
+  assert.match(runbook, /siempre reprocesa los frames/i);
+});
+
+test("backup and restore procedure documents the single-value KV risk and both recovery tiers", () => {
+  const backupDoc = read("../docs/BACKUP-RESTORE.md");
+  assert.match(backupDoc, /api\/export/);
+  assert.match(backupDoc, /truncada/i);
+  assert.match(backupDoc, /npm run backup/);
+  assert.match(backupDoc, /ledger:v1/);
+  assert.match(backupDoc, /wrangler/i);
+  assert.match(backupDoc, /3-2-1/);
+  assert.match(agents, /BACKUP-RESTORE/);
+  assert.match(readme, /BACKUP-RESTORE/);
 });

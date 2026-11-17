@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "node --test",
+    "backup": "node scripts/backup-ledger.mjs",
     "deploy": "node scripts/deploy.mjs"
   },
   "devDependencies": {
