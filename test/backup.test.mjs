@@ -69,3 +69,15 @@ test("serializeBackup checksum matches the exact persisted UTF-8 bytes", async (
     artifact.sha256
   );
 });
+test("validateExport rejects missing or non-boolean truncation metadata", () => {
+  const missing = goodPayload();
+  delete missing.truncated.fuel;
+  const missingResult = validateExport(missing);
+  assert.equal(missingResult.ok, false);
+  assert.match(missingResult.errors.join("; "), /truncation|truncamiento/i);
+
+  const invalid = goodPayload({ truncated: { trips: false, rewards: false, fuel: "false", sessions: false, withdrawals: false } });
+  const invalidResult = validateExport(invalid);
+  assert.equal(invalidResult.ok, false);
+  assert.match(invalidResult.errors.join("; "), /truncation|truncamiento/i);
+});

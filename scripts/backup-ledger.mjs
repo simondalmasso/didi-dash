@@ -32,10 +32,14 @@ export function validateExport(payload) {
       counts[name] = payload[name].length;
     }
   }
-  const truncated = payload.truncated ?? {};
+  const truncated = payload.truncated && typeof payload.truncated === "object" && !Array.isArray(payload.truncated)
+    ? payload.truncated
+    : {};
   for (const name of COLLECTIONS) {
     if (truncated[name] === true) {
       errors.push(`colección "${name}" truncada: el backup sería incompleto`);
+    } else if (truncated[name] !== false) {
+      errors.push(`estado de truncamiento de "${name}" ausente o inválido`);
     }
   }
   if (typeof payload.exported_at !== "string") {
