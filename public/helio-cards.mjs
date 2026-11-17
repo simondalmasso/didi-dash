@@ -279,6 +279,10 @@ export function renderHelioCards(container, result, financial) {
           back.setAttribute("aria-hidden", String(!flipped));
           back.inert = !flipped;
         }
+        const visibleFlip = card.querySelector(
+          flipped ? ".helio-back [data-flip]" : ".helio-front [data-flip]"
+        );
+        visibleFlip?.focus();
         for (const control of card.querySelectorAll("[data-flip]")) {
           control.setAttribute("aria-expanded", String(flipped));
         }
