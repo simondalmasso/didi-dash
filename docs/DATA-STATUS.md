@@ -141,3 +141,43 @@ Fuel records: three existing undated ARS 30,000 purchases remain undated (ARS 90
 There are no withdrawal records in this export. This means no withdrawal activity is recorded in the ledger; it does not prove that no withdrawals occurred. Fee total remains unknown until observed and reconciled evidence is stored. Zero synced sessions likewise means connected hours remain unknown, not zero hours worked.
 
 The new operational time-band signal is computed on each dashboard load from the live trip records. Its rate numerator and denominator are both restricted to trips with positive observed duration; coverage is displayed alongside the result. Ranking requires at least 5 trips, 2 active dates and 90% duration coverage. A band below the coverage threshold remains visible but is not ranked.
+
+
+## A22 — captura y conciliación nueva (2026-11-17, pendiente de ingestión)
+
+**Fuente:** Samsung Galaxy A22 SM-A225M, DiDi Conductor 7.10.70, filtro Historial/TODO.
+**Método:** ADB + TIRÓN/RapidOCR local. Captura completa: 54 frames redactados; ningún frame original ni texto OCR libre fue persistido.
+**Export de producción usado para el delta:** `GET /api/export`, 2026-11-17T06:51:04.846Z. Este corte devolvió 209 viajes (ARS 800.900), 7 recompensas, 7 registros de combustible, 0 sesiones y 0 retiros; las cinco colecciones informaron `truncated=false`.
+
+### Resultado de adquisición y conciliación
+
+TIRÓN reconoció 115 tarjetas. El cruce inicial clasificó 89 como duplicadas y 26 como nuevas, sin colisiones ambiguas ni discrepancias de OCR reportadas por el clasificador. La revisión adicional de evidencia de detalle dejó **25 viajes confirmados** y aisló **1 movimiento no clasificable**:
+
+| Fecha | Viajes confirmados | Importe |
+|---|---:|---:|
+| 2026-11-11 | 1 | ARS 900 |
+| 2026-11-13 | 1 | ARS 1.100 |
+| 2026-11-16 | 21 | ARS 62.266 |
+| 2026-11-17 | 2 | ARS 8.200 |
+| **Total candidato confirmado** | **25** | **ARS 72.466** |
+
+El archivo A22 preparado anteriormente contenía 22 viajes y ARS 68.466 para el 16–17/11. La captura nueva confirma esos 22 registros y añade el viaje del 16/11 a las 19:34 por ARS 2.000, que no estaba en el archivo anterior.
+
+Se revisaron en la pantalla de detalle cinco viajes sin kilometraje previo: 11/11 16:05 (ARS 900, 2,9 km), 13/11 21:12 (ARS 1.100, 0,94 km), 16/11 18:24 (ARS 966, 6,47 km), 16/11 20:08 (ARS 1.100, 4,86 km) y 16/11 20:13 (ARS 900, 4,01 km). Estos son los únicos kilómetros que se incorporan como `km_source=actual`. Los otros 20 viajes conservan kilometraje desconocido (`km=0`, `km_source=unknown`). No se obtuvieron duraciones ni modalidades confirmadas en detalle para el conjunto; por ello no se asignan minutos ni `service_type`.
+
+El candidato del 12/11 a las 20:10 por ARS 35.000 permanece **sin clasificar**: el detalle volvió a mostrar el importe, pero no aportó fecha/hora legible ni kilometraje/duración que permitan confirmar que sea un viaje. No se incorpora como viaje ni recompensa.
+
+Además, quedaron 24 fragmentos OCR incompletos (13 sin hora y 11 sin importe). Se excluyen del envelope; no se reconstruyen por inferencia. La captura observó actividad en 11, 12, 13, 14, 16 y 17/11, pero no prueba cobertura completa de los días ausentes ni del historial anterior al 11/11.
+
+### Envelope preparado — todavía no enviado
+
+Archivo temporal, fuera del repositorio: `C:\Temp\didi-dash-evidence\a22-2026-11-17-import-25.json`.
+SHA-256: `fb017898eb313b5b66641997026cf6d4f1e9aa132af3497fe28c9313059ec64e`.
+
+Validación local con `parseImportJson`, `buildImportPayload` y `normaliseTrip`:
+- 25 viajes normalizados; ARS 72.466; 25 IDs deterministas únicos.
+- 5 kilómetros reales y 20 kilometrajes desconocidos; 25 duraciones desconocidas.
+- 0 `service_type`/modalidades; 0 recompensas, 0 combustible, 0 sesiones y 0 retiros.
+- El candidato ARS 35.000 está excluido.
+
+**Estado operativo:** este envelope aún no se envió al Worker. No se ejecutó `POST /api/ingest` ni se modificó KV. El próximo paso es el Preview autenticado desde el diálogo del dashboard, con `INGEST_TOKEN` introducido por el usuario en el campo protegido. Solo podrá confirmarse si el Preview devuelve 25 viajes nuevos y cero duplicados/ambiguos; cualquier otra clasificación requiere detener y reconciliar. Después de una ingestión autorizada se exige export fresco, comparación del delta, `npm run backup` y copia secundaria fuera de este PC.
