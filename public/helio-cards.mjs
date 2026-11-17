@@ -134,8 +134,8 @@ function markup(model) {
       : model.fuelMode === "vehicle_odometer"
         ? "Odómetro completo"
         : "Sin distancia válida";
-  const bandLegend = model.bands.map((band) => {
-    const share = model.tripGross ? band.gross / model.tripGross * 100 : 0;
+  const bandLegend = model.bands.filter((band) => band.key !== "unknown").map((band) => {
+    const share = model.hourGross ? band.gross / model.hourGross * 100 : 0;
     return '<div class="helio-legend-row"><i style="background:' + band.color +
       '"></i><span>' + safe(band.label) + '</span><strong>' +
       safe(money.format(band.gross)) + ' · ' + number.format(share) + '%</strong></div>';
@@ -187,8 +187,8 @@ function markup(model) {
     + '<div class="helio-ring-wrap"><canvas class="helio-canvas helio-ring" data-chart="ring" aria-hidden="true"></canvas>'
     + '<div class="helio-ring-center"><strong data-ring-value>—</strong><span data-ring-label>Sin datos</span></div></div>'
     + '<div class="helio-legend">' + bandLegend + '</div>'
-    + '<p class="helio-note">La distribución usa solo viajes con hora válida. ' +
-      (model.unassignedHourGross > 0 ? safe(money.format(model.unassignedHourGross)) + " queda sin hora y se muestra aparte." : "No hay bruto sin hora válida.") + '</p>'
+    + '<p class="helio-note">Las franjas se comparan sobre el gross con hora válida. ' +
+      (model.unassignedHourGross > 0 ? safe(money.format(model.unassignedHourGross)) + " sin hora (" + number.format(model.unassignedHourGross / Math.max(model.tripGross, 1) * 100) + "% del bruto total) queda fuera del reparto." : "Todo el bruto tiene hora válida.") + '</p>'
     + '</section>'
     + '<section class="helio-face helio-back" aria-hidden="true" inert>'
     + '<div class="helio-head"><div><h3>Cobertura del período</h3><p>Datos observados, sin turnos inferidos</p></div>'
