@@ -203,6 +203,9 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
 
 
 .trip-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,.55fr);gap:9px;margin:12px 0}.trip-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.trip-pagination .row{gap:8px}.trip-pagination button{padding:8px 13px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:520px){.trip-tools{grid-template-columns:1fr}.trip-pagination{align-items:flex-start;flex-direction:column}}
+
+.history-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+@media(max-width:760px){.history-actions{width:100%;justify-content:flex-start}.history-actions .period{width:auto;flex:1;min-width:0}.history-actions .period button{flex:1}}
 </style>
 </head>
 <body>
@@ -210,7 +213,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
     <main id="app">
       <header>
         <div class="brand"><div class="mark">E</div><div><h1>Etios</h1><p class="subtitle">DiDi · Historial de viajes</p></div></div>
-        <div class="row"><span id="connection" class="pill">Conectando…</span></div>
+        <div class="row"><button id="open-import" class="secondary" type="button" aria-haspopup="dialog">Importar JSON</button><span id="connection" class="pill">Conectando…</span></div>
       </header>
       <nav class="app-nav" aria-label="Navegación principal">
         <a href="/" data-nav="home">Panel</a>
@@ -231,12 +234,13 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
       </div>
       <div class="toolbar" data-area="history">
         <div><strong>Historial de viajes</strong><div class="subhead" style="margin:4px 0 0">Viajes y recompensas registrados.</div></div>
-        <div class="period" aria-label="Período del historial">
+        <div class="history-actions"><div class="period" aria-label="Período del historial">
           <button type="button" data-range="1">Hoy</button>
           <button type="button" data-range="7">7 días</button>
           <button type="button" data-range="30" class="active">30 días</button>
           <button type="button" data-range="0">Todo</button>
         </div>
+      </div>
       </div>
       <section class="hero-panel" data-area="dashboard">
         <div><div class="eyebrow">Neto provisional tras nafta</div><div id="hero-margin" class="hero-value">—</div><div id="hero-caption" class="hero-caption">Viajes cobrados menos compras de nafta. Recompensas y otros gastos quedan aparte.</div></div>
@@ -454,11 +458,6 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <div id="ledger-session-status" class="note">Sin turnos sincronizados</div>
         <div id="ledger-a22-state" class="note">No comparado contra A22</div>
         <div id="ledger-audit-days" class="table-wrap"><div class="empty">Calculando cobertura por fecha…</div></div>
-      </section>
-      <section class="card" data-area="history">
-        <div class="section-head"><h2>Importar backup</h2><span class="note">Archivo estructurado · vista previa antes de escribir</span></div>
-        <p class="note">El importador conserva los campos permitidos y descarta nombres, teléfonos, direcciones y otros datos ajenos al ledger. Los turnos locales de este navegador quedan excluidos salvo selección explícita.</p>
-        <button id="open-import" class="secondary" type="button">Importar archivo JSON</button>
       </section>
       <dialog id="import-dialog" aria-labelledby="import-dialog-title">
         <div class="section-head"><h2 id="import-dialog-title">Importación controlada</h2><button id="close-import" class="ghost" type="button">Cerrar</button></div>

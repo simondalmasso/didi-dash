@@ -13,3 +13,12 @@ test("withdrawal dashboard distinguishes missing evidence from a zero fee", () =
   assert.match(dashboard, /sin comisión totalmente reconciliada/);
 });
 test("operational intelligence publishes same-trip duration coverage and leaves connected time unknown", () => {  for (const id of ["data-fina-operations", "data-fina-operational-bands", "data-fina-operational-signal", "data-fina-operational-caption"]) assert.match(dashboard, new RegExp('id="' + id + '"'));  assert.match(dashboard, /result\.timeBands/);  assert.match(dashboard, /result\.rankedTimeBands/);  assert.match(dashboard, /durationTrips/);  assert.match(dashboard, /result\.timeBandMinCoveragePercent/);  assert.match(dashboard, /no son turnos conectados/);});
+test("import action stays globally visible in the shared header on every dashboard view", () => {
+  const headerStart = dashboard.indexOf("<header>");
+  const headerEnd = dashboard.indexOf("</header>", headerStart);
+  const importButton = dashboard.indexOf('id="open-import"');
+  assert.ok(headerStart >= 0 && headerEnd > headerStart, "shared header exists");
+  assert.ok(importButton > headerStart && importButton < headerEnd, "import action is inside the always-visible shared header");
+  assert.equal((dashboard.match(/id="open-import"/g) || []).length, 1, "import action has one unique id");
+  assert.match(dashboard.slice(headerStart, headerEnd), /Importar JSON/);
+});
