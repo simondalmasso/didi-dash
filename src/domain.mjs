@@ -71,7 +71,7 @@ const BREAKDOWN_COMPONENTS = {
   distancia: "Tarifa por distancia",
   tiempo: "Tarifa por tiempo",
   espera: "Tarifa por espera",
-  base_dinamica: "Tarifa base din?mica",
+  base_dinamica: "Tarifa base dinámica",
   diferencial: "Precio diferencial",
   reembolso_tarifario: "Reembolso tarifario"
 };

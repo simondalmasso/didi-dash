@@ -342,3 +342,17 @@ test("normaliseFuelLog preserves a supplied purchase time and rejects invalid cl
     station: "YPF Super"
   }), /time/i);
 });
+
+
+test("canonical dynamic-base label preserves the acute-accent code point", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-14", start: "18:02", amount: 100, km: null, min: 0,
+    platform: "didi", breakdown: {
+      source: "actual", components: [{ code: "base_dinamica", amount: 100 }]
+    }
+  });
+  const label = trip.breakdown.components[0].label;
+  const codepoints = Array.from(label, (char) => char.codePointAt(0).toString(16).toUpperCase().padStart(4, "0"));
+  assert.equal(label, "Tarifa base dinámica", "codepoints=" + codepoints.join(" "));
+  assert.ok(codepoints.includes("00E1"), "expected U+00E1 in codepoints=" + codepoints.join(" "));
+});
