@@ -112,8 +112,11 @@ export async function normaliseTrip(input) {
   const date = requireDate(input.date);
   const start = requireTime(input.start, "start");
   const amount = finiteNumber(input.amount, "amount", { min: 1, max: 100000000, integer: true });
-  const km = finiteNumber(input.km, "km", { min: 0, max: 1000 });
-  const km_source = km > 0 ? String(input.km_source ?? "actual").trim().toLowerCase() : "unknown";
+  const observedKm = input.km == null || input.km === ""
+    ? null
+    : finiteNumber(input.km, "km", { min: 0, max: 1000 });
+  const km = observedKm != null && observedKm > 0 ? observedKm : null;
+  const km_source = km != null ? String(input.km_source ?? "actual").trim().toLowerCase() : "unknown";
   if (!["actual", "estimated", "unknown"].includes(km_source)) throw new Error("km_source must be actual, estimated or unknown");
   const min = finiteNumber(input.min, "min", { min: 0, max: 1440 });
   const duration_seconds = input.duration_seconds == null || input.duration_seconds === ""
@@ -124,7 +127,7 @@ export async function normaliseTrip(input) {
   if (!SOURCE_RE.test(source)) throw new Error("source must be a short identifier");
   const providedId = safeId(input.id);
   const id = providedId ?? await stableId([
-    date, start, String(amount), km.toFixed(3), min.toFixed(2), platform
+    date, start, String(amount), km == null ? "" : km.toFixed(3), min.toFixed(2), platform
   ]);
 
   const service_type = safeLabel(input.service_type, "service_type", 32);

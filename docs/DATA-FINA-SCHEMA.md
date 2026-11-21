@@ -25,7 +25,7 @@ Un viaje puede incluir:
 }
 ~~~
 
-Los importes son enteros ARS no negativos. duration_seconds es un entero exacto y no reemplaza el campo min histórico. modality se mantiene separado de platform.
+Los importes son enteros ARS no negativos. duration_seconds es un entero exacto y no reemplaza el campo min histórico. modality se mantiene separado de platform. Los kilómetros ausentes o cero se normalizan como `km: null` y `km_source: "unknown"`; null nunca se convierte en cero observado.
 
 Las compras de combustible pueden incluir `time` opcional en formato `HH:mm` cuando la hora está observada en el ticket o fue informada explícitamente por el usuario. La hora se conserva y se muestra junto a la fecha; no se infiere cuando falta.
 

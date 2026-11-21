@@ -129,6 +129,7 @@ test("normaliseTrip keeps estimated kilometres explicitly separate from actual k
 
 test("normaliseTrip marks zero kilometres as unknown", async () => {
   const trip = await normaliseTrip({ date: "2026-11-03", start: "18:20", amount: 1800, km: 0, min: 0, platform: "didi" });
+  assert.equal(trip.km, null);
   assert.equal(trip.km_source, "unknown");
 });
 

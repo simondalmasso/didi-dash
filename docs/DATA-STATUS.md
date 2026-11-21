@@ -21,7 +21,7 @@ Los 107 registros tienen firmas únicas. No coinciden en fecha/hora con los 209 
 
 Detalle selectivo observado: viaje del 20/11 a las 17:29, ARS 38.300 finales, DiDi Express, 54,5 km. La pantalla indica ajuste desde ARS 34.600. Una línea adicional de ARS 2.400 no quedó etiquetada con certeza y no se asigna a ningún concepto de Data Fina; el desglose permanece sin verificar (`detail_verified=false`).
 
-**Envelope de Preview:** `C:\Temp\didi-dash-evidence\a22-2026-11-21-import-107-ypf-confirmed-2.json`. SHA-256 `9c1223e3002f978bd3b21ac25afb272eb64a9399ae598737fc511cb123832b58`. Incluye los 107 viajes y dos compras YPF inequívocas; no se guardan capturas ni OCR libre en el repositorio.
+**Envelope de Preview:** `C:\Temp\didi-dash-evidence\a22-2026-11-21-import-107-ypf-confirmed-2.json`. SHA-256 `c5ea6f5bfe6da5845a1c11cd28dab1c16e4fa5ca5e16b87211c739e964e69f50` (UTF-8, 31.543 bytes). Incluye 107 viajes con 107 IDs deterministas únicos (ARS 393.566), 101 km explícitamente `null` + `km_source=unknown`, 6 km reales, 0 estimados; dos compras YPF (ARS 70.000); 0 recompensas, 0 sesiones y 0 retiros. No se guardan capturas ni OCR libre en el repositorio.
 
 ## Compras YPF informadas por el usuario — pendientes de Preview
 
@@ -32,6 +32,8 @@ Detalle selectivo observado: viaje del 20/11 a las 17:29, ARS 38.300 finales, Di
 | 2026-11-17 | 22:34 | **INDET** | No importada: el importe fue escrito `$30.0000`; requiere confirmar ARS 30.000 o ARS 300.000 |
 
 No se asignan litros, odómetro ni tanque lleno porque no se aportaron esos datos. Los tres registros antiguos sin fecha (ARS 90.000) permanecen intactos y sin reasignar.
+
+**Recompensas:** la pasada A22 no produjo ninguna fila tipada como recompensa; los 105 registros de la captura del 21/11 quedaron `desconocido` y suman ARS 391.566. No hay evidencia admisible para pasar de 7 a 8. Se mantiene delta 0 hasta evidencia específica.
 
 **Estado operativo al redactar:** todavía no se ejecutó `POST /api/ingest`; el KV de producción permanece sin cambios. Se requiere Preview autenticado (`?dry=1`) desde el diálogo del dashboard y revisión de conteos/ambigüedades antes del commit. Después del commit: export fresco, verificación de delta y `npm run backup` fuera del repositorio.
 
