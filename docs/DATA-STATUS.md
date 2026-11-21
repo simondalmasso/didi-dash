@@ -1,3 +1,41 @@
+# Estado de datos — actualización A22 2026-11-21
+
+**Producción verificada:** `GET /api/export`, `2026-11-21T03:46:38.430Z`; 209 viajes (ARS 800.900), 7 recompensas, 7 combustibles, 0 sesiones y 0 retiros. Las cinco colecciones devuelven `truncated=false`. `GET /api/health` confirma `storage=kv`.
+
+## Captura A22 2026-11-21 — pendiente de ingestión
+
+**Fuente:** Samsung Galaxy A22 SM-A225M, DiDi Conductor; ADB + TIRÓN/RapidOCR local. 54 frames procesados; solo tokens OCR de campos permitidos persistidos; no se conservaron screenshots originales ni OCR libre. El rango visible fue 15/11–21/11 y se capturaron viajes de 16–20/11. Se añadieron al envelope dos viajes del 11/11 y 13/11 que ya estaban en el envelope local anterior, aún sin importar.
+
+| Fecha | Viajes | Bruto |
+|---|---:|---:|
+| 2026-11-11 | 1 | ARS 900 |
+| 2026-11-13 | 1 | ARS 1.100 |
+| 2026-11-16 | 21 | ARS 62.266 |
+| 2026-11-17 | 19 | ARS 71.200 |
+| 2026-11-18 | 13 | ARS 41.300 |
+| 2026-11-19 | 32 | ARS 101.200 |
+| 2026-11-20 | 20 | ARS 115.600 |
+| **Total** | **107** | **ARS 393.566** |
+
+Los 107 registros tienen firmas únicas. No coinciden en fecha/hora con los 209 viajes del snapshot de producción. Hay 6 viajes con kilometraje real (73,68 km combinados) y 101 sin kilometraje real. No se capturaron duraciones; por tanto `min=0` en estos registros representa el placeholder histórico de adquisición, no una duración observada. Solo 1 modalidad se pudo confirmar: DiDi Express.
+
+Detalle selectivo observado: viaje del 20/11 a las 17:29, ARS 38.300 finales, DiDi Express, 54,5 km. La pantalla indica ajuste desde ARS 34.600. Una línea adicional de ARS 2.400 no quedó etiquetada con certeza y no se asigna a ningún concepto de Data Fina; el desglose permanece sin verificar (`detail_verified=false`).
+
+**Envelope de Preview:** `C:\Temp\didi-dash-evidence\a22-2026-11-21-import-107-ypf-confirmed-2.json`. SHA-256 `9c1223e3002f978bd3b21ac25afb272eb64a9399ae598737fc511cb123832b58`. Incluye los 107 viajes y dos compras YPF inequívocas; no se guardan capturas ni OCR libre en el repositorio.
+
+## Compras YPF informadas por el usuario — pendientes de Preview
+
+| Fecha | Hora | Importe | Estado |
+|---|---|---:|---|
+| 2026-11-20 | 17:48 | ARS 40.000 | Preparada para importar; YPF Súper |
+| 2026-11-19 | 20:49 | ARS 30.000 | Preparada para importar; YPF Súper |
+| 2026-11-17 | 22:34 | **INDET** | No importada: el importe fue escrito `$30.0000`; requiere confirmar ARS 30.000 o ARS 300.000 |
+
+No se asignan litros, odómetro ni tanque lleno porque no se aportaron esos datos. Los tres registros antiguos sin fecha (ARS 90.000) permanecen intactos y sin reasignar.
+
+**Estado operativo al redactar:** todavía no se ejecutó `POST /api/ingest`; el KV de producción permanece sin cambios. Se requiere Preview autenticado (`?dry=1`) desde el diálogo del dashboard y revisión de conteos/ambigüedades antes del commit. Después del commit: export fresco, verificación de delta y `npm run backup` fuera del repositorio.
+
+---
 # Data status — 2026-11-14 DiDi journey enrichment
 
 **Production snapshot verified:** 2026-11-15 04:11:08 UTC

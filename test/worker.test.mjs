@@ -951,3 +951,24 @@ test("ingest rejects batches above the 500-record limit without writing KV", asy
   assert.match(body.message, /500/);
   assert.equal(DATA.calls.filter((call) => call.method === "put").length, 0);
 });
+
+
+test("fuel ingestion distinguishes same-day purchases by their observed times", async () => {
+  const DATA = memoryKV({ trips: [], rewards: [], fuel: [], sessions: [], withdrawals: [] });
+  const payload = {
+    trips: [], rewards: [],
+    fuel: [
+      { id: "fuel-20261120-1748", date: "2026-11-20", time: "17:48", total_ars: 40000, station: "YPF Super" },
+      { id: "fuel-20261120-1815", date: "2026-11-20", time: "18:15", total_ars: 40000, station: "YPF Super" }
+    ],
+    sessions: [], withdrawals: []
+  };
+  const response = await worker.fetch(apiRequest("/api/ingest?dry=1", {
+    method: "POST", headers: jsonHeaders(bearer(INGEST_TOKEN)), body: JSON.stringify(payload)
+  }), { DATA, INGEST_TOKEN });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.dry_run, true);
+  assert.deepEqual(body.fuel, { received: 2, inserted: 2, duplicates: 0, ambiguous: 0 });
+  assert.equal(DATA.calls.some((call) => call.method === "put"), false);
+});

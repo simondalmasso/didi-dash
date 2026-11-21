@@ -328,3 +328,16 @@ test("normaliseWithdrawal preserves an unknown fee as null until reconciled evid
     date: "2026-11-15", amount_ars: 50000, reconciled: true
   }), /fee_ars/i);
 });
+
+
+test("normaliseFuelLog preserves a supplied purchase time and rejects invalid clock values", async () => {
+  const entry = await normaliseFuelLog({
+    date: "2026-11-20", time: "17:48", total_ars: 40000,
+    station: "YPF Super"
+  });
+  assert.equal(entry.time, "17:48");
+  await assert.rejects(() => normaliseFuelLog({
+    date: "2026-11-20", time: "24:00", total_ars: 40000,
+    station: "YPF Super"
+  }), /time/i);
+});
