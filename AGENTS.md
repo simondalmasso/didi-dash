@@ -8,7 +8,7 @@ Before changing the ledger, Worker, extractor or dashboard, read this file and `
 - Prefer a fresh `GET /api/export` with cache-busting over old exports or remembered counts.
 - Do not report a zero count from a missing/unsynced source as proof that no activity occurred.
 - Do not call a day complete if the export is truncated, trips are missing actual kilometres, or durations are missing.
-- Keep discrepancies visible. Never infer missing amounts, dates, kilometres, fuel litres, station names or odometer readings.
+- Keep discrepancies visible. Never infer missing amounts, dates, kilometres, fuel litres, station names or odometer readings. Unknown trip distance is canonical `km: null` with `km_source: "unknown"`; never persist unknown as numeric zero.
 
 ## Privacy and ledger contract
 
