@@ -194,6 +194,7 @@ export async function normaliseFuelLog(input) {
   const providedId = safeId(input.id);
   const date = input.date == null || input.date === "" ? null : requireDate(input.date);
   if (date == null && !providedId) throw new Error("undated fuel log requires an explicit stable id");
+  const time = input.time == null || input.time === "" ? null : requireTime(input.time, "time");
   const odometer_km = input.odometer_km == null || input.odometer_km === ""
     ? null
     : finiteNumber(input.odometer_km, "odometer_km", { min: 0, max: 10000000 });
@@ -203,14 +204,16 @@ export async function normaliseFuelLog(input) {
   const total_ars = finiteNumber(input.total_ars, "total_ars", { min: 1, max: 100000000 });
   const station = safeLabel(input.station, "station", 60);
   const full_tank = input.full_tank === true || input.full_tank === 1 ? 1 : 0;
-  const id = providedId ?? await stableId([
+  const identityParts = [
     date ?? "",
     odometer_km == null ? "" : String(odometer_km),
     liters == null ? "" : liters.toFixed(3),
     String(total_ars), station ?? "", String(full_tank)
-  ]);
+  ];
+  if (time) identityParts.push(time);
+  const id = providedId ?? await stableId(identityParts);
   return {
-    id, date, odometer_km, liters, total_ars,
+    id, date, ...(time ? { time } : {}), odometer_km, liters, total_ars,
     price_per_liter: liters == null ? null : total_ars / liters,
     station, full_tank
   };

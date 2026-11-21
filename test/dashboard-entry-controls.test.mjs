@@ -22,3 +22,11 @@ test("import action stays globally visible in the shared header on every dashboa
   assert.equal((dashboard.match(/id="open-import"/g) || []).length, 1, "import action has one unique id");
   assert.match(dashboard.slice(headerStart, headerEnd), /Importar JSON/);
 });
+
+
+test("live fuel ledger shows observed purchase date and time per receipt", () => {
+  assert.match(dashboard, /function renderFuel\(fuel\)/);
+  assert.match(dashboard, /row\.time/);
+  assert.match(dashboard, /row\.date/);
+  assert.match(dashboard, /row\.total_ars/);
+});
