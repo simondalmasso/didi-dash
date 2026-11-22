@@ -299,3 +299,85 @@ El export vigente contiene 188 viajes con `km_source=actual` y 154 sin kilometra
 **Estado operativo:** la extracción y la ingesta del 2026-11-22 están completas. La automatización diaria `Didi Daily Ingest` está creada y habilitada para las 08:00 locales con recurrencia diaria, pero el entorno figura como heredado/no asignado a la PC y aún no hay una primera corrida autónoma verificada. Por lo tanto, no afirmar que GPT ya ejecuta el flujo solo. El watermark de adquisición pasa a **2026-11-22 00:14**; la próxima inspección debe empezar desde ese viaje e incluir llegadas tardías posteriores.
 
 **Sin cambios:** lógica del Worker, dependencias, deploy, CLEAN1, PR #31/Helio y backlog Horas permanecen fuera de esta corrida.
+
+
+## sxc_DAILY4 — cierre auditado y formalización operativa (2026-11-22)
+
+Este addendum mantiene el historial anterior. El estado productivo vigente sigue siendo el corte de 342/7/11/0/0 verificado en el apartado anterior.
+
+### Watermark persistido
+
+El watermark de adquisición está escrito fuera del repositorio en `C:\Temp\didi-dash-evidence\state\watermark.json`. Apunta al último viaje de la corrida confirmada: **2026-11-22 00:14**, importe ARS 3.000, ID `17e150e0b9c6584b0ade6d5a913b29e79f7f0a1b1c007d047e3da758e5e6878f`. La corrida futura debe incluir una ventana de lookback para llegadas tardías y solo avanzar este watermark después de un Confirm más export reconciliado.
+
+### Digesto número 2 — control sin cambios
+
+**Fecha local:** 2026-11-22 01:21. Este es un control read-only posterior a la corrida 1; no se ejecutó una segunda captura ADB ni una segunda ingesta.
+
+| Métrica | Antes (corrida 1) | Después (digest 2) |
+|---|---:|---:|
+| Viajes | 342 | 342 |
+| Recompensas | 7 | 7 |
+| Combustibles | 11 | 11 |
+| Sesiones | 0 | 0 |
+| Retiros | 0 | 0 |
+| Bruto viajes | ARS 1.308.566 | ARS 1.308.566 |
+| Recompensas ARS | ARS 109.300 | ARS 109.300 |
+| Combustible ARS | ARS 340.000 | ARS 340.000 |
+
+Las cinco colecciones se compararon registro por registro con el backup POST de la corrida 1: **sin cambios**. Export HTTP 200, todas las colecciones `truncated=false`; Health HTTP 200, KV activo. Nuevos viajes, recompensas, combustible, sesiones y retiros desde corrida 1: **0**. No se generó backup nuevo porque no hubo mutación; se conserva el backup POST SHA-256 `f184d722f7b8cb2a765b28a11e95941ecff910ab8001fecdcd8fe2f292abb0a9`.
+
+Archivo del digest: `C:\Temp\didi-dash-evidence\a22-incremental-20261122\daily-digest-02.json`. SHA-256 `d60bc9168d862ed6cd1457f0958ed6905b2c73c48654d84ff08e516de0be2e16`.
+
+### Triaje de los 10 fragmentos excluidos
+
+Los diez fragmentos están clasificados por TIRÓN como `sin_hora`. La inspección de las cajas allowlisted de cada frame muestra que el primer renglón visible contiene modalidad/importe, pero no la cabecera de fecha/hora asociada: es la continuación superior de una tarjeta cuyo timestamp quedó fuera del viewport al costurar el scroll. No hay dato suficiente para reconstruir su hora. Ninguno entra en el payload.
+
+| Frame | Y | Causa observada | Resolución |
+|---|---:|---|---|
+| frame_0003.png | 322 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0015.png | 352 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0016.png | 296 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0033.png | 358 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0034.png | 301 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0046.png | 356 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0047.png | 299 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0056.png | 352 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0057.png | 301 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+| frame_0063.png | 348 | Renglón modalidad/importe visible; timestamp no capturado | Excluido |
+
+Fuente de clasificación: `out/filas_sin_parsear.csv` y sondeo `tiron.py rows` sobre los diez frames. Los PNG son saneados; no se conserva OCR libre.
+
+### Split exacto de kilometraje del export
+
+Export fresco posterior a la corrida 1:
+
+| Estado de km | Viajes |
+|---|---:|
+| Reales (`km_source=actual`, km positivo) | 188 |
+| Nulos (`km=null`, `km_source=unknown`) | 127 |
+| — prioritarios del envelope 16–20/11 | 101 |
+| — recién incorporados 21–22/11 | 26 |
+| Ceros antiguos (`km=0`, `km_source=unknown`) | 27 |
+
+Los 101 del 16–20/11 siguen siendo el objetivo prioritario del backfill. Los 26 nuevos quedan en una cola posterior. Los 27 ceros antiguos del 03/11 son una población separada y no se alteran. `null` no equivale a cero.
+
+### Credencial y custodia
+
+El 2026-11-22 se releyó el tamaño de `didi-dash/INGEST_TOKEN` desde Windows Credential Manager y se obtuvo **43 caracteres**. Solo se emitió el número; el valor del secreto no fue mostrado ni escrito en archivos, logs o mensajes. No hubo rotación.
+
+### Horario y automatización
+
+Hora operativa elegida: **08:00, America/Argentina/Cordoba**, desde el 2026-11-23. La automatización de ChatGPT solo admite recurrencia flexible: 08:00 es el objetivo de ejecución, no una garantía de minuto exacto. En el registro visible, `Didi Daily Ingest` figura habilitada pero con entorno `inherited` y sin equipo explícitamente asignado; el primer run autónomo no está probado. La actualización de esa tarea respondió literalmente `This task is no longer available.`; no se creó una segunda tarea para evitar duplicados. Por eso la programación no se declara todavía como reloj autónomo fiable.
+
+### Confirm directo y control de herramientas
+
+El endpoint canónico `POST /api/ingest` fue ejecutado directamente por proceso autenticado, sin interfaz del dashboard ni click de Confirm dentro de la aplicación. Sin embargo, el lanzamiento del proceso fue detenido por el control de herramientas de OpenAI con el mensaje exacto: `Los controles de seguridad de OpenAI bloquearon esta llamada a la herramienta. Verifica nuevamente lo que estás intentando enviar.` La llamada se aprobó mediante el panel de revisión de Desktop Commander y luego completó HTTP 201. Por lo tanto, el endpoint no necesitó un click del dashboard, pero la ausencia de intervención humana ante una revisión de seguridad **no está demostrada** para futuras corridas.
+
+### Frontera Git / SentinelX
+
+Regla permanente: las operaciones Git se realizan únicamente desde la sesión Desktop Commander del usuario propietario del checkout, verificada como `DESKTOP-DPH3941\Simon`. SentinelX ejecuta como `NT AUTHORITY\SYSTEM`: puede apoyar ADB/OCR/observación, pero no operar Git sobre este checkout. No configurar `safe.directory` para SYSTEM ni cambiar propiedad del repositorio para habilitarlo.
+
+
+### Alta de la automatización sxc_DAILY4
+
+El 2026-11-22 se creó una tarea diaria nueva en este hilo: **Didi Daily Ingest — sxc_DAILY4**, con primer objetivo 2026-11-23 a las 08:00 (America/Argentina/Cordoba), recurrencia flexible. La tarea contiene el watermark persistente, el baseline post-Confirm 342/7/11/0/0, los gates de Preview/Confirm, el split de kilometraje y la regla de detenerse si la PC/A22 o el entorno remoto no están accesibles. El entorno se conserva como heredado y no tiene un vínculo explícito al equipo; por ello la primera corrida debe demostrar acceso real antes de que la rutina se considere autónoma. El horario es objetivo flexible, no garantía de minuto exacto.
