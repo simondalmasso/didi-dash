@@ -221,3 +221,81 @@ Validación local con `parseImportJson`, `buildImportPayload` y `normaliseTrip`:
 - El candidato ARS 35.000 está excluido.
 
 **Estado operativo:** este envelope aún no se envió al Worker. No se ejecutó `POST /api/ingest` ni se modificó KV. El próximo paso es el Preview autenticado desde el diálogo del dashboard, con `INGEST_TOKEN` introducido por el usuario en el campo protegido. Solo podrá confirmarse si el Preview devuelve 25 viajes nuevos y cero duplicados/ambiguos; cualquier otra clasificación requiere detener y reconciliar. Después de una ingestión autorizada se exige export fresco, comparación del delta, `npm run backup` y copia secundaria fuera de este PC.
+
+
+## A22 — importe YPF confirmado y envelope final (2026-11-21)
+
+El usuario confirmó que la compra del 2026-11-17 a las 22:34 fue ARS 30.000. El envelope final conserva los 107 viajes (ARS 393.566), 101 km desconocidos y 6 km reales; agrega tres cargas YPF por ARS 100.000 (20/11 17:48 ARS 40.000; 19/11 20:49 ARS 30.000; 17/11 22:34 ARS 30.000). Recompensas, sesiones y retiros nuevos: 0.
+
+Archivo final: `C:\Temp\didi-dash-evidence\a22-2026-11-21-import-107-ypf-confirmed-2.json`.
+SHA-256 UTF-8: `386ddef68af23d9a0e3d8039125d78a29fc65cb8c00c8b5b8df9124f9c2b263d` (31.776 bytes).
+Validación local: parser/whitelist y normalización pasaron para 107 viajes y 3 combustibles; 107 IDs de viaje únicos. Export fresco de producción HTTP 200: 209 viajes, 7 recompensas, 7 combustibles; todas las colecciones `truncated=false`. Colisiones contra producción: 0 IDs de viaje, 0 firmas fecha/hora/importe y 0 compras de combustible por fecha/hora/importe.
+
+**Estado:** envelope listo; aún no se ejecutó Preview ni POST de commit. No se modificó KV. Próximo paso obligatorio: importar este JSON en el dashboard, ingresar `INGEST_TOKEN` en el campo protegido y revisar `POST /api/ingest?dry=1`. Solo confirmar si el Preview clasifica exactamente 107 viajes nuevos + 3 combustibles nuevos, 0 duplicados y 0 ambiguos. Luego export fresco, conciliación y backup externo.
+
+
+## Producción vigente — corrida incremental A22 y Confirm (2026-11-22)
+
+**Este corte supersede los estados operativos anteriores de este documento, incluido el bloque del 2026-11-21 que describía el envelope de 107 viajes como pendiente.** Las secciones anteriores se conservan como historial; no describen el estado vigente.
+
+**Fuente canónica:** export fresco del Worker de producción, obtenido después del Confirm el 2026-11-22. HTTP 200; las cinco colecciones devolvieron `truncated=false`. Health HTTP 200, `ok=true`, storage `kv`.
+
+| Colección / métrica | Producción vigente |
+|---|---:|
+| Viajes | 342 |
+| Recompensas | 7 / ARS 109.300 |
+| Combustibles | 11 / ARS 340.000 |
+| Sesiones sincronizadas | 0 |
+| Retiros registrados | 0 |
+| Bruto de viajes | ARS 1.308.566 |
+| Viajes + recompensas | ARS 1.417.866 |
+| Caja tras combustible registrado | ARS 1.077.866 |
+
+La caja tras combustible es viajes + recompensas − compras de combustible registradas. No representa utilidad operativa. Las tres compras sin fecha por ARS 90.000 continúan sin asignación temporal.
+
+### Corrida incremental A22
+
+**Dispositivo:** Samsung Galaxy A22 SM-A225M, ADB serial `R58R84BRDXP`, DiDi Conductor, pantalla Historial de viajes, filtro 16/11–22/11/2026.
+**Adquisición:** TIRÓN + RapidOCR/ONNX local. Se capturaron 67 frames; la política de persistencia fue `opaque_mask_allowlisted_fields_only`; no se persistieron capturas originales ni OCR libre. El proceso se detuvo al detectar tres frames consecutivos sin cambios.
+
+| Resultado del cruce UI vs export | Cantidad |
+|---|---:|
+| Tarjetas reconocidas | 131 |
+| Duplicadas contra producción | 105 |
+| Nuevas confirmadas por Preview | 26 |
+| Discrepancias | 0 |
+| Ambiguas | 0 |
+| Filas parciales sin hora, excluidas | 10 |
+
+Los 26 viajes nuevos suman **ARS 114.100**: 25 del 2026-11-21 por ARS 111.100 y 1 del 2026-11-22 por ARS 3.000. Todos tienen fecha confiable, hora válida y confianza OCR registrada de al menos 0,95. En 19 se reconoció modalidad Express; en 7 la modalidad quedó desconocida y no se infirió. Ninguno tiene kilometraje o duración de viaje medidos en esta captura: kilometraje se conserva como `null` con `km_source=unknown`. Las diez filas parciales sin hora no se incorporaron.
+
+El delta mostró 211 registros del export no visibles en la UI; corresponden a fechas anteriores al filtro 16/11–22/11 y no se clasificaron como pérdidas.
+
+### Confirm y comprobación posterior
+
+El Preview autenticado devolvió HTTP 200 y exactamente 27 registros insertables: 26 viajes + 1 combustible; 0 actualizaciones, duplicados o ambigüedades. El export posterior al Preview conservó el baseline 316/7/10/0/0 y ARS 300.000, demostrando que Preview no mutó el ledger.
+
+El Confirm autenticado devolvió **HTTP 201**, con 26 viajes insertados y 1 combustible insertado, 0 actualizaciones, 0 duplicados y 0 ambiguos. Un export fresco posterior verificó exactamente 342/7/11/0/0, combustible ARS 340.000, colecciones completas y health/KV operativo.
+
+La compra de combustible agregada es YPF, 2026-11-21, ARS 40.000, hora `null`; litros y odómetro también permanecen desconocidos. ID canónico: `fuel-ypf-20261121-40000-time-unknown`.
+
+### Evidencia, payload y recuperación
+
+- Sesión TIRÓN: `C:\Temp\didi-dash-evidence\a22-incremental-20261122\`.
+- Manifiesto saneado por registro: `evidence-manifest.json`; SHA-256 `9afd8aedced7eae4f1f3e2394c976b76e87dd574e2589c65b7e9007d8240d1c1`.
+- Payload confirmado: `payload-26-trips-plus-ypf.json`; SHA-256 `878c2e085e01a1f2bf18200931cf3f01969bababa70aea8c9e3a69d31604fafd`.
+- Backup PRE: `ledger-pre-confirm-20261122.json`; SHA-256 `ad4732410560794096ff6040893501193c964279d88c0a4b18c517b2d5be2d71`.
+- Backup POST: `ledger-post-confirm-20261122.json`; SHA-256 `f184d722f7b8cb2a765b28a11e95941ecff910ab8001fecdcd8fe2f292abb0a9`.
+- Recibo: `commit-receipt.json`; SHA-256 `7acc13f998b721037fdc9563ab548004f697a459b554b422617ef59ea2abd207`.
+
+Los backups PRE/POST y el payload se verificaron por hash. El token se leyó de Windows Credential Manager en memoria durante Preview y Confirm; nunca fue impreso, persistido en archivos ni rotado.
+
+### Cobertura de kilometraje y pendientes
+
+El export vigente contiene 188 viajes con `km_source=actual` y 154 sin kilometraje real: 127 `km=null` y 27 registros antiguos con `km=0` y `km_source=unknown`. Los 26 viajes recién insertados forman parte de los 127 nulos. Los 27 ceros antiguos siguen siendo desconocidos; no se reinterpretan como distancia real.
+
+**Backfill pendiente:** priorizar los 101 viajes nulos del envelope de 16–20/11; los otros nulos y los 27 antiguos se mantienen separados para investigación. Actualizar únicamente desde pantallas de detalle con evidencia saneada y hash, Preview, backup y reconciliación posterior. No estimar kilómetros ni duración.
+
+**Estado operativo:** la extracción y la ingesta del 2026-11-22 están completas. La automatización diaria `Didi Daily Ingest` está creada y habilitada para las 08:00 locales con recurrencia diaria, pero el entorno figura como heredado/no asignado a la PC y aún no hay una primera corrida autónoma verificada. Por lo tanto, no afirmar que GPT ya ejecuta el flujo solo. El watermark de adquisición pasa a **2026-11-22 00:14**; la próxima inspección debe empezar desde ese viaje e incluir llegadas tardías posteriores.
+
+**Sin cambios:** lógica del Worker, dependencias, deploy, CLEAN1, PR #31/Helio y backlog Horas permanecen fuera de esta corrida.
