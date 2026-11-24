@@ -9,7 +9,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Etios</title>
-  <script>document.documentElement.dataset.page = location.pathname.startsWith("/inputs") ? "inputs" : location.pathname.startsWith("/trips") ? "trips" : "home";</script>
+  <script>document.documentElement.dataset.page = location.pathname.startsWith("/inputs") ? "inputs" : location.pathname.startsWith("/panel") ? "home" : "trips";</script>
   <style>
 :root{
   color-scheme:dark;
@@ -218,9 +218,9 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <div class="row"><button id="open-import" class="secondary" type="button" aria-haspopup="dialog">Importar JSON</button><span id="connection" class="pill">Conectando…</span></div>
       </header>
       <nav class="app-nav" aria-label="Navegación principal">
-        <a href="/" data-nav="home">Panel</a>
+        <a href="/" data-nav="trips">Helio</a>
         <a href="/inputs/" data-nav="inputs">Inputs</a>
-        <a href="/trips/" data-nav="trips">Historial</a>
+        <a href="/panel/" data-nav="home">Panel</a>
       </nav>
       <div class="toolbar" data-area="dashboard">
         <div><strong>Panel general</strong><div class="subhead" style="margin:4px 0 0">Ingresos, nafta y rendimiento del Etios.</div></div>

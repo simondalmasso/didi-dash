@@ -567,12 +567,12 @@ test("dashboard directory routes serve the shared index asset", async () => {
     }
   };
 
-  for (const path of ["/inputs/", "/trips/"]) {
+  for (const path of ["/inputs/", "/trips/", "/panel", "/panel/"]) {
     const response = await worker.fetch(apiRequest(path), { ASSETS });
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type"), /text\/html/);
   }
-  assert.deepEqual(paths, ["/", "/"]);
+  assert.deepEqual(paths, ["/", "/", "/", "/"]);
 });
 
 

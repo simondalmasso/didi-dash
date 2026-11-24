@@ -413,9 +413,12 @@ test("dashboard range URLs preserve other query values and fragments", async () 
 });
 
 
-test("dashboard route resolver identifies home, inputs and history paths", async () => {
+test("dashboard route resolver makes Helio the root and preserves the legacy panel at /panel/", async () => {
   const { dashboardPageFromPath } = await import("../public/finance.mjs");
-  assert.equal(dashboardPageFromPath("/"), "home");
+  assert.equal(dashboardPageFromPath("/"), "trips");
+  assert.equal(dashboardPageFromPath("/panel"), "home");
+  assert.equal(dashboardPageFromPath("/panel/"), "home");
+  assert.equal(dashboardPageFromPath("/panel/costs"), "home");
   assert.equal(dashboardPageFromPath("/inputs"), "inputs");
   assert.equal(dashboardPageFromPath("/inputs/"), "inputs");
   assert.equal(dashboardPageFromPath("/inputs/costs"), "inputs");

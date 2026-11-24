@@ -20,8 +20,9 @@ export function calculateTripNetAfterFuel({ tripGross = 0, fuelPurchaseSpend = 0
 export function dashboardPageFromPath(pathname = "/") {
   const path = String(pathname || "/");
   if (path === "/inputs" || path.startsWith("/inputs/")) return "inputs";
+  if (path === "/panel" || path.startsWith("/panel/")) return "home";
   if (path === "/trips" || path.startsWith("/trips/")) return "trips";
-  return "home";
+  return "trips";
 }
 export function dashboardApiUrl(path, nonce) {
   const url = new URL(String(path || "/"), "https://didi-dash.invalid");
