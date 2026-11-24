@@ -22,6 +22,12 @@ const DISTANCE_BANDS = [
   { key: "medium", label: "Medio >3–8 km", minExclusive: 3, maxInclusive: 8 },
   { key: "long", label: "Largo >8 km", minExclusive: 8, maxInclusive: null }
 ];
+const PRIME_TIME_BANDS = [
+  { key: "07-09", label: "07–09", startHour: 7, endHour: 9 },
+  { key: "17-19", label: "17–19", startHour: 17, endHour: 19 },
+  { key: "19-22", label: "19–22", startHour: 19, endHour: 22 },
+  { key: "22-24", label: "22–24", startHour: 22, endHour: 24 }
+];
 const MIN_OPERATIONAL_TRIPS = 5;
 const MIN_OPERATIONAL_COVERAGE_PERCENT = 90;
 
@@ -352,6 +358,23 @@ export function buildDataFina({
   const rankedWeekdays = weekdays.filter((weekday) => weekday.ranked).slice().sort((a, b) =>
     b.grossPerPassengerHour - a.grossPerPassengerHour
   );
+  const weekdayPrimeBands = weekdayRows.map((weekday) => ({
+    day: weekday.day,
+    label: weekday.label,
+    bands: PRIME_TIME_BANDS.map((band) => {
+      const rows = weekday.rows.filter((row) => {
+        const hour = tripStartHour(row);
+        return hour != null && hour >= band.startHour && hour < band.endHour;
+      });
+      const gross = rows.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+      return {
+        ...band,
+        gross,
+        grossPerTrip: rows.length ? gross / rows.length : null,
+        ...performanceMetrics(rows, 2)
+      };
+    })
+  }));
 
   const actualKmRows = selectedTrips.filter((row) =>
     row.km_source === "actual" && Number.isFinite(Number(row.km)) && Number(row.km) > 0
@@ -380,6 +403,27 @@ export function buildDataFina({
     unknownOrEstimatedTrips: Math.max(0, selectedTrips.length - actualKmRows.length),
     actualKmPercent: selectedTrips.length ? actualKmRows.length / selectedTrips.length * 100 : 0
   };
+  const distanceRecommendation = rankedDistanceBands.length >= 2
+    ? {
+        status: "ranked",
+        preferred: rankedDistanceBands[0],
+        alternative: rankedDistanceBands[1],
+        excluded: distanceBands.filter((band) => !band.ranked),
+        upliftPercent: rankedDistanceBands[1].grossPerPassengerHour > 0
+          ? (rankedDistanceBands[0].grossPerPassengerHour / rankedDistanceBands[1].grossPerPassengerHour - 1) * 100
+          : null,
+        metric: "grossPerPassengerHour",
+        disclaimer: "Bruto por hora con pasajero; no es ganancia neta ni hora conectada."
+      }
+    : {
+        status: "insufficient",
+        preferred: null,
+        alternative: null,
+        excluded: distanceBands.filter((band) => !band.ranked),
+        eligibleCount: rankedDistanceBands.length,
+        metric: "grossPerPassengerHour",
+        disclaimer: "Se necesitan al menos dos categorías elegibles para recomendar una."
+      };
 
   return {
     tripCount: selectedTrips.length,
@@ -417,8 +461,11 @@ export function buildDataFina({
     weekdays,
     rankedWeekdays,
     weekdayMinDates: 3,
+    weekdayPrimeBands,
+    primeTimeBands: PRIME_TIME_BANDS,
     distanceBands,
     rankedDistanceBands,
+    distanceRecommendation,
     distanceCoverage,
     grossPerKm: actualKm > 0 ? actualKmGross / actualKm : null,
     cashMarginPerKm: null,

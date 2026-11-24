@@ -444,3 +444,53 @@ test("invalid or missing start times remain unassigned in hourly intelligence", 
   assert.equal(result.unassignedStartTimeGross, 5000);
   assert.equal(result.hours.reduce((sum, row) => sum + row.gross, 0), 1000);
 });
+
+test("weekly prime-time matrix contains all seven weekdays and keeps low-coverage cells unranked", () => {
+  const trips = [];
+  for (const date of ["2026-11-13", "2026-11-20"]) {
+    for (let i = 0; i < 3; i += 1) {
+      trips.push({ date, start: "19:10", amount: 1000, duration_seconds: 600 });
+    }
+  }
+  trips.push({ date: "2026-11-20", start: "22:10", amount: 9000, duration_seconds: null });
+  const result = buildDataFina({ trips, rewards: [], fuel: [] });
+  assert.equal(result.weekdayPrimeBands.length, 7);
+  const friday = result.weekdayPrimeBands.find((row) => row.day === 5);
+  const evening = friday.bands.find((row) => row.key === "19-22");
+  assert.equal(evening.tripCount, 6);
+  assert.equal(evening.durationTrips, 6);
+  assert.equal(evening.coveragePercent, 100);
+  assert.equal(evening.ranked, true);
+  const late = friday.bands.find((row) => row.key === "22-24");
+  assert.equal(late.tripCount, 1);
+  assert.equal(late.ranked, false);
+  assert.match(late.reason, /5 viajes/);
+});
+
+test("distance recommendation prefers only eligible distance bands and labels its rate as gross passenger-hour", () => {
+  const trips = [];
+  for (const date of ["2026-11-13", "2026-11-14"]) {
+    for (let i = 0; i < 5; i += 1) {
+      trips.push({ date, start: "18:10", amount: 1200, km: 2, km_source: "actual", duration_seconds: 600 });
+      trips.push({ date, start: "19:10", amount: 1000, km: 5, km_source: "actual", duration_seconds: 600 });
+      trips.push({ date, start: "20:10", amount: 1800, km: 10, km_source: "actual", duration_seconds: i < 4 ? 600 : null });
+    }
+  }
+  const result = buildDataFina({ trips, rewards: [], fuel: [] });
+  assert.equal(result.distanceRecommendation.status, "ranked");
+  assert.equal(result.distanceRecommendation.preferred.key, "short");
+  assert.equal(result.distanceRecommendation.alternative.key, "medium");
+  assert.equal(result.distanceRecommendation.metric, "grossPerPassengerHour");
+  assert.equal(result.distanceRecommendation.excluded.length, 1);
+  assert.equal(result.distanceRecommendation.excluded[0].key, "long");
+  assert.equal(result.distanceRecommendation.excluded[0].ranked, false);
+});
+
+test("distance recommendation stays insufficient when fewer than two distance bands qualify", () => {
+  const result = buildDataFina({
+    trips: [{ date: "2026-11-14", start: "18:10", amount: 1000, km: 2, km_source: "actual", duration_seconds: 600 }],
+    rewards: [], fuel: []
+  });
+  assert.equal(result.distanceRecommendation.status, "insufficient");
+  assert.equal(result.distanceRecommendation.preferred, null);
+});

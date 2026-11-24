@@ -11,3 +11,9 @@ test("Helio is the root and the legacy panel is preserved at /panel/", () => {
   assert.ok(html.includes('href="/panel/" data-nav="home">Panel'));
   assert.ok(html.includes('pathname.startsWith("/panel")'));
 });
+
+test("fuel dashboard route is distinct and linked from primary navigation", () => {
+  assert.equal(dashboardPageFromPath("/fuel/"), "fuel");
+  assert.ok(html.includes('href="/fuel/" data-nav="fuel">Nafta'));
+  assert.ok(html.includes('data-area="fuel"'));
+});
