@@ -78,6 +78,9 @@ export function buildHelioViewModel(result = {}, financial = {}) {
 
   return {
     tripCount: Math.max(0, valueOf(result.tripCount)),
+    durationCoveragePercent: valueOf(result.tripCount) > 0
+      ? Math.max(0, valueOf(result.durationTrips)) / valueOf(result.tripCount) * 100
+      : 0,
     tripGross: gross,
     rewardGross: Math.max(0, valueOf(result.rewardGross)),
     fuelPurchaseSpend: Math.max(0, valueOf(financial.fuelPurchaseSpend, valueOf(result.fuelSpend))),
@@ -109,7 +112,53 @@ export function buildHelioViewModel(result = {}, financial = {}) {
     hours,
     hourGross,
     unassignedHourGross,
-    bands
+    bands,
+    weekdays: Array.isArray(result.weekdays) ? result.weekdays.map((row) => ({
+      day: Number(row.day),
+      label: typeof row.label === "string" ? row.label : "Día sin etiqueta",
+      gross: Math.max(0, valueOf(row.gross)),
+      grossPerActiveDate: nullable(row.grossPerActiveDate),
+      tripCount: Math.max(0, valueOf(row.tripCount)),
+      dateCount: Math.max(0, valueOf(row.dateCount)),
+      durationTrips: Math.max(0, valueOf(row.durationTrips)),
+      coveragePercent: Math.max(0, valueOf(row.coveragePercent)),
+      grossPerPassengerHour: nullable(row.grossPerPassengerHour),
+      ranked: row.ranked === true,
+      reason: typeof row.reason === "string" ? row.reason : null
+    })) : [],
+    timeBands: Array.isArray(result.timeBands) ? result.timeBands.map((row) => ({
+      key: typeof row.key === "string" ? row.key : "",
+      label: typeof row.label === "string" ? row.label : "Franja sin etiqueta",
+      gross: Math.max(0, valueOf(row.gross)),
+      tripCount: Math.max(0, valueOf(row.tripCount)),
+      dateCount: Math.max(0, valueOf(row.dateCount)),
+      durationTrips: Math.max(0, valueOf(row.durationTrips)),
+      coveragePercent: Math.max(0, valueOf(row.coveragePercent)),
+      grossPerPassengerHour: nullable(row.grossPerPassengerHour),
+      ranked: row.ranked === true,
+      reason: typeof row.reason === "string" ? row.reason : null
+    })) : [],
+    distanceBands: Array.isArray(result.distanceBands) ? result.distanceBands.map((row) => ({
+      key: typeof row.key === "string" ? row.key : "",
+      label: typeof row.label === "string" ? row.label : "Distancia sin etiqueta",
+      gross: Math.max(0, valueOf(row.gross)),
+      actualKm: Math.max(0, valueOf(row.actualKm)),
+      grossPerKm: nullable(row.grossPerKm),
+      tripCount: Math.max(0, valueOf(row.tripCount)),
+      dateCount: Math.max(0, valueOf(row.dateCount)),
+      durationTrips: Math.max(0, valueOf(row.durationTrips)),
+      coveragePercent: Math.max(0, valueOf(row.coveragePercent)),
+      grossPerPassengerHour: nullable(row.grossPerPassengerHour),
+      ranked: row.ranked === true,
+      reason: typeof row.reason === "string" ? row.reason : null
+    })) : [],
+    distanceCoverage: {
+      actualKmTrips: Math.max(0, valueOf(result.distanceCoverage?.actualKmTrips)),
+      unknownOrEstimatedTrips: Math.max(0, valueOf(result.distanceCoverage?.unknownOrEstimatedTrips)),
+      actualKmPercent: Math.max(0, valueOf(result.distanceCoverage?.actualKmPercent))
+    },
+    unassignedStartTimeTrips: Math.max(0, valueOf(result.unassignedStartTimeTrips)),
+    unassignedStartTimeGross: Math.max(0, valueOf(result.unassignedStartTimeGross))
   };
 }
 
@@ -118,6 +167,43 @@ function detailRows(rows) {
     '<div class="helio-row"><span>' + safe(row[0]) + '</span><strong>' +
     safe(row[1]) + '</strong></div>'
   ).join("");
+}
+
+function rankStatus(row) {
+  return row.ranked
+    ? '<span class="helio-status is-ranked">Muestra comparable</span>'
+    : '<span class="helio-status">Sin ranking · ' + safe(row.reason || "faltan datos") + '</span>';
+}
+
+function operationalRows(rows, kind) {
+  if (!rows.length) return '<p class="helio-insight-empty">Todavía no hay datos suficientes para comparar.</p>';
+  return rows.map((row) => {
+    const volume = row.tripCount + " viajes · " + row.dateCount + " fechas";
+    const coverage = row.durationTrips + "/" + row.tripCount + " con duración · " +
+      number.format(row.coveragePercent) + "%";
+    const rate = row.grossPerPassengerHour == null
+      ? "—"
+      : money.format(row.grossPerPassengerHour) + "/h pasajero";
+    let secondary = "";
+    if (kind === "weekday") {
+      secondary = row.grossPerActiveDate == null
+        ? "Sin bruto diario"
+        : money.format(row.grossPerActiveDate) + " bruto/fecha";
+    } else if (kind === "distance") {
+      secondary = row.grossPerKm == null
+        ? "Sin km reales"
+        : money.format(row.grossPerKm) + "/km real";
+    } else {
+      secondary = money.format(row.gross) + " bruto";
+    }
+    return '<div class="helio-insight-row">' +
+      '<div class="helio-insight-main"><strong>' + safe(row.label) + '</strong>' +
+      '<small>' + safe(volume) + ' · ' + safe(coverage) + '</small></div>' +
+      '<div class="helio-insight-metrics"><strong>' + safe(rate) + '</strong>' +
+      '<small>' + safe(secondary) + '</small></div>' +
+      '<div class="helio-insight-rank">' + rankStatus(row) + '</div>' +
+      '</div>';
+  }).join("");
 }
 
 function markup(model) {
@@ -238,7 +324,34 @@ function markup(model) {
       ["Resultado operativo", operating]
     ]) + '</div>'
     + '<p class="helio-note">Las compras pagadas no equivalen a combustible consumido. El costo estimado parcial no se suma a las compras de caja.</p>'
-    + '</section></div></article></div>';
+    + '</section></div></article></div>'
+    + '<section class="helio-insights" aria-labelledby="helio-insights-title">'
+    + '<div class="helio-insights-head"><div><h3 id="helio-insights-title">Decisiones operativas · evidencia observada</h3>'
+    + '<p>Cobertura global: ' + model.durationTrips + '/' + model.tripCount + ' viajes con duración (' + number.format(model.durationCoveragePercent) + '%) · ' + model.distanceCoverage.actualKmTrips + '/' + model.tripCount + ' con km reales (' + number.format(model.distanceCoverage.actualKmPercent) + '%). Sin sesiones conectadas, no se infieren turnos.</p></div></div>'
+    + '<div class="helio-insights-grid">'
+    + '<article class="helio-insight-panel"><h4>Días de semana</h4>'
+    + '<p>Bruto por fecha activa y bruto por hora con pasajero. Se requieren 3 fechas distintas por día.</p>'
+    + operationalRows(model.weekdays, "weekday")
+    + '</article>'
+    + '<article class="helio-insight-panel"><h4>Horario de inicio</h4>'
+    + '<p>Seis franjas. La tasa usa solo viajes con duración conocida; cobertura mínima 90%.</p>'
+    + operationalRows(model.timeBands, "time")
+    + '<p class="helio-insight-foot">' + model.unassignedStartTimeTrips + ' viajes sin hora válida · ' +
+      safe(money.format(model.unassignedStartTimeGross)) + ' fuera del reparto.</p>'
+    + '</article>'
+    + '<article class="helio-insight-panel"><h4>Distancia del viaje</h4>'
+    + '<p>Solo kilómetros reales observados. Los km estimados y desconocidos quedan fuera.</p>'
+    + operationalRows(model.distanceBands, "distance")
+    + '<p class="helio-insight-foot">' + model.distanceCoverage.actualKmTrips + ' viajes con km reales (' +
+      number.format(model.distanceCoverage.actualKmPercent) + '%) · ' +
+      model.distanceCoverage.unknownOrEstimatedTrips + ' sin km real.</p>'
+    + '</article>'
+    + '<article class="helio-insight-panel helio-insight-caveat"><h4>Ganancia o pérdida por día</h4>'
+    + '<div class="helio-insight-unavailable">No clasificable con la evidencia actual</div>'
+    + '<p>Falta asignar con precisión los costos del vehículo y las horas de trabajo a cada fecha. El bruto del día no demuestra ganancia ni pérdida.</p>'
+    + '<p>El indicador $/hora es bruto por hora con pasajero, no por hora conectada ni por turno completo. No incluye recogidas sin pasajero, esperas ni recorridos vacíos.</p>'
+    + '</article>'
+    + '</div></section>';
 }
 
 function canvasSize(canvas) {
