@@ -40,10 +40,12 @@ Trip-level kilometres measure only the passenger ride. They are not the vehicle'
 - Rewards count toward gross earnings but not ride count, passenger kilometres, passenger minutes or trip-only activity charts.
 ## Dashboard views
 
-- / is the metrics-only home: the primary provisional net is **trip earnings minus recorded fuel purchases**, with rewards excluded from that headline value. It is a cash-after-purchases indicator, not complete operating profit.
+- / is Helio: financial exploration, a Monday–Sunday prime-time matrix and a distance-strategy comparison. The primary provisional cash KPI remains trip earnings minus recorded fuel purchases, with rewards excluded from that headline. The distance recommendation ranks only bands that meet the sample and duration-coverage thresholds; it is gross passenger-hour performance, not net profit.
+- /fuel/ is the dedicated fuel board: paid purchases, observed litres and effective price, measured/reference consumption, and clearly labelled partial fuel-cost estimates.
+- /panel/ preserves the previous general dashboard.
 - /inputs/ contains local-only fuel tickets, odometer work sessions, fixed-cost settings, one-off expenses and YPF price history.
 - /trips/ contains the ride history, rewards, JSON backup and CSV export.
-- Navigation uses one shared HTML/JavaScript source. The Worker rewrites /inputs/ and /trips/ paths to index.html, while the browser selects the requested view from the original URL. This keeps one implementation and preserves same-origin local-storage entries.
+- Navigation uses one shared HTML/JavaScript source. The Worker rewrites /inputs/, /trips/, /panel/ and /fuel/ paths to index.html, while the browser selects the requested view from the original URL. This keeps one implementation and preserves same-origin local-storage entries.
 - Period filters are deep links: Hoy uses range=1, 7 días uses range=7, Todo uses range=all, and 30 días is the default. Refreshing or sharing a filtered URL keeps the same period, and navigation preserves it across views.
 - The active navigation link is selected from the current route and exposes `aria-current=page`. The secondary cash KPI is labelled explicitly as including rewards and subtracting recorded fuel purchases and other entered costs.
 

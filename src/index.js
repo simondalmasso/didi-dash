@@ -669,7 +669,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) {
-      const dashboardDirectoryRoutes = new Set(["/inputs", "/inputs/", "/trips", "/trips/", "/panel", "/panel/"]);
+      const dashboardDirectoryRoutes = new Set(["/inputs", "/inputs/", "/trips", "/trips/", "/panel", "/panel/", "/fuel", "/fuel/"]);
       const assetRequest = dashboardDirectoryRoutes.has(url.pathname)
         ? new Request(new URL("/", url), request)
         : request;

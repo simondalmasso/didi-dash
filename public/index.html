@@ -9,7 +9,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Etios</title>
-  <script>document.documentElement.dataset.page = location.pathname.startsWith("/inputs") ? "inputs" : location.pathname.startsWith("/panel") ? "home" : "trips";</script>
+  <script>document.documentElement.dataset.page = location.pathname.startsWith("/inputs") ? "inputs" : location.pathname.startsWith("/fuel") ? "fuel" : location.pathname.startsWith("/panel") ? "home" : "trips";</script>
   <style>
 :root{
   color-scheme:dark;
@@ -112,7 +112,9 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 .app-nav a[aria-current="page"]{background:rgba(199,243,106,.11);border-color:rgba(199,243,106,.28);color:var(--green)}
 html[data-page="home"] [data-area="inputs"],html[data-page="home"] [data-area="history"],
 html[data-page="inputs"] [data-area="dashboard"],html[data-page="inputs"] [data-area="history"],
-html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-area="inputs"]{display:none!important}
+html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-area="inputs"],
+html[data-page="fuel"] [data-area="dashboard"],html[data-page="fuel"] [data-area="inputs"],html[data-page="fuel"] [data-area="history"],
+html:not([data-page="fuel"]) [data-area="fuel"]{display:none!important}
 
 /* Verified trip-detail timeline */
 .day-timeline{border:1px solid rgba(255,255,255,.07);background:linear-gradient(145deg,#121216,#0b0b0d);border-radius:20px;padding:18px;margin:12px 0}
@@ -207,6 +209,8 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
 
 .history-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 @media(max-width:760px){.history-actions{width:100%;justify-content:flex-start}.history-actions .period{width:auto;flex:1;min-width:0}.history-actions .period button{flex:1}}
+
+.weekly-prime-wrap,.weekly-prime-scroll{width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain}.weekly-prime-table,.fuel-table{width:100%;min-width:620px;border-collapse:separate;border-spacing:0;font-size:10px}.weekly-prime-table th,.fuel-table th{white-space:nowrap}.weekly-prime-table td{padding:8px 6px;text-align:center;white-space:normal;min-width:110px}.weekly-prime-table td strong,.weekly-prime-table td small{display:block}.weekly-prime-table td small{font-size:9px;color:var(--muted);margin-top:3px}.weekly-prime-table td.eligible{background:rgba(199,243,106,.07)}.weekly-prime-table td.sample{background:rgba(244,199,106,.06)}.weekly-prime-table td.empty{color:#666;padding:8px 6px}.distance-recommendation{display:grid;gap:9px}.recommendation-lead{display:grid;gap:5px;padding:13px;border:1px solid rgba(199,243,106,.2);border-radius:15px;background:rgba(199,243,106,.055)}.recommendation-lead strong{font-size:14px}.recommendation-lead span,.recommendation-stats{font-size:11px;color:var(--muted)}.recommendation-stats{display:flex;gap:8px;flex-wrap:wrap}.recommendation-stats span{padding:7px 9px;border:1px solid var(--line);border-radius:10px}
 </style>
   <link rel="stylesheet" href="/helio-cards.css">
 </head>
@@ -220,6 +224,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
       <nav class="app-nav" aria-label="Navegación principal">
         <a href="/" data-nav="trips">Helio</a>
         <a href="/inputs/" data-nav="inputs">Inputs</a>
+        <a href="/fuel/" data-nav="fuel">Nafta</a>
         <a href="/panel/" data-nav="home">Panel</a>
       </nav>
       <div class="toolbar" data-area="dashboard">
@@ -428,6 +433,13 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <div id="data-fina-operational-bands" class="cost-history"><div class="empty">Calculando franjas con duración conocida…</div></div>
         <div id="data-fina-operational-signal" class="dfl-note"></div>
         <div id="data-fina-operational-caption" class="dfl-chart-caption"></div>
+        <div class="divider"></div>
+        <div class="section-head"><h2>Semana · horarios de mayor actividad</h2><span class="note">LUN · MAR · MIÉ · JUE · VIE · SÁB · DOM</span></div>
+        <div id="weekly-prime-matrix" class="weekly-prime-wrap"><div class="empty">Calculando semana y prime time…</div></div>
+        <div id="weekly-prime-note" class="dfl-chart-caption"></div>
+        <div class="divider"></div>
+        <div class="section-head"><h2>Recomendador · distancia de viajes</h2><span class="note">Solo categorías elegibles</span></div>
+        <div id="data-fina-distance-recommendation" class="distance-recommendation"><div class="empty">Calculando comparación…</div></div>
       </section>
       <section class="card" data-area="history">
         <div class="section-head"><h2>Viajes</h2><div class="row"><button id="backup-json" class="secondary" type="button">Backup JSON</button><button id="export-csv" class="secondary" type="button">CSV</button></div></div>
@@ -464,6 +476,33 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         <div id="ledger-session-status" class="note">Sin turnos sincronizados</div>
         <div id="ledger-a22-state" class="note">No comparado contra A22</div>
         <div id="ledger-audit-days" class="table-wrap"><div class="empty">Calculando cobertura por fecha…</div></div>
+      </section>
+      <div class="toolbar" data-area="fuel">
+        <div><strong>Nafta · costos y consumo</strong><div class="subhead" style="margin:4px 0 0">Compras registradas, litros observados y consumo calculado por evidencia.</div></div>
+        <div class="period" aria-label="Período de combustible">
+          <button type="button" data-range="1">Hoy</button>
+          <button type="button" data-range="7">7 días</button>
+          <button type="button" data-range="30" class="active">30 días</button>
+          <button type="button" data-range="0">Todo</button>
+        </div>
+      </div>
+      <section class="grid kpis" data-area="fuel" id="fuel-dashboard-kpis">
+        <div class="kpi"><div class="label">Gasto en compras</div><div id="fuel-board-spend" class="value">—</div><div id="fuel-board-count" class="hint">Tickets registrados</div></div>
+        <div class="kpi"><div class="label">Litros observados</div><div id="fuel-board-liters" class="value">—</div><div id="fuel-board-liters-hint" class="hint">No incluye cargas sin litros</div></div>
+        <div class="kpi"><div class="label">Precio efectivo observado</div><div id="fuel-board-price" class="value">—</div><div id="fuel-board-price-hint" class="hint">Solo tickets con importe y litros</div></div>
+        <div class="kpi"><div class="label">Consumo del vehículo</div><div id="fuel-board-consumption" class="value">—</div><div id="fuel-board-consumption-hint" class="hint">Medido o referencia, claramente separado</div></div>
+        <div class="kpi"><div class="label">Costo de combustible estimado</div><div id="fuel-board-estimated-cost" class="value">—</div><div id="fuel-board-estimated-cost-hint" class="hint">Requiere distancia y precio</div></div>
+        <div class="kpi"><div class="label">Costo estimado por km</div><div id="fuel-board-cost-km" class="value">—</div><div id="fuel-board-cost-km-hint" class="hint">Base de distancia indicada abajo</div></div>
+      </section>
+      <section class="card" data-area="fuel">
+        <div class="section-head"><h2>Registro de cargas</h2><span id="fuel-board-coverage" class="note"></span></div>
+        <div id="fuel-board-table" class="table-wrap"><div class="empty">Cargando compras…</div></div>
+        <div id="fuel-board-note" class="dfl-chart-caption"></div>
+      </section>
+      <section class="card" data-area="fuel">
+        <div class="section-head"><h2>Cómo se calcula</h2></div>
+        <div class="note">Compras pagadas = salida de caja; no equivalen a combustible consumido. El consumo medido requiere cargas a tanque lleno con litros y odómetro. Si faltan esos datos, se muestra la referencia de prueba del Etios (8,8 L/100 km) o un cálculo parcial sobre kilómetros reales con pasajero; nunca se presenta como medición completa del auto.</div>
+        <div class="row" style="margin-top:12px"><a class="section-link" href="/inputs/">Cargar combustible, odómetro y turnos en Inputs</a></div>
       </section>
       <dialog id="import-dialog" aria-labelledby="import-dialog-title">
         <div class="section-head"><h2 id="import-dialog-title">Importación controlada</h2><button id="close-import" class="ghost" type="button">Cerrar</button></div>
@@ -1127,6 +1166,7 @@ import { renderHelioCards } from "/helio-cards.mjs";
     renderRewards(rewards);
     renderSessions(sessions);
     renderFuel(fuel);
+    renderFuelDashboard(fuelPurchases, financial);
     renderOneOffExpenses();
     renderLocalVehicleLogs();
   }
@@ -1464,6 +1504,49 @@ import { renderHelioCards } from "/helio-cards.mjs";
       result.timeBandMinCoveragePercent + "% y al menos " + result.timeBandMinTrips + " viajes en " + result.timeBandMinDates + " fechas. " +
       "El intervalo 22–24 puede mostrarse con tasa alta y quedar fuera del ranking si su cobertura es insuficiente. " +
       "Son minutos con pasajero reportados por DiDi, no horas conectadas; el ledger registra 0 sesiones sincronizadas.";
+    const weekdayLabels = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+    const primeBandLabels = ["07–09", "17–19", "19–22", "22–24"];
+    const matrixRows = [1, 2, 3, 4, 5, 6, 0].map((dayIndex) => {
+      const day = result.weekdayPrimeBands.find((row) => row.day === dayIndex);
+      const cells = day.bands.map((band) => {
+        const state = band.ranked ? "eligible" : band.tripCount ? "sample" : "empty";
+        const rate = band.grossPerPassengerHour == null ? "—" : money.format(band.grossPerPassengerHour) + "/h";
+        const label = band.tripCount
+          ? band.tripCount + " viajes · " + money.format(band.gross) + " · " + rate + " · " + Math.round(band.coveragePercent) + "% cobertura"
+          : "Sin actividad registrada";
+        return '<td class="prime-cell ' + state + '" title="' + escapeHtml(label) + '"><strong>' + band.tripCount + '</strong><small>' + escapeHtml(money.format(band.gross)) + '</small><small>' + escapeHtml(rate) + ' · ' + Math.round(band.coveragePercent) + '%</small></td>';
+      }).join("");
+      return '<tr><th scope="row">' + weekdayLabels[dayIndex] + '</th>' + cells + '</tr>';
+    }).join("");
+    $("weekly-prime-matrix").innerHTML =
+      '<div class="weekly-prime-scroll"><table class="weekly-prime-table"><thead><tr><th>DÍA</th>' +
+      primeBandLabels.map((label) => '<th>' + label + '</th>').join("") +
+      '</tr></thead><tbody>' + matrixRows + '</tbody></table></div>';
+    $("weekly-prime-note").textContent =
+      "Cada celda muestra viajes / bruto / bruto por hora con pasajero / cobertura de duración. " +
+      "Una celda solo es elegible con al menos 5 viajes, 2 fechas y 90% de duración observada. " +
+      "Vacío significa que el ledger no registra viajes en esa franja, no que el horario carezca de demanda.";
+    const recommendation = result.distanceRecommendation;
+    if (recommendation.status === "ranked") {
+      const best = recommendation.preferred;
+      const alternative = recommendation.alternative;
+      const uplift = recommendation.upliftPercent == null ? "" : " (" + (recommendation.upliftPercent >= 0 ? "+" : "") + number.format(recommendation.upliftPercent) + "%)";
+      const excluded = recommendation.excluded.map((band) =>
+        band.label + ": " + band.tripCount + " viajes, " + band.coveragePercent.toFixed(0) + "% cobertura; " + band.reason
+      ).join(" · ");
+      $("data-fina-distance-recommendation").innerHTML =
+        '<div class="recommendation-lead"><strong>Mejor señal observada: ' + escapeHtml(best.label) + '</strong>' +
+        '<span>' + escapeHtml(money.format(best.grossPerPassengerHour)) + '/h con pasajero frente a ' +
+        escapeHtml(money.format(alternative.grossPerPassengerHour)) + '/h en ' + escapeHtml(alternative.label) + uplift + '.</span></div>' +
+        '<div class="recommendation-stats"><span>' + best.tripCount + ' viajes · ' + escapeHtml(money.format(best.grossPerKm)) + '/km real</span>' +
+        '<span>Alternativa: ' + alternative.tripCount + ' viajes · ' + escapeHtml(money.format(alternative.grossPerKm)) + '/km real</span></div>' +
+        '<div class="note">No equivale a beneficio neto ni contempla recogida, circulación vacía, espera o tiempo conectado. ' +
+        (excluded ? "Fuera del ranking: " + escapeHtml(excluded) + "." : "") + '</div>';
+    } else {
+      $("data-fina-distance-recommendation").innerHTML =
+        '<div class="empty">Todavía no hay dos categorías de distancia con muestra suficiente para recomendar una estrategia. ' +
+        recommendation.eligibleCount + ' categoría(s) elegible(s); se requieren al menos dos.</div>';
+    }
     renderHelioCards($("helio-cards"), result, financial);
   }
 
@@ -1576,6 +1659,62 @@ import { renderHelioCards } from "/helio-cards.mjs";
     $('fuel-list').innerHTML =
       '<div class="note">' + fuel.length + ' tickets · ' + number.format(litres) + ' L · ' +
       money.format(spend) + ' en compras registradas.</div><div class="reward-list">' + details + '</div>';
+  }
+  function renderFuelDashboard(fuel, financial) {
+    const rows = Array.isArray(fuel) ? fuel.slice() : [];
+    const spend = rows.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
+    const measuredRows = rows.filter((row) => asNumber(row.liters) > 0 && asNumber(row.total_ars) > 0);
+    const liters = measuredRows.reduce((sum, row) => sum + asNumber(row.liters), 0);
+    const measuredSpend = measuredRows.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
+    const effectivePrice = liters > 0 ? measuredSpend / liters : null;
+    const odometerRows = rows.filter((row) => row.odometer_km != null && Number.isFinite(Number(row.odometer_km)));
+    $("fuel-board-spend").textContent = money.format(spend);
+    $("fuel-board-count").textContent = rows.length + " tickets · " + rows.filter((row) => !row.date).length + " sin fecha";
+    $("fuel-board-liters").textContent = liters > 0 ? number.format(liters) + " L" : "Sin datos";
+    $("fuel-board-liters-hint").textContent = measuredRows.length + "/" + rows.length + " tickets con litros observados";
+    $("fuel-board-price").textContent = effectivePrice == null ? "Sin datos" : money.format(effectivePrice) + "/L";
+    $("fuel-board-price-hint").textContent = measuredRows.length + " tickets con importe y litros";
+    $("fuel-board-consumption").textContent = financial.consumptionLPer100Km > 0
+      ? number.format(financial.consumptionLPer100Km) + " L/100 km" : "Sin datos";
+    $("fuel-board-consumption-hint").textContent = financial.consumptionSource === "tank_to_tank"
+      ? "Medición entre cargas completas" : "Referencia de prueba Etios; no es medición del vehículo";
+    $("fuel-board-estimated-cost").textContent = financial.fuelCost == null ? "Sin base" : money.format(financial.fuelCost);
+    $("fuel-board-estimated-cost-hint").textContent = financial.fuelCost == null
+      ? "Faltan kilómetros o precio aplicable"
+      : number.format(financial.fuelLiters) + " L estimados · " + (financial.fuelMode === "vehicle_odometer" ? "odómetro" : financial.fuelMode === "vehicle_odometer_partial" ? "odómetro parcial" : "km reales con pasajero, parcial");
+    $("fuel-board-cost-km").textContent = financial.fuelCost == null || !(financial.fuelKm > 0)
+      ? "Sin base" : money.format(financial.fuelCost / financial.fuelKm) + "/km";
+    $("fuel-board-cost-km-hint").textContent = financial.fuelKm > 0
+      ? number.format(financial.fuelKm) + " km · " + (financial.fuelMode === "vehicle_odometer" ? "odómetro completo" : "base parcial")
+      : "No hay kilómetros observados para el cálculo";
+    $("fuel-board-coverage").textContent = measuredRows.length + "/" + rows.length + " con litros · " +
+      odometerRows.length + "/" + rows.length + " con odómetro";
+    const sorted = rows.sort((a, b) =>
+      ((b.date || "0000-00-00") + " " + (b.time || "")).localeCompare((a.date || "0000-00-00") + " " + (a.time || ""))
+    );
+    $("fuel-board-table").innerHTML = sorted.length
+      ? '<div class="weekly-prime-scroll"><table class="fuel-table"><thead><tr><th>FECHA</th><th>ESTACIÓN</th><th class="right">LITROS</th><th class="right">$/L</th><th class="right">TOTAL</th><th class="right">ODÓMETRO</th><th>TANQUE</th></tr></thead><tbody>' +
+        sorted.map((row) => {
+          const rowLiters = asNumber(row.liters);
+          const rowTotal = asNumber(row.total_ars);
+          const rowPrice = asNumber(row.price_per_liter) > 0 ? asNumber(row.price_per_liter) : rowLiters > 0 && rowTotal > 0 ? rowTotal / rowLiters : null;
+          const date = row.date ? dateLabel(row.date) + (row.time ? " · " + row.time : "") : "Sin fecha";
+          return '<tr><td>' + escapeHtml(date) + '</td><td>' + escapeHtml(row.station || "Sin estación") +
+            '</td><td class="right">' + (rowLiters > 0 ? number.format(rowLiters) : "—") +
+            '</td><td class="right">' + (rowPrice == null ? "—" : escapeHtml(money.format(rowPrice))) +
+            '</td><td class="right">' + escapeHtml(money.format(rowTotal)) +
+            '</td><td class="right">' + (row.odometer_km == null ? "—" : number.format(asNumber(row.odometer_km))) +
+            '</td><td>' + (row.full_tank === true || row.full_tank === 1 ? "Sí" : "No / sin dato") + '</td></tr>';
+        }).join("") + '</tbody></table></div>'
+      : '<div class="empty">No hay compras de combustible para este período.</div>';
+    $("fuel-board-note").textContent =
+      "Gasto pagado: " + money.format(spend) + ". " +
+      (rows.some((row) => !row.date) ? "Las cargas sin fecha permanecen separadas temporalmente. " : "") +
+      "El precio efectivo se calcula solo con tickets que tienen importe y litros. El costo estimado por km usa " +
+      (financial.fuelMode === "vehicle_odometer" ? "odómetro completo." :
+        financial.fuelMode === "vehicle_odometer_partial" ? "odómetro parcial." :
+        financial.fuelMode === "passenger_km_partial" ? "kilómetros reales con pasajero; faltan trayectos vacíos." :
+        "ninguna distancia utilizable.");
   }
   function renderRewards(rewards) {
     if (!rewards.length) { $('rewards-table').innerHTML = '<div class="empty">No hay recompensas importadas en este período.</div>'; return; }

@@ -20,6 +20,7 @@ export function calculateTripNetAfterFuel({ tripGross = 0, fuelPurchaseSpend = 0
 export function dashboardPageFromPath(pathname = "/") {
   const path = String(pathname || "/");
   if (path === "/inputs" || path.startsWith("/inputs/")) return "inputs";
+  if (path === "/fuel" || path.startsWith("/fuel/")) return "fuel";
   if (path === "/panel" || path.startsWith("/panel/")) return "home";
   if (path === "/trips" || path.startsWith("/trips/")) return "trips";
   return "trips";
