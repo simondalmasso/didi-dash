@@ -75,17 +75,24 @@ El ledger actual conserva el formato histórico fare_breakdown con las seis clav
 
 Ejecutar npm test. Los casos cubren suma y tolerancia, seis componentes, nulos ausentes, códigos desconocidos, origen no real, revisión por descuadre, idempotencia, conflictos, whitelists, fuel sin fecha, buckets diarios/horarios y límites de horas conectadas.
 
-### Inteligencia operativa por franja
+### Inteligencia operativa y límites de decisión
 
-Las franjas se agrupan por hora de inicio del viaje: 18–20, 20–22 y 22–24. Para cada franja:
+Las métricas operativas se calculan sobre el período seleccionado y se basan en la hora de inicio observada del viaje. No intentan reconstruir sesiones, espera, tiempo libre ni turnos.
 
-- `tripCount` incluye todos los viajes con hora de inicio válida en la franja.
-- `durationTrips` incluye solo viajes con duración observada positiva.
+**Franjas horarias:** se agrupan en seis segmentos: 00–06, 06–12, 12–18, 18–20, 20–22 y 22–24. Para cada segmento:
+
+- `tripCount` incluye todos los viajes cuya hora de inicio sea un `HH:mm` válido dentro del segmento.
+- `durationTrips` incluye solo esos viajes con duración positiva observada.
 - `coveragePercent = durationTrips / tripCount × 100`.
-- `grossPerPassengerHour = suma de importes de esos mismos viajes con duración / suma de sus duraciones × 3600`. No se usa el bruto de viajes sin duración en el numerador.
-- Una franja se puede ordenar solo con al menos 5 viajes, actividad en al menos 2 fechas y cobertura de duración de al menos 90%. Las demás se muestran como `no rankeada`, incluso cuando la tasa parcial parezca alta.
+- `grossPerPassengerHour` divide el bruto de esos mismos viajes con duración por la suma de sus duraciones. El bruto de viajes sin duración no entra al numerador.
+- Solo se rankea con al menos 5 viajes, actividad en 2 o más fechas y cobertura de duración de al menos 90%. Las demás franjas muestran la razón por la que no se rankean.
+- Las horas de inicio ausentes o inválidas permanecen fuera de los buckets y se reportan por separado.
 
-La tasa representa horas con pasajero informadas por DiDi, no horas conectado a la app. La ausencia de sesiones sincronizadas significa que esa métrica es desconocida. Las comparaciones por día de semana con menos de 3 fechas por grupo también deben permanecer descriptivas, no rankeadas.
+**Día de semana:** cada viaje se asigna al día calendario de su fecha ISO. Se muestran viajes, fechas activas, bruto por fecha activa, cobertura de duración y bruto por hora con pasajero. Solo se rankea con al menos 5 viajes, 3 fechas activas distintas y 90% de cobertura de duración. Con menos fechas, el resultado es descriptivo y no debe recomendar un día de trabajo.
+
+**Distancia de viaje:** los rangos son corto (km reales >0 y ≤3), medio (>3 y ≤8) y largo (>8). Solo entran viajes con `km_source="actual"` y km positivos. Kilómetros estimados, nulos o desconocidos se excluyen y su cobertura se informa por separado. Para comparar se muestran bruto/km real y bruto/hora con pasajero. Solo se rankea con al menos 5 viajes, 2 fechas y 90% de duración conocida.
+
+**Interpretación:** estas tasas son rendimiento bruto durante el tiempo con pasajero; no son beneficio, margen ni rendimiento por hora conectada. No incluyen distancias de recogida sin pasajero, circulación vacía, espera ni el costo completo del vehículo. Por tanto, una tasa alta no prueba que aceptar un viaje sea rentable. La caja registrada y el bruto diario tampoco prueban ganancia o pérdida diaria. La clasificación diaria de ganancia/pérdida requiere asignar costos reales y tiempo de jornada a cada fecha; mientras falte esa evidencia, debe mostrarse como no clasificable, no como cero ni como pérdida.
 
 ### Comisiones de retiros
 

@@ -346,3 +346,101 @@ test("recorded work sessions count once when a local session is also present in 
   assert.equal(result.connectedMinutes, 90);
   assert.equal(result.connectedHours, 1.5);
 });
+
+test("weekday intelligence uses recorded trip dates and refuses to rank fewer than three active dates", () => {
+  const trips = [
+    { date: "2026-11-07", start: "18:10", amount: 1000, duration_seconds: 600 },
+    { date: "2026-11-07", start: "19:10", amount: 1000, duration_seconds: 600 },
+    { date: "2026-11-14", start: "18:10", amount: 1000, duration_seconds: 600 },
+    { date: "2026-11-14", start: "19:10", amount: 1000, duration_seconds: 600 },
+    { date: "2026-11-21", start: "18:10", amount: 1000, duration_seconds: 600 }
+  ];
+  const result = buildDataFina({ trips, rewards: [], fuel: [] });
+  const saturday = result.weekdays.find((row) => row.day === 6);
+
+  assert.equal(saturday.tripCount, 5);
+  assert.equal(saturday.dateCount, 3);
+  assert.equal(saturday.durationTrips, 5);
+  assert.equal(saturday.coveragePercent, 100);
+  assert.equal(saturday.grossPerPassengerHour, 6000);
+  assert.equal(saturday.ranked, true);
+});
+
+test("weekday with only two active dates remains descriptive even with full duration coverage", () => {
+  const result = buildDataFina({
+    trips: [
+      { date: "2026-11-07", start: "18:10", amount: 1000, duration_seconds: 600 },
+      { date: "2026-11-07", start: "19:10", amount: 1000, duration_seconds: 600 },
+      { date: "2026-11-14", start: "18:10", amount: 1000, duration_seconds: 600 },
+      { date: "2026-11-14", start: "19:10", amount: 1000, duration_seconds: 600 },
+      { date: "2026-11-14", start: "20:10", amount: 1000, duration_seconds: 600 }
+    ],
+    rewards: [], fuel: []
+  });
+  const saturday = result.weekdays.find((row) => row.day === 6);
+  assert.equal(saturday.coveragePercent, 100);
+  assert.equal(saturday.ranked, false);
+  assert.match(saturday.reason, /3 fechas/);
+});
+
+test("operational time bands cover madrugada, mañana, tarde and split night using matched duration samples", () => {
+  const trips = [];
+  const starts = ["01:10", "07:10", "13:10", "18:10", "20:10", "22:10"];
+  for (const date of ["2026-11-13", "2026-11-14"]) {
+    for (const start of starts) {
+      for (let i = 0; i < 3; i += 1) {
+        trips.push({ date, start, amount: 1000, duration_seconds: 600 });
+      }
+    }
+  }
+  const result = buildDataFina({ trips, rewards: [], fuel: [] });
+  assert.deepEqual(result.timeBands.map((row) => row.label), [
+    "00–06", "06–12", "12–18", "18–20", "20–22", "22–24"
+  ]);
+  assert.equal(result.timeBands.every((row) => row.ranked), true);
+  assert.equal(result.timeBands.find((row) => row.label === "06–12").grossPerPassengerHour, 6000);
+});
+
+test("trip-distance intelligence uses actual kilometres only and keeps insufficient long-trip coverage unranked", () => {
+  const trips = [];
+  for (const date of ["2026-11-13", "2026-11-14"]) {
+    for (let i = 0; i < 5; i += 1) {
+      trips.push({ date, start: "18:10", amount: 1000, km: 2, km_source: "actual", duration_seconds: 600 });
+      trips.push({ date, start: "19:10", amount: 1000, km: 5, km_source: "actual", duration_seconds: 600 });
+      trips.push({ date, start: "20:10", amount: 1000, km: 10, km_source: "actual", duration_seconds: i < 4 ? 600 : null });
+    }
+    trips.push({ date, start: "21:10", amount: 9000, km: 2, km_source: "estimated", duration_seconds: 600 });
+    trips.push({ date, start: "22:10", amount: 9000, km: null, km_source: "unknown", duration_seconds: 600 });
+  }
+  const result = buildDataFina({ trips, rewards: [], fuel: [] });
+  const short = result.distanceBands.find((row) => row.key === "short");
+  const medium = result.distanceBands.find((row) => row.key === "medium");
+  const long = result.distanceBands.find((row) => row.key === "long");
+
+  assert.equal(short.tripCount, 10);
+  assert.equal(short.grossPerKm, 500);
+  assert.equal(short.ranked, true);
+  assert.equal(medium.ranked, true);
+  assert.equal(long.tripCount, 10);
+  assert.equal(long.coveragePercent, 80);
+  assert.equal(long.ranked, false);
+  assert.equal(result.distanceCoverage.actualKmTrips, 30);
+  assert.equal(result.distanceCoverage.unknownOrEstimatedTrips, 4);
+});
+
+
+test("invalid or missing start times remain unassigned in hourly intelligence", () => {
+  const result = buildDataFina({
+    trips: [
+      { date: "2026-11-14", start: "08:10", amount: 1000, duration_seconds: 600 },
+      { date: "2026-11-14", start: "08:bad", amount: 2000, duration_seconds: 600 },
+      { date: "2026-11-14", start: null, amount: 3000, duration_seconds: 600 }
+    ],
+    rewards: [], fuel: []
+  });
+  assert.equal(result.hours[8].gross, 1000);
+  assert.equal(result.timeBands.find((row) => row.label === "06–12").tripCount, 1);
+  assert.equal(result.unassignedStartTimeTrips, 2);
+  assert.equal(result.unassignedStartTimeGross, 5000);
+  assert.equal(result.hours.reduce((sum, row) => sum + row.gross, 0), 1000);
+});

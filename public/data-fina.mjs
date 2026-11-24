@@ -8,6 +8,58 @@ const COMPONENTS = [
 ];
 const COMPONENT_BY_CODE = new Map(COMPONENTS.map((item) => [item.code, item]));
 const PRIME_HOURS = new Set([7, 8, 9, 17, 18, 19, 20, 21, 22]);
+const WEEKDAY_LABELS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const TIME_BANDS = [
+  { key: "dawn", label: "00–06", startHour: 0, endHour: 6 },
+  { key: "morning", label: "06–12", startHour: 6, endHour: 12 },
+  { key: "afternoon", label: "12–18", startHour: 12, endHour: 18 },
+  { key: "evening-1", label: "18–20", startHour: 18, endHour: 20 },
+  { key: "evening-2", label: "20–22", startHour: 20, endHour: 22 },
+  { key: "evening-3", label: "22–24", startHour: 22, endHour: 24 }
+];
+const DISTANCE_BANDS = [
+  { key: "short", label: "Corto ≤3 km", minExclusive: 0, maxInclusive: 3 },
+  { key: "medium", label: "Medio >3–8 km", minExclusive: 3, maxInclusive: 8 },
+  { key: "long", label: "Largo >8 km", minExclusive: 8, maxInclusive: null }
+];
+const MIN_OPERATIONAL_TRIPS = 5;
+const MIN_OPERATIONAL_COVERAGE_PERCENT = 90;
+
+function tripStartHour(trip) {
+  const match = /^(?:([01]\d|2[0-3])):[0-5]\d$/.exec(String(trip?.start ?? ""));
+  return match ? Number(match[1]) : null;
+}
+
+function performanceMetrics(rows, minimumDates) {
+  const durationRows = rows.filter((row) => tripDurationSeconds(row) > 0);
+  const coveredGross = durationRows.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+  const durationSeconds = durationRows.reduce((sum, row) => sum + tripDurationSeconds(row), 0);
+  const dateCount = new Set(rows.map((row) => row.date).filter((date) => inRange(date, null, null))).size;
+  const coveragePercent = rows.length ? durationRows.length / rows.length * 100 : 0;
+  const grossPerPassengerHour = durationSeconds > 0
+    ? coveredGross / (durationSeconds / 3600)
+    : null;
+  const reason = rows.length < MIN_OPERATIONAL_TRIPS
+    ? "muestra menor a 5 viajes"
+    : dateCount < minimumDates
+      ? `menos de ${minimumDates} fechas con actividad`
+      : coveragePercent < MIN_OPERATIONAL_COVERAGE_PERCENT
+        ? "cobertura de duración menor a 90%"
+        : grossPerPassengerHour == null
+          ? "sin duración observada"
+          : null;
+  return {
+    tripCount: rows.length,
+    durationTrips: durationRows.length,
+    coveragePercent,
+    coveredGross,
+    durationSeconds,
+    dateCount,
+    grossPerPassengerHour,
+    ranked: reason == null,
+    reason
+  };
+}
 
 function validAmount(value) {
   if (value == null || value === "") return null;
@@ -230,8 +282,8 @@ export function buildDataFina({
     day.gross += amount;
     day.trips += 1;
     daysMap.set(trip.date, day);
-    const hour = Number(String(trip.start ?? "").slice(0, 2));
-    if (Number.isInteger(hour) && hour >= 0 && hour < 24) {
+    const hour = tripStartHour(trip);
+    if (hour != null) {
       hours[hour].gross += amount;
       hours[hour].trips += 1;
       if (PRIME_HOURS.has(hour)) primeGross += amount;
@@ -255,42 +307,79 @@ export function buildDataFina({
   // Unknown withdrawal evidence is displayed as unknown; cash net keeps an explicit zero-fee assumption for arithmetic only.
   const cashNet = tripGross + rewardGross - fuelSpend - (withdrawalFeeSpend ?? 0);
   const passengerHours = reportedSeconds / 3600;
-  const TIME_BANDS = [
-    { label: "18–20", startHour: 18, endHour: 20 },
-    { label: "20–22", startHour: 20, endHour: 22 },
-    { label: "22–24", startHour: 22, endHour: 24 }
-  ];
-  const MIN_TIME_BAND_TRIPS = 5;
-  const MIN_TIME_BAND_DATES = 2;
-  const MIN_TIME_BAND_COVERAGE_PERCENT = 90;
+  const rowsWithValidStart = selectedTrips.filter((row) => tripStartHour(row) != null);
+  const unassignedStartTimeRows = selectedTrips.filter((row) => tripStartHour(row) == null);
   const timeBands = TIME_BANDS.map((band) => {
-    const rows = selectedTrips.filter((row) => {
-      const hour = Number(String(row.start ?? "").slice(0, 2));
-      return Number.isInteger(hour) && hour >= band.startHour && hour < band.endHour;
+    const rows = rowsWithValidStart.filter((row) => {
+      const hour = tripStartHour(row);
+      return hour >= band.startHour && hour < band.endHour;
     });
-    const withDuration = rows.filter((row) => tripDurationSeconds(row) > 0);
-    const coveredGross = withDuration.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
-    const durationSeconds = withDuration.reduce((sum, row) => sum + tripDurationSeconds(row), 0);
-    const coveragePercent = rows.length ? withDuration.length / rows.length * 100 : 0;
-    const dateCount = new Set(rows.map((row) => row.date).filter((date) => inRange(date, from, to))).size;
-    const grossPerPassengerHour = durationSeconds > 0 ? coveredGross / (durationSeconds / 3600) : null;
-    const ranked = rows.length >= MIN_TIME_BAND_TRIPS && dateCount >= MIN_TIME_BAND_DATES && coveragePercent >= MIN_TIME_BAND_COVERAGE_PERCENT && grossPerPassengerHour != null;
     return {
       ...band,
-      tripCount: rows.length,
-      durationTrips: withDuration.length,
-      coveragePercent,
-      coveredGross,
-      durationSeconds,
-      dateCount,
-      grossPerPassengerHour,
-      ranked,
-      reason: ranked ? null : rows.length < MIN_TIME_BAND_TRIPS ? "muestra menor a 5 viajes" : dateCount < MIN_TIME_BAND_DATES ? "menos de 2 fechas con actividad" : coveragePercent < MIN_TIME_BAND_COVERAGE_PERCENT ? "cobertura de duración menor a 90%" : "sin duración observada"
+      gross: rows.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0),
+      grossPerTrip: rows.length
+        ? rows.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0) / rows.length
+        : null,
+      ...performanceMetrics(rows, 2)
     };
   });
   const rankedTimeBands = timeBands.filter((band) => band.ranked).slice().sort((a, b) =>
     b.grossPerPassengerHour - a.grossPerPassengerHour
   );
+
+  const weekdayRows = Array.from({ length: 7 }, (_, day) => ({
+    day,
+    label: WEEKDAY_LABELS[day],
+    rows: []
+  }));
+  for (const trip of selectedTrips) {
+    const date = trip?.date;
+    if (!inRange(date, null, null)) continue;
+    const day = new Date(date + "T12:00:00.000Z").getUTCDay();
+    weekdayRows[day].rows.push(trip);
+  }
+  const weekdays = weekdayRows.map((weekday) => {
+    const metrics = performanceMetrics(weekday.rows, 3);
+    const gross = weekday.rows.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+    return {
+      day: weekday.day,
+      label: weekday.label,
+      gross,
+      grossPerActiveDate: metrics.dateCount ? gross / metrics.dateCount : null,
+      ...metrics
+    };
+  });
+  const rankedWeekdays = weekdays.filter((weekday) => weekday.ranked).slice().sort((a, b) =>
+    b.grossPerPassengerHour - a.grossPerPassengerHour
+  );
+
+  const actualKmRows = selectedTrips.filter((row) =>
+    row.km_source === "actual" && Number.isFinite(Number(row.km)) && Number(row.km) > 0
+  );
+  const distanceBands = DISTANCE_BANDS.map((band) => {
+    const rows = actualKmRows.filter((row) => {
+      const km = Number(row.km);
+      return km > band.minExclusive && (band.maxInclusive == null || km <= band.maxInclusive);
+    });
+    const gross = rows.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0);
+    const actualKm = rows.reduce((sum, row) => sum + Number(row.km), 0);
+    return {
+      ...band,
+      gross,
+      actualKm,
+      grossPerKm: actualKm > 0 ? gross / actualKm : null,
+      grossPerTrip: rows.length ? gross / rows.length : null,
+      ...performanceMetrics(rows, 2)
+    };
+  });
+  const rankedDistanceBands = distanceBands.filter((band) => band.ranked).slice().sort((a, b) =>
+    b.grossPerPassengerHour - a.grossPerPassengerHour
+  );
+  const distanceCoverage = {
+    actualKmTrips: actualKmRows.length,
+    unknownOrEstimatedTrips: Math.max(0, selectedTrips.length - actualKmRows.length),
+    actualKmPercent: selectedTrips.length ? actualKmRows.length / selectedTrips.length * 100 : 0
+  };
 
   return {
     tripCount: selectedTrips.length,
@@ -320,9 +409,17 @@ export function buildDataFina({
     grossPerPassengerHour: passengerHours > 0 ? durationCoveredGross / passengerHours : null,
     timeBands,
     rankedTimeBands,
-    timeBandMinCoveragePercent: MIN_TIME_BAND_COVERAGE_PERCENT,
-    timeBandMinTrips: MIN_TIME_BAND_TRIPS,
-    timeBandMinDates: MIN_TIME_BAND_DATES,
+    timeBandMinCoveragePercent: MIN_OPERATIONAL_COVERAGE_PERCENT,
+    timeBandMinTrips: MIN_OPERATIONAL_TRIPS,
+    timeBandMinDates: 2,
+    unassignedStartTimeTrips: unassignedStartTimeRows.length,
+    unassignedStartTimeGross: unassignedStartTimeRows.reduce((sum, row) => sum + (validAmount(row.amount) ?? 0), 0),
+    weekdays,
+    rankedWeekdays,
+    weekdayMinDates: 3,
+    distanceBands,
+    rankedDistanceBands,
+    distanceCoverage,
     grossPerKm: actualKm > 0 ? actualKmGross / actualKm : null,
     cashMarginPerKm: null,
     categoryCoverage: {

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
+  <link rel="icon" href="data:,">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <title>Etios</title>
@@ -95,7 +96,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#a4a4ab;ma
 .bar{height:8px;background:#252529}.bar>i{background:linear-gradient(90deg,#8baa49,var(--green))}
 .bar-row{font-size:12px;grid-template-columns:74px 1fr 92px;margin:13px 0}.bar-row strong{font-size:11px}
 .warning{display:none}.note{font-size:11px;color:#85858d;line-height:1.6}.empty{padding:26px 14px;color:#85858d}
-.table-wrap{overflow:visible}table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}th{padding:12px 10px;text-transform:uppercase;letter-spacing:.09em;font-size:9px;color:#85858d}td{padding:13px 10px;border-bottom:1px solid rgba(255,255,255,.055)}
+.table-wrap{overflow:visible}#ledger-audit-days{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain}#ledger-audit-days>.summary-scroll{width:100%;max-width:100%;min-width:0;overflow-x:auto}#ledger-audit-days table{width:max-content;min-width:860px}table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}th{padding:12px 10px;text-transform:uppercase;letter-spacing:.09em;font-size:9px;color:#85858d}td{padding:13px 10px;border-bottom:1px solid rgba(255,255,255,.055)}
 .grid.two{gap:13px}.section-link{color:#c7f36a;text-decoration:none;font-size:11px}
 .chart-svg{display:block;width:100%;height:auto;overflow:visible}.chart-grid{stroke:rgba(255,255,255,.075);stroke-width:1}.chart-line{fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.chart-dot{fill:var(--green);stroke:#151518;stroke-width:3}.chart-label{fill:#85858d;font-size:10px;font-family:inherit}.chart-value{fill:#bdbdc3;font-size:10px;font-family:inherit}
 .trip-list,.reward-list{display:grid;gap:8px}.trip-row,.reward-row{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:17px;padding:13px 14px}.trip-head,.reward-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.trip-date,.reward-date{font-size:11px;color:#92929a}.trip-platform{font-size:11px;color:#c7f36a;text-transform:uppercase;letter-spacing:.08em}.trip-amount,.reward-amount{font-size:17px;font-weight:700;letter-spacing:-.04em;white-space:nowrap}.trip-details{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.trip-details span{font-size:10px;color:#a5a5ac;background:rgba(255,255,255,.055);padding:5px 8px;border-radius:8px}.reward-head{align-items:flex-start}.reward-label{font-size:12px;font-weight:600;margin-top:3px}
@@ -139,7 +140,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
 .timeline-gap{grid-column:3;font-size:9px;color:#909098;padding:0 2px 10px}
 .timeline-gap strong{color:#b4b4bd;font-weight:650}
 .timeline-footnote{font-size:10px;line-height:1.5;color:#85858d;margin:8px 0 0;padding-top:10px;border-top:1px solid var(--line)}
-@media(max-width:600px){.day-timeline{padding:13px;border-radius:17px}.timeline-item{grid-template-columns:48px 14px minmax(0,1fr);gap:7px}.timeline-time{font-size:10px}.timeline-card{padding:10px}.timeline-amount{font-size:15px}.timeline-gap{grid-column:3}}
+@media(max-width:600px){.day-timeline{padding:13px;border-radius:17px}.timeline-list{grid-template-columns:minmax(0,1fr)}.timeline-item{grid-column:1/-1;width:100%;min-width:0;grid-template-columns:48px 14px minmax(0,1fr);gap:7px}.timeline-time,.timeline-rail,.timeline-card{min-width:0}.timeline-card{overflow-wrap:anywhere;padding:10px}.timeline-card-head{min-width:0;flex-wrap:wrap}.timeline-amount{font-size:15px}.timeline-gap{grid-column:3}}
 
 
 /* Data fina — live metrics and verified fare allocation */
@@ -207,6 +208,7 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
 .history-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 @media(max-width:760px){.history-actions{width:100%;justify-content:flex-start}.history-actions .period{width:auto;flex:1;min-width:0}.history-actions .period button{flex:1}}
 </style>
+  <link rel="stylesheet" href="/helio-cards.css">
 </head>
 <body>
   <div class="shell">
@@ -367,6 +369,10 @@ html[data-page="trips"] [data-area="dashboard"],html[data-page="trips"] [data-ar
         </div>
         <div class="dfl-spark" id="data-fina-spark" aria-hidden="true"></div>
       </section>
+      <section class="helio-section" data-area="history" aria-labelledby="helio-heading">
+        <div class="helio-section-head"><div><h2 id="helio-heading">Helio · exploración financiera</h2><p>Interacción visual sobre los mismos cálculos del dashboard</p></div></div>
+        <div id="helio-cards"></div>
+      </section>
       <div class="dfl-meters" data-area="history" id="data-fina-meters">
         <article class="dfl-meter">
           <div class="dfl-meter-head"><span>Meta diaria de ingresos</span><span id="data-fina-goal-pct">—</span></div>
@@ -487,6 +493,7 @@ import { buildImportPayload, parseImportJson, submitImportPayload } from "/impor
 import { auditLedger } from "/audit.mjs";
 import { buildTripTimeline } from "/trip-analytics.mjs";
 import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
+import { renderHelioCards } from "/helio-cards.mjs";
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -1115,7 +1122,7 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
     renderMonthlySummary(periodSummary.monthly);
     renderHours(trips);
     renderTrips(trips);
-    renderDataFina(trips, rewards, state.fuel, withdrawals, sessions);
+    renderDataFina(trips, rewards, state.fuel, withdrawals, sessions, financial);
     renderTripTimeline(trips);
     renderRewards(rewards);
     renderSessions(sessions);
@@ -1248,7 +1255,7 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
     });
   }
 
-  function renderDataFina(trips, rewards, ledgerFuel, withdrawals = [], sessions = []) {
+  function renderDataFina(trips, rewards, ledgerFuel, withdrawals = [], sessions = [], financial = {}) {
     const from = state.range > 0 ? localDateDaysAgo(state.range - 1) : null;
     const goal = localSettings.dailyGrossTarget || 80000;
     const result = buildDataFina({
@@ -1457,6 +1464,7 @@ import { buildDataFina, deduplicateWorkSessions } from "/data-fina.mjs";
       result.timeBandMinCoveragePercent + "% y al menos " + result.timeBandMinTrips + " viajes en " + result.timeBandMinDates + " fechas. " +
       "El intervalo 22–24 puede mostrarse con tasa alta y quedar fuera del ranking si su cobertura es insuficiente. " +
       "Son minutos con pasajero reportados por DiDi, no horas conectadas; el ledger registra 0 sesiones sincronizadas.";
+    renderHelioCards($("helio-cards"), result, financial);
   }
 
   function renderTripTimeline(trips) {
