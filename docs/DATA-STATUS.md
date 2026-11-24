@@ -1,4 +1,77 @@
-# Estado de datos — actualización A22 2026-11-21
+# Estado de datos — Didi Dash
+
+## Snapshot vigente — producción verificada el 2026-11-24
+
+**Fuente canónica:** `GET /api/health` y `GET /api/export` del Worker de producción, después de Confirm. Export: `2026-11-24T04:50:52.396Z`, schema 3. Health: `ok=true`, `storage=kv`. Las cinco colecciones informan `truncated=false`.
+
+| Colección / métrica | Antes (PRE) | Después (POST) | Delta |
+|---|---:|---:|---:|
+| Viajes | 342 | **356** | +14 |
+| Bruto de viajes | ARS 1.308.566 | **ARS 1.351.666** | +ARS 43.100 |
+| Recompensas | 7 / ARS 109.300 | 7 / ARS 109.300 | 0 |
+| Combustibles | 11 / ARS 340.000 | **12 / ARS 380.000** | +1 / +ARS 40.000 |
+| Sesiones sincronizadas | 0 | 0 | 0 |
+| Retiros | 0 | 0 | 0 |
+
+La caja tras combustible registrado es ARS 1.080.966 (viajes + recompensas − compras de combustible registradas). **No es utilidad ni beneficio neto.** No se crearon sesiones, recompensas ni retiros.
+
+### Extracción A22 — TIRÓN (2026-11-24)
+
+**Fuente:** Samsung Galaxy A22 SM-A225M, DiDi Conductor; ADB + TIRÓN/RapidOCR/ONNX local. Muestra previa de 8 frames: 18 tarjetas reconocidas y validación del layout. Captura completa: **54 frames**; TIRÓN detectó tres frames consecutivos sin cambios y terminó al final del historial. Los frames persistidos fueron redactados; no se conservaron capturas originales ni OCR libre.
+
+| Resultado del cruce UI vs export PRE | Cantidad |
+|---|---:|
+| Tarjetas reconstruidas por TIRÓN | 104 |
+| Duplicadas contra producción | 90 |
+| Nuevas clasificadas `nuevo` | **14** |
+| Discrepancias | 0 |
+| Ambiguas | 0 |
+| Fragmentos sin parsear, excluidos | 49 |
+
+Distribución de las 104 tarjetas reconstruidas: 23/11: 14; 22/11: 1; 21/11: 25; 20/11: 19; 19/11: 32; 18/11: 13. El delta de producción mostró 252 viajes no visibles en la captura; no son faltantes confirmados porque el historial visible no cubre todas las fechas del ledger. Los 49 fragmentos sin parsear no se reconstruyeron ni se importaron.
+
+Los 14 viajes nuevos tienen fecha confiable, hora válida, modalidad observada **Express** y confianza OCR entre 0,999 y 1,000. Todos carecen de kilometraje y duración observados: se almacenan con `km=null`, `km_source=unknown` y `min=0` únicamente porque el validador actual del Worker exige el campo `min`; ese cero **no es una duración medida**. No se asignaron kilómetros, minutos ni desglose de tarifa por inferencia.
+
+| Fecha | Hora | Tipo observado | Importe |
+|---|---:|---|---:|
+| 2026-11-23 | 20:30 | Express | ARS 4.000 |
+| 2026-11-23 | 20:17 | Express | ARS 2.600 |
+| 2026-11-23 | 20:05 | Express | ARS 3.300 |
+| 2026-11-23 | 19:49 | Express | ARS 3.500 |
+| 2026-11-23 | 19:36 | Express | ARS 2.700 |
+| 2026-11-23 | 19:23 | Express | ARS 3.600 |
+| 2026-11-23 | 19:06 | Express | ARS 4.700 |
+| 2026-11-23 | 18:58 | Express | ARS 2.600 |
+| 2026-11-23 | 18:51 | Express | ARS 2.200 |
+| 2026-11-23 | 18:39 | Express | ARS 2.300 |
+| 2026-11-23 | 18:26 | Express | ARS 2.800 |
+| 2026-11-23 | 18:11 | Express | ARS 3.600 |
+| 2026-11-23 | 18:02 | Express | ARS 3.000 |
+| 2026-11-23 | 17:52 | Express | ARS 2.200 |
+| **Total** | **14 viajes** | | **ARS 43.100** |
+
+### Compra YPF informada por el usuario
+
+Se incorporó una compra por **ARS 40.000**, el **23/11/2026 a las 17:50**, estación **YPF**. El usuario indicó nafta Súper y pago en tienda física. El esquema del ledger solo tiene un campo de estación; no dispone de campos separados para grado de combustible ni medio de pago. Por ello el registro conserva `station=YPF`; el grado Súper y la modalidad de pago quedan como procedencia declarada en este documento, no como campos estructurados. Litros y odómetro permanecen `null`; tanque lleno no se marcó.
+
+### Preview, Confirm y respaldo
+
+- Preview autenticado: HTTP 200, `dry_run=true`; 14 viajes + 1 combustible insertables; 0 updates, duplicados o ambiguos.
+- Confirm autenticado: HTTP 201; 14 viajes + 1 combustible insertados; 0 updates, duplicados o ambiguos.
+- Se usó el mismo payload en Preview y Confirm: SHA-256 `effa426c700d887db7670a70100b3e34a63ddece35171de85376648a45361843`.
+- Antes de Confirm se compararon las cinco colecciones del export PRE contra el backup: contenido idéntico, Health/KV correcto y todas las banderas de truncamiento en false.
+- Export POST reconciliado: SHA-256 `f3ffcee89aa1fc4f07cb81f8df287bd592e44d103e02c6bdefb755a931623d1f`.
+- Backup PRE externo: `ledger-20261124-044733.json`; SHA-256 `36aba9b9175ad012505364cdc6d2a80ef1433eb0e658413dcc6910e7bf040d53`.
+- Backup POST externo: `ledger-20261124-045107.json`; SHA-256 `2e912758d96fc9521671771c46a9a345fff8de981784f6fe1c747ac5f468e8d7`.
+- Los 342 viajes preexistentes y las colecciones de recompensas, combustible, sesiones y retiros previas permanecieron sin modificaciones o pérdidas. Solo se insertaron los 15 registros previstos.
+
+**Watermark:** avanzado después de Confirm y export reconciliado al último viaje incorporado, 2026-11-23 20:30, ARS 4.000. Se conserva una ventana de lookback para eventos tardíos.
+
+**Privacidad y alcance:** payload, export PRE/POST, recibos y evidencia TIRÓN se guardan fuera del repositorio. No se guardaron nombres, teléfonos, direcciones, coordenadas ni OCR libre. No se modificó directamente KV, no se rotó ni imprimió `INGEST_TOKEN`, y la escritura se hizo exclusivamente por el endpoint autenticado `POST /api/ingest`. La ingesta de datos no cambió el código del Worker.
+
+---
+
+## Histórico — snapshot A22 del 2026-11-21
 
 **Producción verificada:** `GET /api/export`, `2026-11-21T03:46:38.430Z`; 209 viajes (ARS 800.900), 7 recompensas, 7 combustibles, 0 sesiones y 0 retiros. Las cinco colecciones devuelven `truncated=false`. `GET /api/health` confirma `storage=kv`.
 
