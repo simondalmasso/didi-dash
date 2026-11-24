@@ -14,7 +14,7 @@ test("import parser accepts a structured backup and whitelists server records", 
       passenger_name: "private", pickup_address: "private"
     }],
     rewards: [{ id: "reward-1", date: "2026-11-13", start: "16:00", amount: 1100, label: "Reembolso", source: "didi_history", phone: "private" }],
-    fuel: [{ id: "fuel-1", date: "2026-11-13", total_ars: 30000, station: "YPF", card_number: "private" }],
+    fuel: [{ id: "fuel-1", date: "2026-11-13", time: "17:48", total_ars: 30000, station: "YPF", card_number: "private" }],
     sessions: [{ id: "session-1", date: "2026-11-13", platform: "didi", connected_start: "08:00", connected_end: "16:00", odometer_start: 82000, odometer_end: 82035, passenger_name: "private" }],
     local_operating_settings: { monthlyCosts: { insurance: 1 }, vehicleSessions: [{ id: "local-1", date: "2026-11-14", platform: "didi", connected_start: "09:00", connected_end: "12:00", odometer_start: 82035, odometer_end: 82050, private_note: "private" }] }
   });
@@ -33,7 +33,7 @@ test("import parser accepts a structured backup and whitelists server records", 
     id: "reward-1", date: "2026-11-13", start: "16:00", amount: 1100,
     label: "Reembolso", source: "didi_history"
   });
-  assert.deepEqual(payload.fuel[0], { id: "fuel-1", date: "2026-11-13", total_ars: 30000, station: "YPF" });
+  assert.deepEqual(payload.fuel[0], { id: "fuel-1", date: "2026-11-13", time: "17:48", total_ars: 30000, station: "YPF" });
   assert.deepEqual(payload.sessions[0], {
     id: "session-1", date: "2026-11-13", platform: "didi",
     connected_start: "08:00", connected_end: "16:00",

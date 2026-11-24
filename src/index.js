@@ -168,6 +168,7 @@ function sameFuelIdentity(left, right) {
   const sameNullableNumber = (a, b) =>
     a == null || b == null ? a == null && b == null : Number(a) === Number(b);
   return left.date === right.date &&
+    String(left.time ?? "") === String(right.time ?? "") &&
     Number(left.total_ars) === Number(right.total_ars) &&
     sameNullableNumber(left.odometer_km, right.odometer_km) &&
     sameNullableNumber(left.liters, right.liters) &&

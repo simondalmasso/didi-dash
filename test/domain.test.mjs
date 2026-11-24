@@ -129,6 +129,7 @@ test("normaliseTrip keeps estimated kilometres explicitly separate from actual k
 
 test("normaliseTrip marks zero kilometres as unknown", async () => {
   const trip = await normaliseTrip({ date: "2026-11-03", start: "18:20", amount: 1800, km: 0, min: 0, platform: "didi" });
+  assert.equal(trip.km, null);
   assert.equal(trip.km_source, "unknown");
 });
 
@@ -327,4 +328,31 @@ test("normaliseWithdrawal preserves an unknown fee as null until reconciled evid
   await assert.rejects(() => normaliseWithdrawal({
     date: "2026-11-15", amount_ars: 50000, reconciled: true
   }), /fee_ars/i);
+});
+
+
+test("normaliseFuelLog preserves a supplied purchase time and rejects invalid clock values", async () => {
+  const entry = await normaliseFuelLog({
+    date: "2026-11-20", time: "17:48", total_ars: 40000,
+    station: "YPF Super"
+  });
+  assert.equal(entry.time, "17:48");
+  await assert.rejects(() => normaliseFuelLog({
+    date: "2026-11-20", time: "24:00", total_ars: 40000,
+    station: "YPF Super"
+  }), /time/i);
+});
+
+
+test("canonical dynamic-base label preserves the acute-accent code point", async () => {
+  const trip = await normaliseTrip({
+    date: "2026-11-14", start: "18:02", amount: 100, km: null, min: 0,
+    platform: "didi", breakdown: {
+      source: "actual", components: [{ code: "base_dinamica", amount: 100 }]
+    }
+  });
+  const label = trip.breakdown.components[0].label;
+  const codepoints = Array.from(label, (char) => char.codePointAt(0).toString(16).toUpperCase().padStart(4, "0"));
+  assert.equal(label, "Tarifa base dinámica", "codepoints=" + codepoints.join(" "));
+  assert.ok(codepoints.includes("00E1"), "expected U+00E1 in codepoints=" + codepoints.join(" "));
 });

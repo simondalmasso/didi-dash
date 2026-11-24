@@ -1558,7 +1558,23 @@ import { renderHelioCards } from "/helio-cards.mjs";
   function renderFuel(fuel) {
     if (!fuel.length) { $('fuel-list').textContent = 'No hay tickets de combustible cargados.'; return; }
     const litres = fuel.reduce((sum, row) => sum + asNumber(row.liters), 0);
-    $('fuel-list').textContent = fuel.length + ' tickets · ' + number.format(litres) + ' L · ' + money.format(fuel.reduce((sum,row) => sum + asNumber(row.total_ars),0)) + ' en compras registradas.';
+    const spend = fuel.reduce((sum, row) => sum + asNumber(row.total_ars), 0);
+    const rows = fuel.slice().sort((a, b) =>
+      ((b.date || '') + ' ' + (b.time || '')).localeCompare((a.date || '') + ' ' + (a.time || ''))
+    );
+    const details = rows.map((row) => {
+      const when = row.date ? dateLabel(row.date) : 'Sin fecha';
+      const time = row.time ? ' · ' + escapeHtml(row.time) : '';
+      const station = escapeHtml(row.station || 'Combustible');
+      const quantity = row.liters == null ? '' : ' · ' + number.format(asNumber(row.liters)) + ' L';
+      return '<article class="reward-row"><div class="reward-head"><div><div class="reward-label">' +
+        station + '</div><div class="reward-date">' + escapeHtml(when) + time + quantity +
+        '</div></div><div class="reward-amount">' + money.format(asNumber(row.total_ars)) +
+        '</div></div></article>';
+    }).join('');
+    $('fuel-list').innerHTML =
+      '<div class="note">' + fuel.length + ' tickets · ' + number.format(litres) + ' L · ' +
+      money.format(spend) + ' en compras registradas.</div><div class="reward-list">' + details + '</div>';
   }
   function renderRewards(rewards) {
     if (!rewards.length) { $('rewards-table').innerHTML = '<div class="empty">No hay recompensas importadas en este período.</div>'; return; }

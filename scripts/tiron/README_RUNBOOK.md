@@ -205,3 +205,29 @@ canonica)**. El tipo se canoniza para que el ruido de OCR ("DID1Auto" vs
 - ocr sustituye primero la entrada de disco por una versión completamente enmascarada, vuelve a procesarla en memoria y regenera siempre los JSON con solo fecha, hora, modalidad, monto y km/min numéricos.
 - Texto desconocido, direcciones y teléfonos se descartan. filas_sin_parsear.csv no lleva texto; contiene solo frame, motivo y posición.
 - Validar con python test_privacy.py antes de usar el teléfono. Los PNG redaccionados y carpetas de sesión se borran al cerrar la pasada.
+
+
+## 10. Frontera de ejecución y Git
+
+- Antes de operaciones Git, comprobar `whoami` y que el proceso se ejecute como el propietario del checkout. En este equipo, el contexto autorizado es `DESKTOP-DPH3941\Simon`.
+- SentinelX se ejecuta como `NT AUTHORITY\SYSTEM`. Usarlo para ADB, captura/OCR y observación permitida, nunca para Git sobre el checkout de Simon.
+- No agregar `safe.directory` a la configuración global de SYSTEM, no cambiar la propiedad del repositorio y no intentar resolver el rechazo de Git desde esa identidad.
+- Si la sesión propietaria no está disponible, detener la operación Git. No usar SentinelX como sustituto.
+
+## 11. Estado persistente y digestos diarios
+
+El watermark reside fuera del repo en `C:\Temp\didi-dash-evidence\state\watermark.json`. Solo representa el último viaje importado en un Confirm cuya exportación posterior fue reconciliada. Un digest debe registrar los cinco contadores antes/después (trips, rewards, fuel, sessions, withdrawals), importes brutos/cargas, delta nuevo por fecha, resultado Preview/Confirm, health/truncation, watermark, avance de kilometraje y SHA-256 del backup POST vigente. No fabricar una corrida ni adelantar watermark si ADB, app, PC o evidencia no están disponibles.
+
+Objetivo horario elegido: 08:00, America/Argentina/Cordoba. La recurrencia de ChatGPT es flexible y no garantiza el minuto exacto. La primera ejecución autónoma debe validar el acceso real al PC y al A22; un entorno heredado sin equipo asignado no se considera prueba de automatización.
+
+El Confirm se ejecuta exclusivamente por POST autenticado a `/api/ingest`, tras Preview exacto y backup PRE. No requiere el botón Confirm del dashboard. Si un gate de seguridad bloquea el lanzamiento del proceso, registrar el mensaje literal, no eludirlo y no afirmar que la ingesta se ejecutó. Tras una respuesta Confirm ambigua, no repetir POST: reconciliar con un export fresco.
+
+### Digest mínimo obligatorio
+
+1. Timestamp local, estado PC/ADB/A22 y rango visible de historial.
+2. Watermark anterior y posterior; viajes nuevos por fecha e importe ARS.
+3. Conteos antes/después de las cinco colecciones y nuevos registros de rewards/fuel/sessions/withdrawals.
+4. Preview y Confirm: received/inserted/updated/duplicates/ambiguous por colección.
+5. SHA-256 de evidencia/manifiesto, payload y backups PRE/POST.
+6. Health, truncation, kilometraje real/nulo/ceros desconocidos y backfill pendiente.
+7. Bloqueos y causa exacta; si no hubo cambios, indicarlo expresamente.

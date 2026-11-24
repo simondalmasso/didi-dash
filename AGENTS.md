@@ -8,7 +8,7 @@ Before changing the ledger, Worker, extractor or dashboard, read this file and `
 - Prefer a fresh `GET /api/export` with cache-busting over old exports or remembered counts.
 - Do not report a zero count from a missing/unsynced source as proof that no activity occurred.
 - Do not call a day complete if the export is truncated, trips are missing actual kilometres, or durations are missing.
-- Keep discrepancies visible. Never infer missing amounts, dates, kilometres, fuel litres, station names or odometer readings.
+- Keep discrepancies visible. Never infer missing amounts, dates, kilometres, fuel litres, station names or odometer readings. Unknown trip distance is canonical `km: null` with `km_source: "unknown"`; never persist unknown as numeric zero.
 
 ## Privacy and ledger contract
 
@@ -16,7 +16,7 @@ Before changing the ledger, Worker, extractor or dashboard, read this file and `
 - The accepted trip detail fields are `service_type`, `duration_seconds`, `fare_breakdown` (distance, time, wait, dynamic base, differential price, tariff reimbursement), `fare_total_ars`, `adjusted_from_ars`, `earnings_adjusted` and `detail_verified`.
 - Fare component keys are a strict whitelist. Unknown nested fields must be discarded.
 - Existing fare values must not be overwritten by conflicting detail. Classify conflicts as ambiguous.
-- A fuel record may remain undated only when it has an explicit stable ID. Never assign a date by inference. Keep the existing three undated ARS 30,000 records undated unless source evidence identifies them.
+- A fuel record may remain undated only when it has an explicit stable ID. Never assign a date by inference. Keep the existing three undated ARS 30,000 records undated unless source evidence identifies them. Optional fuel `time` is stored only when observed or explicitly user-reported, in `HH:mm`; never infer it.
 - Rewards, fuel, work sessions and wallet withdrawals remain separate ledger collections. Withdrawal principal is a cash transfer, not an expense; only an observed withdrawal fee may reduce recorded cash.
 - Trip gaps are not “waiting time” or connected time unless a recorded work session proves the interval.
 
